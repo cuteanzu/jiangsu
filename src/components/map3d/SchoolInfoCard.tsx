@@ -1,0 +1,219 @@
+import { useMemo } from "react";
+import styled, { keyframes } from "styled-components";
+import { MapPin, Clock, BookOpen, MessageCircle, HelpCircle, X } from "lucide-react";
+import { UNIVERSITIES, TIER_LABEL } from "../../data/jiangsu-universities";
+import type { University, Tier } from "../../data/jiangsu-universities";
+import { SCHOOL_REC } from "./schoolRecommendations";
+
+const SCHOOL_TAGS: Record<string, string[]> = {
+  "南京大学": ["学术氛围浓厚", "鼓楼校区", "仙林大学城"],
+  "东南大学": ["建筑老八校", "四牌楼", "九龙湖"],
+  "苏州大学": ["园林校园", "独墅湖", "古典与现代"],
+  "江南大学": ["食品科学", "太湖之滨", "设计学科"],
+  "中国矿业大学": ["矿业工程", "安全科学", "徐州云龙"],
+};
+
+function getRec(school: University): string {
+  return SCHOOL_REC[school.name] ?? `位于${school.city}的一所优秀本科院校，值得深入了解。`;
+}
+
+function getTags(school: University): string[] {
+  return SCHOOL_TAGS[school.name] ?? [school.city, TIER_LABEL[school.tier], "本科院校"];
+}
+
+// ── Animations ──
+
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+`;
+
+// ── Styled ──
+
+const CardWrapper = styled.div`
+  position: absolute;
+  z-index: 20;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: ${fadeUp} 0.28s ease-out;
+
+  background: rgba(255,252,247,0.94);
+  border-radius: 24px;
+  border: 1px solid rgba(200,170,150,0.25);
+  box-shadow: 0 8px 40px rgba(140,100,70,0.12), 0 2px 8px rgba(180,150,130,0.08);
+  backdrop-filter: blur(20px);
+  padding: 20px 24px;
+  min-width: 320px;
+  max-width: 420px;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+`;
+
+const SchoolName = styled.h3`
+  margin: 0;
+  font-family: "Noto Serif SC","Songti SC","KaiTi",serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3a2f28;
+`;
+
+const CloseBtn = styled.button`
+  border: none;
+  background: rgba(200,170,150,0.15);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #8b7d73;
+  flex-shrink: 0;
+  &:hover { background: rgba(200,150,130,0.25); color: #3a2f28; }
+  svg { width: 14px; height: 14px; }
+`;
+
+const MetaLine = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #6b5d53;
+  svg { width: 13px; height: 13px; color: #b0a090; }
+`;
+
+const TierBadge = styled.span<{ $tier: Tier }>`
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-weight: 700;
+  background: ${({ $tier }) =>
+    $tier === "985" ? "rgba(200,80,60,0.14)" :
+    $tier === "211" ? "rgba(140,100,160,0.14)" :
+    $tier === "dual" ? "rgba(80,120,180,0.12)" :
+    "rgba(120,160,130,0.10)"};
+  color: ${({ $tier }) =>
+    $tier === "985" ? "#b04a3a" :
+    $tier === "211" ? "#7b5ea7" :
+    $tier === "dual" ? "#4a6fa5" :
+    "#5a8e6a"};
+`;
+
+const RecLine = styled.p`
+  margin: 0 0 14px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #5a4a3a;
+`;
+
+const TagRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 14px;
+`;
+
+const Tag = styled.span`
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(220,210,195,0.3);
+  color: #6b5d53;
+  font-weight: 500;
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const ActionBtn = styled.button<{ $primary?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  cursor: pointer;
+  border: 1.5px solid ${({ $primary }) => $primary ? "rgba(200,130,110,0.35)" : "rgba(200,170,150,0.25)"};
+  background: ${({ $primary }) => $primary ? "rgba(240,138,120,0.12)" : "rgba(255,252,247,0.6)"};
+  color: ${({ $primary }) => $primary ? "#b04a3a" : "#4a3a2a"};
+  transition: all 0.15s ease;
+  &:hover {
+    background: ${({ $primary }) => $primary ? "rgba(240,138,120,0.20)" : "rgba(200,170,150,0.20)"};
+    border-color: rgba(200,150,130,0.45);
+  }
+  svg { width: 14px; height: 14px; }
+`;
+
+// ── Component ──
+
+interface SchoolInfoCardProps {
+  schoolName: string;
+  onClose: () => void;
+  onViewDetail: (school: University) => void;
+}
+
+export default function SchoolInfoCard({ schoolName, onClose, onViewDetail }: SchoolInfoCardProps) {
+  const school = useMemo(
+    () => UNIVERSITIES.find((u) => u.name === schoolName) ?? null,
+    [schoolName],
+  );
+
+  if (!school) return null;
+
+  const isKey = school.tier === "985" || school.tier === "211" || school.tier === "dual";
+
+  return (
+    <CardWrapper>
+      <Header>
+        <SchoolName>{school.name}</SchoolName>
+        <CloseBtn onClick={onClose}><X size={14} /></CloseBtn>
+      </Header>
+
+      <MetaLine>
+        <MapPin size={13} /> {school.city}市
+        <TierBadge $tier={school.tier}>{TIER_LABEL[school.tier]}</TierBadge>
+        {school.founded && (
+          <>
+            <Clock size={13} /> {school.founded} 年建校
+          </>
+        )}
+      </MetaLine>
+
+      <RecLine>{getRec(school)}</RecLine>
+
+      <TagRow>
+        {getTags(school).map((t) => (
+          <Tag key={t}>{t}</Tag>
+        ))}
+      </TagRow>
+
+      <ActionRow>
+        <ActionBtn $primary onClick={() => onViewDetail(school)}>
+          <BookOpen size={14} /> 查看校园详情
+        </ActionBtn>
+        {isKey && (
+          <ActionBtn>
+            <MessageCircle size={14} /> 查看相关经验
+          </ActionBtn>
+        )}
+        <ActionBtn>
+          <HelpCircle size={14} /> 我要提问
+        </ActionBtn>
+      </ActionRow>
+    </CardWrapper>
+  );
+}
