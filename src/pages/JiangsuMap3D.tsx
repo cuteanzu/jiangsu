@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { Home, MapPin, Sparkles, MessageCircle, Search, ArrowLeft, BookOpen, Eye, X, Clock, HelpCircle } from "lucide-react";
@@ -8,6 +8,9 @@ import { SCHOOL_REC } from "../components/map3d/schoolRecommendations";
 import { UNIVERSITIES, TIER_LABEL } from "../data/jiangsu-universities";
 import type { Tier, University } from "../data/jiangsu-universities";
 import { CITY_UNIVERSITY_COUNT, CITY_CENTERS } from "../components/map3d/mapTheme";
+import { normalizeCityParam } from "../utils/jiangsuPresentation";
+
+type CockpitMode = "overview" | "city" | "route";
 
 // ═══════════════════════  Styled components  ═══════════════════════
 
@@ -21,22 +24,38 @@ const Page = styled.div`
 `;
 
 const TopBar = styled.header`
-  position: absolute; z-index: 12; top: 26px; left: 38px; right: 38px;
-  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  position: absolute; z-index: 14; top: 22px; left: 32px; right: 32px;
+  display: grid; grid-template-columns: minmax(230px, auto) minmax(280px, 460px) auto;
+  align-items: center; gap: 18px;
   pointer-events: none;
   & > * { pointer-events: auto; }
-  @media (max-width: 820px) { left: 14px; right: 14px; }
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+    top: 14px; left: 14px; right: 14px;
+  }
 `;
 
 const BrandBlock = styled.div`
+  min-height: 58px;
+  padding: 0 18px;
+  border: 1px solid rgba(214, 175, 145, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.74);
+  box-shadow: 0 14px 34px rgba(178, 136, 106, 0.10), inset 0 1px 0 rgba(255,255,255,0.72);
+  backdrop-filter: blur(18px);
+  display: flex;
+  align-items: center;
+
   h1 {
     margin: 0; display: flex; align-items: center; gap: 10px;
-    color: #3a2f28; font-size: clamp(20px, 1.9vw, 28px); font-weight: 700;
-    letter-spacing: 0.05em;
+    color: #3a2f28; font-size: clamp(16px, 1.4vw, 21px); font-weight: 800;
+    letter-spacing: 0;
     text-shadow: 0 2px 0 rgba(255,255,247,0.8), 0 0 18px rgba(180,130,100,0.1);
   }
   h1 span {
-    display: inline-grid; place-items: center; width: 32px; height: 32px;
+    display: inline-grid; place-items: center; width: 34px; height: 34px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, rgba(255, 225, 213, 0.95), rgba(229, 243, 255, 0.86));
     color: #c76b5e; font-size: 24px;
     filter: drop-shadow(0 6px 10px rgba(180,100,80,0.2));
   }
@@ -55,22 +74,79 @@ const GlassButton = styled.button`
   &:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(140,100,70,0.16), 0 0 18px rgba(180,120,90,0.1); }
 `;
 
-const sidePanelBase = `
-  position: absolute; z-index: 8; top: 100px; bottom: 60px; width: 228px;
-  background: rgba(255, 252, 247, 0.88); border-radius: 22px;
-  border: 1px solid rgba(214, 175, 145, 0.25);
-  box-shadow: 0 14px 38px rgba(178, 136, 106, 0.10), inset 0 1px 0 rgba(255,255,247,0.68);
-  backdrop-filter: blur(14px); padding: 20px 16px;
-  font-family: "Noto Sans SC","PingFang SC",sans-serif; overflow-y: auto;
-  @media (max-width: 920px) { display: none; }
+const TopSearch = styled.form`
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 16px;
+  border: 1px solid rgba(160, 190, 210, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.70);
+  box-shadow: 0 14px 34px rgba(120, 150, 170, 0.09), inset 0 1px 0 rgba(255,255,255,0.72);
+  backdrop-filter: blur(18px);
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+
+  svg { color: #8aa6ba; }
+
+  input {
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #3a2f28;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+
+    &::placeholder { color: rgba(100, 120, 135, 0.52); }
+  }
 `;
 
-const LeftPanel = styled.div` ${sidePanelBase} left: 18px; padding-bottom: 24px; `;
-const RightPanel = styled.div` ${sidePanelBase} right: 18px; padding-bottom: 24px; `;
+const SearchSubmit = styled.button`
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #c86d62, #e3a778);
+  color: #fffdf8;
+  cursor: pointer;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  font-weight: 850;
+  white-space: nowrap;
+  box-shadow: 0 10px 22px rgba(188, 102, 82, 0.16);
+`;
+
+const TopActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+`;
+
+const GhostButton = styled(GlassButton)`
+  min-height: 42px;
+  border-radius: 14px;
+  background: rgba(255, 252, 247, 0.68);
+`;
+
+const sidePanelBase = `
+  position: absolute; z-index: 9; top: 104px; bottom: 104px; width: 292px;
+  background: rgba(255, 252, 247, 0.84); border-radius: 22px;
+  border: 1px solid rgba(214, 175, 145, 0.25);
+  box-shadow: 0 20px 48px rgba(158, 126, 104, 0.13), inset 0 1px 0 rgba(255,255,247,0.70);
+  backdrop-filter: blur(18px); padding: 20px 18px;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif; overflow-y: auto;
+  @media (max-width: 1080px) { display: none; }
+`;
+
+const LeftPanel = styled.aside` ${sidePanelBase} left: 22px; padding-bottom: 24px; `;
+const RightPanel = styled.aside` ${sidePanelBase} right: 22px; width: 322px; padding-bottom: 24px; `;
 
 const PanelTitle = styled.div`
   font-family: "Noto Serif SC","Songti SC","KaiTi",serif;
-  font-size: 14px; font-weight: 700; color: #3a2f28;
+  font-size: 17px; font-weight: 800; color: #3a2f28;
   margin-bottom: 12px; display: flex; align-items: center; gap: 7px;
   svg { color: #c76b5e; width: 16px; height: 16px; }
 `;
@@ -192,10 +268,216 @@ const PanelHint = styled.div`
   font-size: 11px; color: #8b7d73; margin-bottom: 12px; line-height: 1.5;
 `;
 
-const VersionBadge = styled.div`
-  position: absolute; z-index: 12; right: 14px; bottom: 8px;
-  color: rgba(120,90,70,0.25);
-  font-family: "Noto Sans SC","PingFang SC",sans-serif; font-size: 10px; pointer-events: none;
+const PanelKicker = styled.div`
+  margin-bottom: 8px;
+  color: #b96b5f;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+`;
+
+const SoftPillRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+`;
+
+const SoftPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(255, 249, 244, 0.76);
+  border: 1px solid rgba(180, 150, 130, 0.18);
+  color: #78685c;
+  font-size: 10.5px;
+  font-weight: 750;
+`;
+
+const MetricGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 10px 0 14px;
+`;
+
+const MetricCard = styled.div`
+  min-width: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(155, 176, 195, 0.20);
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.82), rgba(241, 248, 255, 0.58));
+  padding: 9px 8px;
+  text-align: center;
+
+  .label {
+    color: #9a8a7d;
+    font-size: 9.5px;
+    font-weight: 750;
+    margin-bottom: 3px;
+  }
+
+  .value {
+    color: #455e73;
+    font-size: 12px;
+    font-weight: 850;
+    white-space: nowrap;
+  }
+`;
+
+const RepresentativeList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+`;
+
+const RepresentativeSchool = styled.button`
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid rgba(180, 150, 130, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 252, 247, 0.62);
+  color: #3a2f28;
+  cursor: pointer;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 10px;
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(199, 107, 94, 0.28);
+    background: rgba(255, 255, 255, 0.82);
+  }
+`;
+
+const PrimaryPanelButton = styled.button`
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(189, 102, 87, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #c86d62 0%, #e0a06f 100%);
+  color: #fffdf8;
+  cursor: pointer;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  font-size: 12px;
+  font-weight: 850;
+  box-shadow: 0 12px 22px rgba(188, 102, 82, 0.14);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 15px 26px rgba(188, 102, 82, 0.20);
+  }
+`;
+
+const RouteCard = styled.button`
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(155, 176, 195, 0.24);
+  background: rgba(255, 252, 247, 0.66);
+  color: #3a2f28;
+  cursor: pointer;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(116, 158, 186, 0.34);
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  .title {
+    color: #455e73;
+    font-size: 12px;
+    font-weight: 850;
+    margin-bottom: 4px;
+  }
+
+  .desc {
+    color: #78685c;
+    font-size: 10.5px;
+    line-height: 1.55;
+  }
+`;
+
+const BottomDock = styled.div`
+  position: absolute;
+  z-index: 13;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(132px, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(214, 175, 145, 0.24);
+  background: rgba(255, 252, 247, 0.78);
+  box-shadow: 0 18px 42px rgba(158, 126, 104, 0.14), inset 0 1px 0 rgba(255,255,255,0.72);
+  backdrop-filter: blur(18px);
+
+  @media (max-width: 720px) {
+    width: calc(100% - 28px);
+    grid-template-columns: repeat(3, 1fr);
+    bottom: 14px;
+  }
+`;
+
+const ModeButton = styled.button<{ $active: boolean }>`
+  min-height: 54px;
+  border: 1px solid ${(p) => (p.$active ? "rgba(199, 107, 94, 0.30)" : "rgba(180, 150, 130, 0.16)")};
+  border-radius: 12px;
+  background: ${(p) => (p.$active
+    ? "linear-gradient(135deg, rgba(255, 232, 220, 0.96), rgba(235, 247, 255, 0.82))"
+    : "rgba(255, 255, 255, 0.42)")};
+  color: ${(p) => (p.$active ? "#a84f44" : "#6b5d53")};
+  cursor: pointer;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  column-gap: 8px;
+  padding: 0 12px;
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(199, 107, 94, 0.28);
+  }
+
+  svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  strong {
+    display: block;
+    color: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  span {
+    display: block;
+    margin-top: 2px;
+    color: #9a8a7d;
+    font-size: 9.5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
 `;
 
 // ═══════════════════════  School Magazine Detail  ═══════════════════════
@@ -387,6 +669,43 @@ function cityLifeNote(city: string): { dorm: string; food: string; transit: stri
     "连云港": { dorm: "江苏海洋大学宿舍配套齐全，部分可观海。", food: "海鲜特色突出，食堂种类丰富。", transit: "BRT+公交，海滨城市出行方便。", life: "港口城市，空气清新，山海风光独特。" },
   };
   return notes[city] ?? { dorm: "宿舍配套完善，多为四人间，有空调。", food: "食堂选择丰富，兼顾各地口味，价格实惠。", transit: "城市公共交通覆盖，出行方便。", life: "生活便利，校园周边配套齐全。" };
+}
+
+interface CityCockpitProfile {
+  tags: string[];
+  cost: string;
+  transit: string;
+  jobs: string;
+  audience: string;
+}
+
+const DEFAULT_CITY_PROFILE: CityCockpitProfile = {
+  tags: ["校园生活", "本科高校", "城市体验"],
+  cost: "适中",
+  transit: "便利",
+  jobs: "稳定",
+  audience: "适合想在江苏找到学习节奏、城市资源和生活舒适度平衡点的同学",
+};
+
+const CITY_COCKPIT_PROFILE: Record<string, CityCockpitProfile> = {
+  南京: { tags: ["省会资源", "科研氛围", "实习密集"], cost: "中高", transit: "很便利", jobs: "很丰富", audience: "适合目标明确、想接触更多科研平台和城市资源的同学" },
+  苏州: { tags: ["园林校园", "产业强市", "城市品质"], cost: "较高", transit: "便利", jobs: "很丰富", audience: "适合喜欢精致城市、外企资源和产业机会的同学" },
+  徐州: { tags: ["学风扎实", "生活友好", "考研氛围"], cost: "友好", transit: "便利", jobs: "稳步增长", audience: "适合重视性价比、踏实学风和北方生活气质的同学" },
+  无锡: { tags: ["太湖生活", "宜居节奏", "产业实习"], cost: "中等", transit: "便利", jobs: "丰富", audience: "适合想兼顾舒适城市、产业机会和校园生活品质的同学" },
+  常州: { tags: ["制造业强", "城市紧凑", "生活轻松"], cost: "中等", transit: "便利", jobs: "稳定", audience: "适合偏应用型专业、想要稳定发展和低通勤压力的同学" },
+  南通: { tags: ["江海城市", "生活清爽", "成长空间"], cost: "中等", transit: "较便利", jobs: "发展中", audience: "适合喜欢安静校园、清爽城市和成长型机会的同学" },
+  扬州: { tags: ["淮扬生活", "历史名城", "节奏舒缓"], cost: "友好", transit: "便利", jobs: "稳定", audience: "适合重视生活幸福感、师范农学和慢节奏城市的同学" },
+  镇江: { tags: ["山水校园", "南京近邻", "工科底色"], cost: "友好", transit: "便利", jobs: "稳定", audience: "适合喜欢紧凑城市、工科院校和宁镇通勤资源的同学" },
+  盐城: { tags: ["沿海湿地", "生活成本低", "基础扎实"], cost: "友好", transit: "较便利", jobs: "发展中", audience: "适合想要低生活压力、安静校园和地方产业机会的同学" },
+  淮安: { tags: ["运河城市", "师范工科", "物价友好"], cost: "友好", transit: "便利", jobs: "稳定", audience: "适合重视生活成本、师范工科和城市烟火气的同学" },
+  泰州: { tags: ["医药产业", "城市安静", "生活宜居"], cost: "友好", transit: "较便利", jobs: "稳定", audience: "适合关注医药健康产业、喜欢安静学习环境的同学" },
+  宿迁: { tags: ["新兴城市", "成本低", "校园专注"], cost: "低", transit: "便利", jobs: "成长中", audience: "适合预算敏感、想要专注读书和稳步成长的同学" },
+  连云港: { tags: ["山海城市", "港口资源", "空气清爽"], cost: "友好", transit: "较便利", jobs: "发展中", audience: "适合喜欢山海风光、海洋类专业和慢节奏校园的同学" },
+};
+
+function getCityProfile(city: string | null): CityCockpitProfile {
+  if (!city) return DEFAULT_CITY_PROFILE;
+  return CITY_COCKPIT_PROFILE[city] ?? DEFAULT_CITY_PROFILE;
 }
 
 function SchoolDetailOverlay({ schoolName, onClose }: { schoolName: string; onClose: () => void }) {
@@ -596,7 +915,7 @@ export default function JiangsuMap3D() {
     return s ?? null;
   }, [urlSchoolId]);
 
-  const selectedName = urlCity ?? restoredSchool?.city ?? null;
+  const selectedName = normalizeCityParam(urlCity) ?? restoredSchool?.city ?? null;
   const selectedSchoolName = restoredSchool?.name ?? null;
 
   // ── Lifted state (shared between map and panels) ──
@@ -604,6 +923,8 @@ export default function JiangsuMap3D() {
   const [hoveredSchoolName, setHoveredSchoolName] = useState<string | null>(null);
   const [showAllPins, setShowAllPins] = useState(false);
   const [leftSearch, setLeftSearch] = useState("");
+  const [topSearch, setTopSearch] = useState("");
+  const [activeMode, setActiveMode] = useState<CockpitMode>(() => selectedName ? "city" : "overview");
 
   const updateSelectionParams = useCallback((
     city: string | null,
@@ -633,6 +954,7 @@ export default function JiangsuMap3D() {
     (name: string) => {
       updateSelectionParams(selectedName === name ? null : name, null);
       setShowAllPins(false);
+      setActiveMode(selectedName === name ? "overview" : "city");
     },
     [selectedName, updateSelectionParams],
   );
@@ -652,6 +974,36 @@ export default function JiangsuMap3D() {
     [updateSelectionParams],
   );
 
+  const handleTopSearch = useCallback((event: FormEvent) => {
+    event.preventDefault();
+    const raw = topSearch.trim();
+    if (!raw) return;
+
+    const normalized = normalizeCityParam(raw);
+    const exactCity = CITY_CENTERS.find((c) => c.name === normalized);
+    if (exactCity) {
+      updateSelectionParams(exactCity.name, null);
+      setActiveMode("city");
+      setShowAllPins(false);
+      return;
+    }
+
+    const school = UNIVERSITIES.find((u) => u.name.includes(raw) || raw.includes(u.name));
+    if (school) {
+      updateSelectionParams(school.city, school.name);
+      setActiveMode("city");
+      setShowAllPins(false);
+      return;
+    }
+
+    const fuzzyCity = CITY_CENTERS.find((c) => raw.includes(c.name) || c.name.includes(normalized ?? raw));
+    if (fuzzyCity) {
+      updateSelectionParams(fuzzyCity.name, null);
+      setActiveMode("city");
+      setShowAllPins(false);
+    }
+  }, [topSearch, updateSelectionParams]);
+
   // ── Derived data ──
   const cityUniversities = useMemo(
     () => UNIVERSITIES.filter((u) => u.city === selectedName),
@@ -663,6 +1015,12 @@ export default function JiangsuMap3D() {
     cityUniversities.forEach((u) => { counts[u.tier]++; });
     return counts;
   }, [cityUniversities]);
+
+  const provinceTierCounts = useMemo(() => {
+    const counts: Record<Tier, number> = { "985": 0, "211": 0, "dual": 0, "provincial": 0 };
+    UNIVERSITIES.forEach((u) => { counts[u.tier]++; });
+    return counts;
+  }, []);
 
   const filteredSchools = useMemo(() => {
     if (!leftSearch.trim()) return cityUniversities;
@@ -678,17 +1036,56 @@ export default function JiangsuMap3D() {
     [],
   );
 
+  const selectedCityProfile = useMemo(() => getCityProfile(selectedName), [selectedName]);
+
+  const representativeSchools = useMemo(() => {
+    const flagship = cityUniversities.filter((u) => u.tier !== "provincial");
+    return (flagship.length > 0 ? flagship : cityUniversities).slice(0, 3);
+  }, [cityUniversities]);
+
+  const popularSchools = useMemo(
+    () => UNIVERSITIES
+      .filter((u) => u.tier === "985" || u.tier === "211" || u.tier === "dual")
+      .slice(0, 6),
+    [],
+  );
+
+  const displayMode: CockpitMode = selectedName && activeMode === "overview" ? "city" : activeMode;
+
   // ── Left panel content ──
-  const leftPanel = selectedName ? (
-    // ═══ City state: university list ═══
+  const leftPanel = displayMode === "route" ? (
     <>
-      <BackBtn onClick={() => { updateSelectionParams(null, null); setLeftSearch(""); }}>
+      <PanelKicker>RECOMMENDED ROUTES</PanelKicker>
+      <PanelTitle><MapPin size={16} /> 路线推荐</PanelTitle>
+      <PanelHint>按目标组合城市。切换路线只调整页面信息，不重置当前 3D 相机视角。</PanelHint>
+      <RouteCard onClick={() => { updateSelectionParams("南京", null); setShowAllPins(false); }}>
+        <div className="title">高资源路线 · 南京</div>
+        <div className="desc">985/211 密集，适合科研、保研、实习资源优先的同学。</div>
+      </RouteCard>
+      <RouteCard onClick={() => { updateSelectionParams("苏州", null); setShowAllPins(false); }}>
+        <div className="title">产业机会路线 · 苏州 / 无锡</div>
+        <div className="desc">城市品质高，制造业、互联网、外企和创新产业更集中。</div>
+      </RouteCard>
+      <RouteCard onClick={() => { updateSelectionParams("徐州", null); setShowAllPins(false); }}>
+        <div className="title">性价比路线 · 徐州 / 常州 / 镇江</div>
+        <div className="desc">生活成本更友好，学风扎实，适合稳扎稳打型报考。</div>
+      </RouteCard>
+      <SectionLabel>适合报考人群</SectionLabel>
+      <ExpCard>
+        <div className="title">先定城市节奏，再筛高校层次</div>
+        <div className="meta">把“生活成本、通勤便利、就业机会”一起纳入选择。</div>
+      </ExpCard>
+    </>
+  ) : selectedName ? (
+    <>
+      <BackBtn onClick={() => { updateSelectionParams(null, null); setLeftSearch(""); setActiveMode("overview"); }}>
         <ArrowLeft size={14} /> 返回全省视图
       </BackBtn>
-      <PanelTitle><BookOpen size={16} /> {selectedName}市高校</PanelTitle>
-      <div style={{ fontSize: 11, color: "#8b7d73", marginBottom: 8 }}>
-        共 <span style={{ fontWeight: 700, color: "#5a4a3a" }}>{cityUniversities.length}</span> 所本科院校
-      </div>
+      <PanelKicker>CITY EXPLORATION</PanelKicker>
+      <PanelTitle><BookOpen size={16} /> {selectedName}高校索引</PanelTitle>
+      <PanelHint>
+        共 <span style={{ fontWeight: 800, color: "#5a4a3a" }}>{cityUniversities.length}</span> 所本科院校 · {selectedCityProfile.audience}
+      </PanelHint>
 
       <SearchInput>
         <Search size={14} />
@@ -738,11 +1135,10 @@ export default function JiangsuMap3D() {
       </div>
     </>
   ) : (
-    // ═══ Province state: city overview ═══
     <>
-      <PanelTitle><MapPin size={16} /> 探索江苏高校</PanelTitle>
-      <PanelHint>覆盖 <span style={{ fontWeight: 700, color: "#5a4a3a" }}>13</span> 座城市 · <span style={{ fontWeight: 700, color: "#5a4a3a" }}>78</span> 所本科院校</PanelHint>
-      <PanelHint>点击地图城市，或从下面选择城市，查看高校列表。</PanelHint>
+      <PanelKicker>DISCOVER JIANGSU</PanelKicker>
+      <PanelTitle><MapPin size={16} /> 推荐探索</PanelTitle>
+      <PanelHint>点击地图城市，或从下面选择城市，进入高校与生活指标概览。</PanelHint>
 
       <SearchInput>
         <Search size={14} />
@@ -767,6 +1163,7 @@ export default function JiangsuMap3D() {
               onMouseLeave={() => setHoveredName(null)}
               onClick={() => {
                 updateSelectionParams(c.name, null);
+                setActiveMode("city");
                 setShowAllPins(false);
               }}
             >
@@ -774,19 +1171,41 @@ export default function JiangsuMap3D() {
             </CityChip>
           ))}
       </CityListWrap>
+
+      <SectionLabel><Sparkles size={13} /> 热门高校</SectionLabel>
+      {popularSchools.slice(0, 4).map((school) => (
+        <ExpCard
+          key={school.id}
+          onClick={() => {
+            updateSelectionParams(school.city, school.name);
+            setActiveMode("city");
+          }}
+        >
+          <div className="title">{school.name}</div>
+          <div className="meta">{school.city} · {TIER_LABEL[school.tier]}</div>
+        </ExpCard>
+      ))}
     </>
   );
 
   // ── Right panel content ──
   const rightPanel = selectedName ? (
-    // ═══ City state: overview ═══
     <>
-      <PanelTitle><Sparkles size={16} /> {selectedName}市概览</PanelTitle>
+      <PanelKicker>CITY COLLEGE BRIEF</PanelKicker>
+      <PanelTitle><Sparkles size={16} /> 城市高校概览</PanelTitle>
+      <div style={{ fontFamily: '"Noto Serif SC","Songti SC",serif', fontSize: 25, fontWeight: 900, color: "#302721", marginBottom: 4 }}>
+        {selectedName}
+      </div>
+      <PanelHint>{selectedCityProfile.audience}</PanelHint>
 
       <StatGrid>
         <StatCard>
           <div className="num">{cityUniversities.length}</div>
           <div className="lbl">本科院校</div>
+        </StatCard>
+        <StatCard>
+          <div className="num">{tierCounts["985"] + tierCounts["211"] + tierCounts.dual}</div>
+          <div className="lbl">重点高校</div>
         </StatCard>
       </StatGrid>
       <TierTagRow>
@@ -795,6 +1214,31 @@ export default function JiangsuMap3D() {
         {tierCounts.dual > 0 && <TierTagSmall $tier="dual">双一流 × {tierCounts.dual}</TierTagSmall>}
         {tierCounts.provincial > 0 && <TierTagSmall $tier="provincial">本科 × {tierCounts.provincial}</TierTagSmall>}
       </TierTagRow>
+
+      <SoftPillRow>
+        {selectedCityProfile.tags.map((tag) => <SoftPill key={tag}>{tag}</SoftPill>)}
+      </SoftPillRow>
+
+      <MetricGrid>
+        <MetricCard><div className="label">生活成本</div><div className="value">{selectedCityProfile.cost}</div></MetricCard>
+        <MetricCard><div className="label">交通便利</div><div className="value">{selectedCityProfile.transit}</div></MetricCard>
+        <MetricCard><div className="label">就业机会</div><div className="value">{selectedCityProfile.jobs}</div></MetricCard>
+      </MetricGrid>
+
+      <SectionLabel><BookOpen size={13} /> 代表高校</SectionLabel>
+      <RepresentativeList>
+        {representativeSchools.map((school) => (
+          <RepresentativeSchool
+            key={school.id}
+            onClick={() => handleSelectSchool(school.name)}
+            onMouseEnter={() => setHoveredSchoolName(school.name)}
+            onMouseLeave={() => setHoveredSchoolName(null)}
+          >
+            <span>{school.name}</span>
+            <TierBadge $tier={school.tier}>{TIER_LABEL[school.tier]}</TierBadge>
+          </RepresentativeSchool>
+        ))}
+      </RepresentativeList>
 
       <SectionLabel>
         <MessageCircle size={13} /> 热门校园经验
@@ -817,6 +1261,8 @@ export default function JiangsuMap3D() {
         <div className="title">{selectedName}转专业难不难？</div>
         <div className="meta">8 条回答</div>
       </ExpCard>
+
+      <PrimaryPanelButton onClick={() => setActiveMode("city")}>查看城市详情</PrimaryPanelButton>
 
       {/* School selected module */}
       {selectedSchoolName && (
@@ -842,10 +1288,38 @@ export default function JiangsuMap3D() {
       )}
     </>
   ) : (
-    // ═══ Province state: Liya recommends ═══
     <>
-      <PanelTitle><Sparkles size={16} /> 莉雅推荐</PanelTitle>
-      <PanelHint>点击城市，我会帮你整理高校和校园经验 ✨</PanelHint>
+      <PanelKicker>COCKPIT OVERVIEW</PanelKicker>
+      <PanelTitle><Sparkles size={16} /> 江苏高校驾驶舱</PanelTitle>
+      <PanelHint>以城市为入口，把学校层次、校园经验、问答和生活成本放在同一个探索动线里。</PanelHint>
+
+      <StatGrid>
+        <StatCard>
+          <div className="num">13</div>
+          <div className="lbl">城市</div>
+        </StatCard>
+        <StatCard>
+          <div className="num">{UNIVERSITIES.length}</div>
+          <div className="lbl">本科高校</div>
+        </StatCard>
+        <StatCard>
+          <div className="num">{provinceTierCounts["985"] + provinceTierCounts["211"] + provinceTierCounts.dual}</div>
+          <div className="lbl">重点高校</div>
+        </StatCard>
+      </StatGrid>
+
+      <TierTagRow>
+        <TierTagSmall $tier="985">985 × {provinceTierCounts["985"]}</TierTagSmall>
+        <TierTagSmall $tier="211">211 × {provinceTierCounts["211"]}</TierTagSmall>
+        <TierTagSmall $tier="dual">双一流 × {provinceTierCounts.dual}</TierTagSmall>
+        <TierTagSmall $tier="provincial">本科 × {provinceTierCounts.provincial}</TierTagSmall>
+      </TierTagRow>
+
+      <SectionLabel><Eye size={13} /> 莉雅推荐</SectionLabel>
+      <ExpCard>
+        <div className="title">先看南京、苏州、徐州三类样本</div>
+        <div className="meta">资源密度、城市品质、性价比三种路径最容易形成判断。</div>
+      </ExpCard>
 
       <SectionLabel>
         <MessageCircle size={13} /> 热门校园经验
@@ -879,11 +1353,25 @@ export default function JiangsuMap3D() {
       {!isDetailView && (
         <TopBar>
           <BrandBlock>
-            <h1><span>✿</span>江苏高校探索沙盘</h1>
+            <h1><span>✿</span>江苏高校生活探索驾驶舱</h1>
           </BrandBlock>
-          <GlassButton onClick={() => navigate("/home")}>
-            <Home size={16} /> 返回首页
-          </GlassButton>
+          <TopSearch onSubmit={handleTopSearch}>
+            <Search size={17} />
+            <input
+              value={topSearch}
+              onChange={(event) => setTopSearch(event.target.value)}
+              placeholder="搜索城市或高校，例如 南京 / 苏州大学"
+            />
+            <SearchSubmit type="submit">搜索</SearchSubmit>
+          </TopSearch>
+          <TopActions>
+            <GhostButton onClick={() => navigate("/")}>
+              <Home size={16} /> 返回首页
+            </GhostButton>
+            <GhostButton onClick={() => navigate("/login")}>
+              登录 / 个人入口
+            </GhostButton>
+          </TopActions>
         </TopBar>
       )}
 
@@ -892,6 +1380,32 @@ export default function JiangsuMap3D() {
         <>
           <LeftPanel>{leftPanel}</LeftPanel>
           <RightPanel>{rightPanel}</RightPanel>
+          <BottomDock>
+            <ModeButton
+              $active={displayMode === "overview"}
+              onClick={() => {
+                setActiveMode("overview");
+                updateSelectionParams(null, null);
+              }}
+            >
+              <Sparkles size={17} />
+              <div><strong>总览</strong><span>全省高校格局</span></div>
+            </ModeButton>
+            <ModeButton
+              $active={displayMode === "city"}
+              onClick={() => setActiveMode("city")}
+            >
+              <MapPin size={17} />
+              <div><strong>城市探索</strong><span>高校与生活指标</span></div>
+            </ModeButton>
+            <ModeButton
+              $active={displayMode === "route"}
+              onClick={() => setActiveMode("route")}
+            >
+              <MessageCircle size={17} />
+              <div><strong>路线推荐</strong><span>按目标组合城市</span></div>
+            </ModeButton>
+          </BottomDock>
         </>
       )}
 
@@ -933,8 +1447,6 @@ export default function JiangsuMap3D() {
           }}
         />
       )}
-
-      {!isDetailView && <VersionBadge>v9 · 校园探索沙盘</VersionBadge>}
     </Page>
   );
 }

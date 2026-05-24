@@ -1,4 +1,4 @@
-import { useState, Suspense, useCallback, useMemo, useRef } from "react";
+import { Suspense, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, ContactShadows } from "@react-three/drei";
@@ -96,7 +96,7 @@ function StageFloor() {
 function Scene3D({
   cities, hoveredName, selectedName, selectedSchoolName,
   hoveredSchoolName, showAllPins, hideOverlays,
-  showDebug, onBoxReady, onHover, onUnhover, onSelect,
+  onHover, onUnhover, onSelect,
   onHoverSchool, onSelectSchool,
 }: {
   cities: CityGeometryResult[];
@@ -106,8 +106,6 @@ function Scene3D({
   hoveredSchoolName: string | null;
   showAllPins: boolean;
   hideOverlays: boolean;
-  showDebug: boolean;
-  onBoxReady: (c: THREE.Vector3, s: THREE.Vector3) => void;
   onHover: (n: string) => void;
   onUnhover: () => void;
   onSelect: (n: string) => void;
@@ -123,7 +121,6 @@ function Scene3D({
         <JiangsuExtrudedMap
           cities={cities} hoveredCity={hoveredName} selectedCity={selectedName}
           onHover={onHover} onUnhover={onUnhover} onSelect={onSelect}
-          showDebug={showDebug} onBoxReady={onBoxReady}
         />
       )}
 
@@ -236,22 +233,6 @@ function HeatmapLayerLazy({ selectedCity }: { selectedCity: string | null }) {
 
 // ═══════════════════════  Styles ═══════════════════════
 
-const debugPanelStyle: React.CSSProperties = {
-  position: "absolute", bottom: 12, left: 12, zIndex: 20,
-  background: "rgba(255,252,247,0.88)", color: "#5a4a3a",
-  fontFamily: "monospace", fontSize: 11, padding: "10px 14px",
-  border: "1px solid rgba(214,175,145,0.25)",
-  boxShadow: "0 12px 28px rgba(178,136,106,0.10)",
-  borderRadius: 8, lineHeight: 1.6, maxWidth: 340, pointerEvents: "none",
-};
-const toggleBtnStyle: React.CSSProperties = {
-  position: "absolute", bottom: 12, right: 12, zIndex: 20,
-  background: "rgba(255,252,247,0.72)", color: "#3a2f28",
-  border: "1px solid rgba(200,160,140,0.25)", borderRadius: 8,
-  padding: "6px 12px", fontFamily: '"Noto Sans SC", sans-serif',
-  fontSize: 11, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(8px)",
-};
-
 // ═══════════════════════  Main Component ═══════════════════════
 
 export default function MapScene({
@@ -261,25 +242,10 @@ export default function MapScene({
   onHoverSchool, onSelectSchool,
 }: MapSceneProps) {
   const mapResult = useMapProjection();
-  const [showDebug, setShowDebug] = useState(false);
-  const [boxCenter, setBoxCenter] = useState<THREE.Vector3 | null>(null);
-  const [boxSize, setBoxSize] = useState<THREE.Vector3 | null>(null);
-
-  const handleBoxReady = useCallback((center: THREE.Vector3, size: THREE.Vector3) => {
-    setBoxCenter((prev) => (
-      prev && prev.distanceToSquared(center) < 0.000001 ? prev : center.clone()
-    ));
-    setBoxSize((prev) => (
-      prev && prev.distanceToSquared(size) < 0.000001 ? prev : size.clone()
-    ));
-  }, []);
 
   const cities = mapResult?.cities ?? [];
   const geoLoaded = mapResult !== null;
-  const generatedMeshCount = cities.reduce((s, c) => s + c.geometries.length, 0);
   const featuresCount = mapResult?.featuresCount ?? 0;
-  const successCount = mapResult?.successCount ?? 0;
-  const failCount = mapResult?.failCount ?? 0;
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -332,23 +298,6 @@ export default function MapScene({
         </div>
       )}
 
-      {/* Debug panel */}
-      {showDebug && (
-        <div style={debugPanelStyle}>
-          <div>geoLoaded: {String(geoLoaded)}</div>
-          <div>featuresCount: {featuresCount}</div>
-          <div>generatedMeshCount: {generatedMeshCount}</div>
-          <div>geometrySuccess: {successCount} / fail: {failCount}</div>
-          <div>boxSize: {boxSize ? `${boxSize.x.toFixed(2)}, ${boxSize.y.toFixed(2)}, ${boxSize.z.toFixed(2)}` : "—"}</div>
-          <div>boxCenter: {boxCenter ? `${boxCenter.x.toFixed(2)}, ${boxCenter.y.toFixed(2)}, ${boxCenter.z.toFixed(2)}` : "—"}</div>
-          <div>hovered: {hoveredName ?? "—"}</div>
-          <div>selected: {selectedName ?? "—"}</div>
-          <div>school: {selectedSchoolName ?? "—"}</div>
-        </div>
-      )}
-      <button type="button" onClick={() => setShowDebug((v) => !v)} style={toggleBtnStyle}>
-        {showDebug ? "隐藏调试信息" : "显示调试信息"}
-      </button>
       {geoLoaded && featuresCount !== 13 && (
         <div style={{
           position: "absolute", bottom: 48, left: 12, zIndex: 20,
@@ -380,7 +329,6 @@ export default function MapScene({
             hoveredSchoolName={hoveredSchoolName}
             showAllPins={showAllPins}
             hideOverlays={hideOverlays}
-            showDebug={showDebug} onBoxReady={handleBoxReady}
             onHover={onHover} onUnhover={onUnhover} onSelect={onSelect}
             onHoverSchool={onHoverSchool}
             onSelectSchool={onSelectSchool}

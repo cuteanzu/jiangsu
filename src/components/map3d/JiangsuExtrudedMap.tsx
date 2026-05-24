@@ -29,6 +29,8 @@ export default function JiangsuExtrudedMap({
   onBoxReady,
 }: JiangsuExtrudedMapProps) {
   useEffect(() => {
+    if (!showDebug) return;
+
     console.log(
       "[JiangsuExtrudedMap] rendering:",
       cities.map((c) => `${c.name}(${c.geometries.length})`).join(", "),
@@ -49,7 +51,7 @@ export default function JiangsuExtrudedMap({
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [cities, onBoxReady]);
+  }, [cities, onBoxReady, showDebug]);
 
   return (
     <group>
@@ -63,7 +65,7 @@ export default function JiangsuExtrudedMap({
       {cities.map((city) =>
         city.geometries.map((geo, i) => (
           <CityMesh
-            key={`${city.name}-${i}`}
+            key={`${city.name}-geometry-${i}`}
             name={city.name}
             geometry={geo}
             hovered={hoveredCity === city.name}
