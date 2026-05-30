@@ -759,7 +759,7 @@ export default function Login() {
 
   function startTransition() {
     setTransitioning(true);
-    setTimeout(() => nav("/home"), 420);
+    setTimeout(() => nav("/me"), 420);
   }
 
   // Submit

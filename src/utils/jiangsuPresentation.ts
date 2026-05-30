@@ -1,6 +1,11 @@
 import { TIER_LABEL } from "../data/jiangsu-universities";
 import type { Tier, University } from "../data/jiangsu-universities";
-import type { ProjectedUniversity } from "./jiangsuMap";
+
+interface ProjectedUniversity extends University {
+  x: number;
+  y: number;
+  visualRank: number;
+}
 
 export interface SchoolExhibit {
   title: string;

@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { path: "/qa", label: "问答" },
 ] as const;
 
-const Bar = styled.nav`
+const Bar = styled.nav<{ $dark?: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
@@ -19,10 +19,13 @@ const Bar = styled.nav`
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
-  background: rgba(253, 247, 242, 0.9);
+  background: ${(p) =>
+    p.$dark ? "rgba(0, 0, 0, 0.85)" : "rgba(253, 247, 242, 0.9)"};
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(180, 150, 130, 0.18);
+  border-bottom: 1px solid
+    ${(p) =>
+      p.$dark ? "rgba(255, 255, 255, 0.08)" : "rgba(180, 150, 130, 0.18)"};
   font-family: "Noto Serif SC", "Songti SC", "STSong", "KaiTi", serif;
   box-sizing: border-box;
 
@@ -32,14 +35,14 @@ const Bar = styled.nav`
   }
 `;
 
-const Brand = styled.button`
+const Brand = styled.button<{ $dark?: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
   font-family: inherit;
   font-size: 16px;
   font-weight: 700;
-  color: #3a2f28;
+  color: ${(p) => (p.$dark ? "#fff" : "#3a2f28")};
   letter-spacing: 0;
   padding: 0;
   white-space: nowrap;
@@ -55,13 +58,20 @@ const Links = styled.div`
   gap: 6px;
 `;
 
-const NavLink = styled.button<{ $active: boolean }>`
+const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
-  color: ${(p) => (p.$active ? "#c76b5e" : "#6b5d53")};
+  color: ${(p) =>
+    p.$dark
+      ? p.$active
+        ? "#c76b5e"
+        : "rgba(255,255,255,0.65)"
+      : p.$active
+        ? "#c76b5e"
+        : "#6b5d53"};
   font-weight: ${(p) => (p.$active ? 700 : 500)};
   padding: 6px 14px;
   border-radius: 6px;
@@ -71,7 +81,8 @@ const NavLink = styled.button<{ $active: boolean }>`
 
   &:hover {
     color: #c76b5e;
-    background: rgba(199, 107, 94, 0.06);
+    background: ${(p) =>
+      p.$dark ? "rgba(199, 107, 94, 0.1)" : "rgba(199, 107, 94, 0.06)"};
   }
 
   ${(p) =>
@@ -96,11 +107,23 @@ const NavLink = styled.button<{ $active: boolean }>`
   }
 `;
 
-const LoginLink = styled.button`
-  border: 1px solid rgba(199, 107, 94, 0.18);
+const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
+  border: 1px solid
+    ${(p) =>
+      p.$active
+        ? "rgba(199, 107, 94, 0.3)"
+        : p.$dark
+          ? "rgba(199, 107, 94, 0.18)"
+          : "rgba(199, 107, 94, 0.18)"};
   border-radius: 8px;
-  background: rgba(255, 252, 247, 0.58);
-  color: #8a5a4f;
+  background: ${(p) =>
+    p.$active
+      ? "rgba(199, 107, 94, 0.08)"
+      : p.$dark
+        ? "rgba(255, 255, 255, 0.06)"
+        : "rgba(255, 252, 247, 0.58)"};
+  color: ${(p) =>
+    p.$active ? "#c76b5e" : p.$dark ? "rgba(255,255,255,0.7)" : "#8a5a4f"};
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
@@ -111,7 +134,10 @@ const LoginLink = styled.button`
 
   &:hover {
     color: #c76b5e;
-    background: rgba(255, 252, 247, 0.88);
+    background: ${(p) =>
+      p.$dark
+        ? "rgba(255, 255, 255, 0.12)"
+        : "rgba(255, 252, 247, 0.88)"};
     border-color: rgba(199, 107, 94, 0.3);
   }
 
@@ -136,20 +162,31 @@ export default function NavBar() {
       ? currentPath === "/" || currentPath === "/home"
       : currentPath === path || currentPath.startsWith(`${path}/`);
 
+  const isDark = currentPath === "/" || currentPath === "/home";
+
   return (
-    <Bar>
-      <Brand onClick={() => navigate("/")}>江苏高校生活指南</Brand>
+    <Bar $dark={isDark}>
+      <Brand $dark={isDark} onClick={() => navigate("/")}>
+        江苏高校地图
+      </Brand>
       <Links>
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.path}
             $active={isActive(item.path)}
+            $dark={isDark}
             onClick={() => navigate(item.path)}
           >
             {item.label}
           </NavLink>
         ))}
-        <LoginLink onClick={() => navigate("/login")}>登录</LoginLink>
+        <LoginLink
+          $active={isActive("/me")}
+          $dark={isDark}
+          onClick={() => navigate("/me")}
+        >
+          我
+        </LoginLink>
       </Links>
     </Bar>
   );

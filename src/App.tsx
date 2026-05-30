@@ -5,9 +5,9 @@ import styled, { createGlobalStyle } from "styled-components";
 import { SettingsProvider } from "./Settings";
 import NavBar from "./components/NavBar";
 
-const Home = lazy(() => import("./pages/Home"));
-const SpiritDemo = lazy(() => import("./SpiritDemo"));
+const Home = lazy(() => import("./pages/home/Home"));
 const Login = lazy(() => import("./pages/Login"));
+const Me = lazy(() => import("./pages/Me"));
 const JiangsuMap3D = lazy(() => import("./pages/JiangsuMap3D"));
 const Experiences = lazy(() => import("./pages/Experiences"));
 const QA = lazy(() => import("./pages/QA"));
@@ -27,7 +27,10 @@ const GlobalStyle = createGlobalStyle`
       --nav-height: 56px;
     }
   }
-  html, body, #root {
+  html {
+    background: #080d14;
+  }
+  body, #root {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -87,8 +90,8 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/me" element={<Me />} />
                 <Route path="/home" element={<Home />} />
-                <Route path="/spirits" element={<SpiritDemo />} />
                 <Route path="/jiangsu" element={<JiangsuMap3D />} />
                 <Route path="/experiences" element={<Experiences />} />
                 <Route path="/qa" element={<QA />} />
