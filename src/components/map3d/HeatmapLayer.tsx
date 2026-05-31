@@ -1,15 +1,11 @@
 import { useMemo } from "react";
 import * as THREE from "three";
-import { CITY_UNIVERSITY_COUNT, CITY_CENTERS } from "./mapTheme";
+import { CITY_UNIVERSITY_COUNT } from "./mapTheme";
 import type { CityCenter } from "./mapTheme";
-
-/**
- * Soft campus heatmap: light blue → green → yellow → coral pink.
- * NormalBlending for gentle glow; lower opacity to avoid regulatory look.
- */
 
 interface HeatmapLayerProps {
   selectedCity: string | null;
+  cityCenters?: CityCenter[];
 }
 
 const MAX_COUNT = 26;
@@ -61,10 +57,10 @@ function Hotspot({ h, radius, opacity }: { h: CityCenter; radius: number; opacit
   );
 }
 
-export default function HeatmapLayer({ selectedCity }: HeatmapLayerProps) {
+export default function HeatmapLayer({ selectedCity, cityCenters = [] }: HeatmapLayerProps) {
   return (
     <group>
-      {CITY_CENTERS.map((h) => {
+      {cityCenters.map((h) => {
         const count = CITY_UNIVERSITY_COUNT[h.name] ?? 1;
         const radius = hotspotRadius(count);
         const isSelected = selectedCity === h.name;

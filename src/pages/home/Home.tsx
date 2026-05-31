@@ -129,17 +129,19 @@ export default function Home() {
       }
 
       // 2. Images: start at center, spread outward + come forward
+      // Scale coordinates by viewport width so images spread proportionally on large screens
+      const vwScale = Math.max(1, window.innerWidth / 1440);
       reelWorkEls.forEach((el, i) => {
-        const x = el.dataset.x ?? "0";
-        const y = el.dataset.y ?? "0";
+        const x = `${(parseFloat(el.dataset.x ?? "0") * vwScale).toFixed(1)}rem`;
+        const y = `${(parseFloat(el.dataset.y ?? "0") * vwScale).toFixed(1)}rem`;
         const z = el.dataset.z ?? "-5000";
 
         reelMain.fromTo(
           el,
           { x: 0, y: 0, z: `${z}rem`, opacity: 0 },
           {
-            x: `${x}rem`,
-            y: `${y}rem`,
+            x,
+            y,
             z: "1000rem",
             opacity: 1,
             duration: 1.5,

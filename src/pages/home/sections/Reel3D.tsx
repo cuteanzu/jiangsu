@@ -10,7 +10,6 @@ const Wrapper = styled.div`
   }
 `;
 
-// Matching kaitonote: grid + place-content-center + perspective on the sticky container
 const StickyView = styled.section`
   position: sticky;
   top: 0;
@@ -22,7 +21,6 @@ const StickyView = styled.section`
   place-content: center;
 `;
 
-// Each floating image: inset-0 m-auto centering (kaitonote pattern)
 const WorkImage = styled.div`
   position: absolute;
   inset: 0;
@@ -32,7 +30,7 @@ const WorkImage = styled.div`
   pointer-events: none;
 
   img {
-    width: 28rem;
+    width: clamp(18rem, 30vw, 40rem);
     height: auto;
     aspect-ratio: 16 / 9;
     object-fit: cover;
@@ -45,15 +43,11 @@ const WorkImage = styled.div`
   }
 `;
 
-// ── Blur overlay (kaitonote: darkens background as images spread) ──
-
 const BlurOverlay = styled.div`
   position: absolute;
-  inset: 0;
+  inset: -30%;
   z-index: 2;
-  background: linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.1));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);
   opacity: 0;
   pointer-events: none;
 `;

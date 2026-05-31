@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import * as THREE from "three";
 import CityMesh from "./CityMesh";
 import type { CityGeometryResult } from "./useMapProjection";
+import { CITY_BASE_Y } from "./mapTheme";
 
 interface JiangsuExtrudedMapProps {
   cities: CityGeometryResult[];
@@ -62,21 +63,26 @@ export default function JiangsuExtrudedMap({
         </>
       )}
 
-      {cities.map((city) =>
-        city.geometries.map((geo, i) => (
-          <CityMesh
-            key={`${city.name}-geometry-${i}`}
-            name={city.name}
-            geometry={geo}
-            hovered={hoveredCity === city.name}
-            selected={selectedCity === city.name}
-            dimmed={selectedCity !== null && selectedCity !== city.name}
-            onPointerEnter={onHover}
-            onPointerLeave={onUnhover}
-            onClick={onSelect}
-          />
-        )),
-      )}
+      {cities.map((city) => {
+        const baseY = CITY_BASE_Y[city.name] ?? 0;
+        return (
+          <group key={city.name} position={[0, baseY, 0]}>
+            {city.geometries.map((geo, i) => (
+              <CityMesh
+                key={`${city.name}-geometry-${i}`}
+                name={city.name}
+                geometry={geo}
+                hovered={hoveredCity === city.name}
+                selected={selectedCity === city.name}
+                dimmed={selectedCity !== null && selectedCity !== city.name}
+                onPointerEnter={onHover}
+                onPointerLeave={onUnhover}
+                onClick={onSelect}
+              />
+            ))}
+          </group>
+        );
+      })}
     </group>
   );
 }

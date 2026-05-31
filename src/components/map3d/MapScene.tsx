@@ -9,20 +9,21 @@ import SchoolPins from "./SchoolPins";
 import CameraController from "./CameraController";
 import { useMapProjection } from "./useMapProjection";
 import type { CityGeometryResult } from "./useMapProjection";
-import { CAMERA_POSITION, CAMERA_FOV } from "./mapTheme";
+import { CAMERA_POSITION, CAMERA_TARGET } from "./mapTheme";
+import type { CityCenter } from "./mapTheme";
 
-// ═══════════════════════  Decorations OFF — keep code, don't render ═══════════════════════
-const ENABLE_WATER = false;
+// ── Decoration toggles ──
+const ENABLE_WATER = true;
 const ENABLE_LANDMARKS = false;
-const ENABLE_TERRAIN = false;
+const ENABLE_TERRAIN = true;
 const ENABLE_HEATMAP = false;
-const MAP_BACKGROUND =
-  "radial-gradient(ellipse at 52% 38%, rgba(195, 210, 235, 0.16) 0%, transparent 54%), " +
-  "radial-gradient(ellipse at 82% 22%, rgba(248, 215, 205, 0.18) 0%, transparent 40%), " +
-  "radial-gradient(ellipse at 20% 75%, rgba(245, 225, 215, 0.12) 0%, transparent 35%), " +
-  "linear-gradient(146deg, #fff9f1 0%, #fbf2ee 37%, #eef6ff 73%, #fff7df 100%)";
 
-// ── Props ──
+const MAP_BACKGROUND =
+  "radial-gradient(ellipse at 50% 35%, rgba(252,250,245,0.55) 0%, transparent 55%), " +
+  "radial-gradient(ellipse at 80% 25%, rgba(245,225,220,0.13) 0%, transparent 40%), " +
+  "radial-gradient(ellipse at 25% 70%, rgba(225,235,245,0.10) 0%, transparent 35%), " +
+  "linear-gradient(160deg, #FCFAF5 0%, #F8F4F0 40%, #F2F0F5 100%)";
+
 export interface MapSceneProps {
   hoveredName: string | null;
   selectedName: string | null;
@@ -39,10 +40,6 @@ export interface MapSceneProps {
 
 // ═══════════════════════  Diorama Stage ═══════════════════════
 
-/**
- * Large elliptical glow — warm pink + soft blue mix under the map.
- * Creates the diorama "display platform" feel.
- */
 function StageGlow() {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
@@ -50,16 +47,16 @@ function StageGlow() {
     const ctx = canvas.getContext("2d")!;
     const half = 256;
 
-    // Elliptical: wider than tall
     ctx.save();
     ctx.translate(half, half);
-    ctx.scale(1, 0.72);
+    ctx.scale(1, 0.68);
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, half);
-    grad.addColorStop(0, "rgba(255,240,230,0.48)");
-    grad.addColorStop(0.22, "rgba(252,232,222,0.30)");
-    grad.addColorStop(0.45, "rgba(235,228,245,0.14)");
-    grad.addColorStop(0.70, "rgba(220,235,252,0.05)");
-    grad.addColorStop(1, "rgba(240,238,232,0)");
+    grad.addColorStop(0, "rgba(255,248,240,0.52)");
+    grad.addColorStop(0.15, "rgba(252,240,228,0.36)");
+    grad.addColorStop(0.35, "rgba(248,235,222,0.20)");
+    grad.addColorStop(0.60, "rgba(240,235,240,0.08)");
+    grad.addColorStop(0.85, "rgba(235,240,248,0.03)");
+    grad.addColorStop(1, "rgba(242,238,232,0)");
     ctx.fillStyle = grad;
     ctx.fillRect(-half, -half, 1024, 1024);
     ctx.restore();
@@ -72,21 +69,18 @@ function StageGlow() {
   }, []);
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.008, 0]} renderOrder={0}>
-      <planeGeometry args={[10, 10]} />
-      <meshBasicMaterial map={texture} transparent opacity={0.48} depthWrite={false} side={THREE.DoubleSide} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.012, 0]} renderOrder={0}>
+      <planeGeometry args={[11, 10]} />
+      <meshBasicMaterial map={texture} transparent opacity={0.62} depthWrite={false} side={THREE.DoubleSide} />
     </mesh>
   );
 }
 
-/**
- * Receiving surface — shadow-only, no visible color board.
- */
 function StageFloor() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]} receiveShadow renderOrder={0}>
       <planeGeometry args={[15, 15]} />
-      <shadowMaterial transparent opacity={0.38} />
+      <shadowMaterial transparent opacity={0.28} />
     </mesh>
   );
 }
@@ -94,12 +88,13 @@ function StageFloor() {
 // ═══════════════════════  3D Scene Content ═══════════════════════
 
 function Scene3D({
-  cities, hoveredName, selectedName, selectedSchoolName,
+  cities, cityCenters, hoveredName, selectedName, selectedSchoolName,
   hoveredSchoolName, showAllPins, hideOverlays,
   onHover, onUnhover, onSelect,
   onHoverSchool, onSelectSchool,
 }: {
   cities: CityGeometryResult[];
+  cityCenters: CityCenter[];
   hoveredName: string | null;
   selectedName: string | null;
   selectedSchoolName: string | null;
@@ -116,7 +111,6 @@ function Scene3D({
 
   return (
     <>
-      {/* ── Map body ── */}
       {cities.length > 0 && (
         <JiangsuExtrudedMap
           cities={cities} hoveredCity={hoveredName} selectedCity={selectedName}
@@ -124,18 +118,21 @@ function Scene3D({
         />
       )}
 
-      {/* ── Diorama stage ── */}
       <StageFloor />
       <StageGlow />
 
-      {/* ── Decorations (disabled) ── */}
-      {ENABLE_TERRAIN && <TerrainTextureLayerLazy />}
-      {ENABLE_HEATMAP && <HeatmapLayerLazy selectedCity={selectedName} />}
       {ENABLE_WATER && <JiangsuWaterSystemLazy />}
+      {ENABLE_TERRAIN && <TerrainTextureLayerLazy />}
+      {ENABLE_HEATMAP && <HeatmapLayerLazy selectedCity={selectedName} cityCenters={cityCenters} />}
       {ENABLE_LANDMARKS && <MiniCampusLandmarksLazy hoveredCity={hoveredName} selectedCity={selectedName} />}
+      <PaperAtmosphereLazy />
 
-      {/* ── Core interaction layers ── */}
-      <CityBeacons selectedCity={selectedName} hoveredCity={hoveredName} hideLabels={hideOverlays} />
+      <CityBeacons
+        cityCenters={cityCenters}
+        selectedCity={selectedName}
+        hoveredCity={hoveredName}
+        hideLabels={hideOverlays}
+      />
       <SchoolPins
         selectedCity={selectedName}
         hoveredSchoolName={hoveredSchoolName}
@@ -146,37 +143,26 @@ function Scene3D({
         onSelectSchool={onSelectSchool}
       />
 
-      {/* ── Contact shadows: diorama grounding, above stage ── */}
       <ContactShadows
         position={[0, -0.022, 0]}
         opacity={0.45}
         scale={11}
         blur={3.5}
         far={5}
-        resolution={512}
+        resolution={256}
         renderOrder={1}
       />
 
-      {/* ── Camera ── */}
-      <CameraController selectedCity={selectedName} controlsRef={controlsRef} />
+      <CameraController selectedCity={selectedName} cityCenters={cityCenters} controlsRef={controlsRef} />
 
-      {/* ═══════════════════════  Diorama Lighting ═══════════════════════ */}
+      {/* ── Paper Diorama Lighting ── */}
+      <ambientLight intensity={0.75} color="#FFFBF6" />
+      <hemisphereLight color="#FFFDF8" groundColor="#EDDFD0" intensity={0.42} />
 
-      {/* Low ambient — keeps shadows visible */}
-      <ambientLight intensity={0.55} color="#FFF8F2" />
-
-      {/* Hemisphere — sky + ground gradient for diorama feel */}
-      <hemisphereLight
-        color="#FFFDF8"
-        groundColor="#F1D7C5"
-        intensity={0.45}
-      />
-
-      {/* Key light: strong shadow-casting sun */}
       <directionalLight
-        position={[-4, 8, 5]}
-        intensity={2.8}
-        color="#FFFDF8"
+        position={[-2, 9, 4]}
+        intensity={2.2}
+        color="#FFFEFB"
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -185,53 +171,42 @@ function Scene3D({
         shadow-camera-right={8}
         shadow-camera-top={8}
         shadow-camera-bottom={-8}
-        shadow-bias={-0.0003}
+        shadow-bias={-0.00020}
       />
 
-      {/* Fill light: warm right-side */}
-      <directionalLight
-        position={[4, 4, -4]}
-        intensity={0.65}
-        color="#FFF5F0"
-      />
+      <directionalLight position={[3, 4, -3]} intensity={0.55} color="#FFF8F2" />
+      <directionalLight position={[0, 2, -5]} intensity={0.30} color="#F5F0F8" />
 
-      {/* Subtle back rim */}
-      <directionalLight
-        position={[0, 3, -6]}
-        intensity={0.35}
-        color="#F5F0FF"
-      />
-
-      {/* ── Orbit controls ── */}
       <OrbitControls
         ref={controlsRef}
         enablePan={false}
+        enableRotate={false}
         enableDamping={false}
         minDistance={3}
-        maxDistance={14}
-        maxPolarAngle={Math.PI / 2.2}
+        maxDistance={15}
+        target={CAMERA_TARGET}
       />
     </>
   );
 }
 
-// ═══════════════════════  Lazy wrappers (tree-shaken when flags off) ═══════════════════════
+// ═══════════════════════  Lazy wrappers ═══════════════════════
 
 import JiangsuWaterSystem from "./JiangsuWaterSystem";
 import MiniCampusLandmarks from "./MiniCampusLandmarks";
 import TerrainTextureLayer from "./TerrainTextureLayer";
 import HeatmapLayer from "./HeatmapLayer";
+import PaperAtmosphere from "./PaperAtmosphere";
 
 function JiangsuWaterSystemLazy() { return <JiangsuWaterSystem />; }
 function MiniCampusLandmarksLazy({ hoveredCity, selectedCity }: { hoveredCity: string | null; selectedCity: string | null }) {
   return <MiniCampusLandmarks hoveredCity={hoveredCity} selectedCity={selectedCity} />;
 }
 function TerrainTextureLayerLazy() { return <TerrainTextureLayer />; }
-function HeatmapLayerLazy({ selectedCity }: { selectedCity: string | null }) {
-  return <HeatmapLayer selectedCity={selectedCity} />;
+function HeatmapLayerLazy({ selectedCity, cityCenters }: { selectedCity: string | null; cityCenters: CityCenter[] }) {
+  return <HeatmapLayer selectedCity={selectedCity} cityCenters={cityCenters} />;
 }
-
-// ═══════════════════════  Styles ═══════════════════════
+function PaperAtmosphereLazy() { return <PaperAtmosphere />; }
 
 // ═══════════════════════  Main Component ═══════════════════════
 
@@ -244,60 +219,12 @@ export default function MapScene({
   const mapResult = useMapProjection();
 
   const cities = mapResult?.cities ?? [];
+  const cityCenters = mapResult?.cityCenters ?? [];
   const geoLoaded = mapResult !== null;
   const featuresCount = mapResult?.featuresCount ?? 0;
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      {/* HUD: selected */}
-      {!hideOverlays && (
-        <div
-          style={{
-            position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)",
-            zIndex: 10, pointerEvents: "none",
-            fontFamily: '"Noto Sans SC","PingFang SC",sans-serif',
-            fontSize: 14, fontWeight: 700,
-            color: selectedSchoolName ? "#c76b5e" : "#5a3a2a",
-            background: selectedName || selectedSchoolName ? "rgba(255,252,247,0.85)" : "transparent",
-            border: selectedName || selectedSchoolName ? "1px solid rgba(200,140,120,0.25)" : "none",
-            borderRadius: 10,
-            padding: selectedName || selectedSchoolName ? "6px 18px" : 0,
-            backdropFilter: (selectedName || selectedSchoolName) ? "blur(10px)" : "none",
-            transition: "all 0.28s ease",
-          }}
-        >
-          {selectedSchoolName
-            ? `已选择：${selectedSchoolName}，可查看校园详情`
-            : selectedName
-              ? `已选择：${selectedName}市，发现这里的高校生活`
-              : ""}
-        </div>
-      )}
-
-      {/* HUD: status bar */}
-      {!hideOverlays && (
-        <div
-          style={{
-            position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)",
-            zIndex: 10, pointerEvents: "none",
-            fontFamily: '"Noto Sans SC","PingFang SC",sans-serif',
-            fontSize: 12, fontWeight: 600,
-            color: (selectedName || selectedSchoolName) ? "#c76b5e" : hoveredName ? "#5a3a2a" : "#8b7d73",
-            opacity: 1, transition: "color 0.22s ease",
-          }}
-        >
-          {selectedSchoolName
-            ? `已选择：${selectedSchoolName}，可查看校园详情`
-            : hoveredSchoolName
-              ? `正在查看：${hoveredSchoolName}`
-              : selectedName
-                ? ""
-                : hoveredName
-                  ? `正在查看：${hoveredName}市`
-                  : "点击城市，看看这里有哪些大学"}
-        </div>
-      )}
-
       {geoLoaded && featuresCount !== 13 && (
         <div style={{
           position: "absolute", bottom: 48, left: 12, zIndex: 20,
@@ -308,28 +235,26 @@ export default function MapScene({
         </div>
       )}
 
-      {/* Diorama backdrop: center warm cream, top-left peach, bottom-right blue */}
       <Canvas
-        camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV, near: 0.1, far: 50 }}
-        style={{
-          background: MAP_BACKGROUND,
-        }}
+        style={{ background: MAP_BACKGROUND }}
+        camera={{ position: CAMERA_POSITION, fov: 35, near: 0.1, far: 50 }}
         gl={{ antialias: true, alpha: true }}
-        onCreated={({ scene, gl }) => {
-          scene.background = null;
-          gl.setClearColor(new THREE.Color("#FFF8F0"), 0);
-        }}
         shadows
         onPointerMissed={() => onUnhover()}
       >
         <Suspense fallback={null}>
           <Scene3D
-            cities={cities} hoveredName={hoveredName} selectedName={selectedName}
+            cities={cities}
+            cityCenters={cityCenters}
+            hoveredName={hoveredName}
+            selectedName={selectedName}
             selectedSchoolName={selectedSchoolName}
             hoveredSchoolName={hoveredSchoolName}
             showAllPins={showAllPins}
             hideOverlays={hideOverlays}
-            onHover={onHover} onUnhover={onUnhover} onSelect={onSelect}
+            onHover={onHover}
+            onUnhover={onUnhover}
+            onSelect={onSelect}
             onHoverSchool={onHoverSchool}
             onSelectSchool={onSelectSchool}
           />

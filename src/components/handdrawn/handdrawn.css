@@ -1,0 +1,421 @@
+/* ═══════════════════════════════════════════
+   Hand-Drawn Jiangsu Map — Styles
+   ═══════════════════════════════════════════ */
+
+.hd-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(252,250,245,0.50) 0%, transparent 55%),
+    radial-gradient(ellipse at 78% 28%, rgba(245,225,220,0.10) 0%, transparent 38%),
+    radial-gradient(ellipse at 22% 68%, rgba(220,232,245,0.09) 0%, transparent 32%),
+    linear-gradient(168deg, #FCFAF5 0%, #F8F4F0 38%, #F2F0F5 100%);
+}
+
+/* Paper grain overlay */
+.hd-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* Search bar */
+.hd-search {
+  position: absolute;
+  z-index: 14;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 14px;
+  min-height: 44px;
+  width: min(420px, calc(100% - 160px));
+  border: 1px solid rgba(160, 190, 210, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 252, 247, 0.58);
+  box-shadow: 0 8px 24px rgba(120, 150, 170, 0.06), inset 0 1px 0 rgba(255,255,255,0.6);
+  backdrop-filter: blur(14px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.hd-search:focus-within {
+  background: rgba(255, 252, 247, 0.82);
+  border-color: rgba(160, 190, 210, 0.35);
+}
+
+.hd-search svg {
+  color: #8aa6ba;
+  flex-shrink: 0;
+}
+
+.hd-search input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  width: 100%;
+  color: #3a2f28;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hd-search input::placeholder {
+  color: rgba(100, 120, 135, 0.45);
+}
+
+.hd-search-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 6px 16px;
+  min-height: 32px;
+  background: linear-gradient(135deg, #c8967e, #d4b896);
+  color: #fffdf8;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 850;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(180, 140, 120, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hd-search-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(180, 140, 120, 0.18);
+}
+
+/* Map container */
+.hd-map-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 80px 20px 20px;
+}
+
+/* Allow paper-lift shadow to extend beyond SVG viewBox */
+.hd-map-wrap svg {
+  overflow: visible;
+}
+
+/* Floating info panel — journal paper card */
+.hd-info-panel {
+  position: absolute;
+  z-index: 12;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(260px, 30vw, 340px);
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  background: linear-gradient(180deg, #FFFCF7 0%, #FFFAF2 50%, #FEF9F0 100%);
+  border: 1px solid rgba(200, 170, 150, 0.22);
+  border-radius: 14px;
+  box-shadow:
+    0 2px 8px rgba(180, 150, 130, 0.06),
+    0 8px 32px rgba(160, 130, 110, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+  animation: hdSlideIn 0.28s ease-out;
+}
+
+/* Subtle paper line texture on info panel */
+.hd-info-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  border-radius: 14px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 20px,
+    rgba(180, 160, 140, 0.3) 20px,
+    rgba(180, 160, 140, 0.3) 21px
+  );
+}
+
+@keyframes hdSlideIn {
+  from { opacity: 0; transform: translateY(-50%) translateX(16px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+.hd-info-panel h3,
+.hd-overview-card h3 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 21px;
+  font-weight: 900;
+  color: #2A1810;
+  margin: 0 0 2px;
+  letter-spacing: 0.5px;
+}
+
+.hd-info-panel .hd-subtitle {
+  font-size: 11px;
+  color: #8b7d73;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(200, 170, 150, 0.25);
+}
+
+/* Journal-style scrollbar */
+.hd-info-panel::-webkit-scrollbar,
+.hd-overview-card::-webkit-scrollbar {
+  width: 5px;
+}
+.hd-info-panel::-webkit-scrollbar-track,
+.hd-overview-card::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 8px 0;
+}
+.hd-info-panel::-webkit-scrollbar-thumb,
+.hd-overview-card::-webkit-scrollbar-thumb {
+  background: rgba(180,150,130,0.18);
+  border-radius: 10px;
+}
+.hd-info-panel::-webkit-scrollbar-thumb:hover,
+.hd-overview-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(180,150,130,0.30);
+}
+
+.hd-school-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(200, 170, 150, 0.10);
+  margin-bottom: 5px;
+  cursor: pointer;
+  background: rgba(255, 252, 248, 0.40);
+  transition: all 0.18s ease;
+}
+
+.hd-school-item:hover {
+  background: rgba(255, 248, 240, 0.80);
+  border-color: rgba(200, 170, 150, 0.22);
+  box-shadow: 0 2px 8px rgba(180, 150, 130, 0.06);
+}
+
+.hd-school-item .hd-tier-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(200, 170, 150, 0.12);
+}
+
+.hd-school-item .hd-school-name {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2A1810;
+  letter-spacing: 0.2px;
+}
+
+.hd-school-item .hd-tier-tag {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-weight: 700;
+}
+
+/* Back button */
+.hd-back-btn {
+  position: absolute;
+  z-index: 14;
+  top: 26px;
+  left: 24px;
+  border: 1px solid rgba(200, 170, 150, 0.20);
+  border-radius: 10px;
+  background: rgba(255, 252, 247, 0.65);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B5D50;
+  backdrop-filter: blur(10px);
+  transition: all 0.15s ease;
+}
+
+.hd-back-btn:hover {
+  background: rgba(255, 252, 247, 0.88);
+  color: #3a2f28;
+  border-color: rgba(200, 170, 150, 0.35);
+}
+
+/* Mode toggle */
+.hd-mode-toggle {
+  position: absolute;
+  z-index: 14;
+  top: 26px;
+  right: 24px;
+  border: 1px solid rgba(200, 170, 150, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 252, 247, 0.55);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8B7D73;
+  backdrop-filter: blur(10px);
+  transition: all 0.15s ease;
+}
+
+.hd-mode-toggle:hover {
+  background: rgba(255, 252, 247, 0.85);
+  color: #5a4a3a;
+  border-color: rgba(200, 170, 150, 0.30);
+}
+
+/* Province overview card */
+.hd-overview-card {
+  position: absolute;
+  z-index: 12;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(280px, 32vw, 360px);
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  background: linear-gradient(180deg, #FFFCF7 0%, #FFFAF2 50%, #FEF9F0 100%);
+  border: 1px solid rgba(200, 170, 150, 0.22);
+  border-radius: 14px;
+  box-shadow:
+    0 2px 8px rgba(180, 150, 130, 0.06),
+    0 8px 32px rgba(160, 130, 110, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+  animation: hdSlideIn 0.28s ease-out;
+}
+
+.hd-overview-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  border-radius: 14px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 20px,
+    rgba(180, 160, 140, 0.3) 20px,
+    rgba(180, 160, 140, 0.3) 21px
+  );
+}
+
+/* ═══ City Focus View — journal card ═══ */
+.city-focus-view {
+  opacity: 0;
+  transform: translateY(-50%) translateY(18px) scale(0.97);
+  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.city-focus-view--enter {
+  opacity: 1;
+  transform: translateY(-50%) translateY(0) scale(1);
+}
+
+/* ═══ Info panel exit ═══ */
+.hd-info-panel {
+  transition: opacity 0.28s ease-out,
+              transform 0.28s ease-out;
+}
+.hd-info-panel--exit {
+  opacity: 0;
+  transform: translateY(-50%) translateX(12px);
+  pointer-events: none;
+}
+
+/* ═══ School list item stagger ═══ */
+.hd-school-item {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: hdListItemIn 0.35s ease-out forwards;
+}
+
+@keyframes hdListItemIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ School detail panel ═══ */
+.hd-detail-panel {
+  animation: hdDetailIn 0.32s ease-out;
+}
+
+@keyframes hdDetailIn {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ═══ Map boundary draw ═══ */
+.hd-map-boundary {
+  transition: stroke-dashoffset 0.55s ease-in-out;
+}
+
+/* ═══ Pin pop ═══ */
+.hd-pin-scaling {
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ═══ Pulse ring for selected pin ═══ */
+@keyframes hdPulseRing {
+  0%   { transform: scale(0.8); opacity: 0.38; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* ═══ Overview card entrance ═══ */
+.hd-overview-card {
+  animation: hdSlideIn 0.32s ease-out;
+}
+
+@keyframes hdSlideIn {
+  from { opacity: 0; transform: translateY(-50%) translateX(12px); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* ═══ City hover lift ═══ */
+.hd-city-label-group {
+  transition: transform 0.18s ease;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .hd-info-panel,
+  .hd-overview-card {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: 40vh;
+    bottom: 8px;
+    top: auto;
+    transform: none;
+    border-radius: 16px 16px 8px 8px;
+  }
+
+  @keyframes hdSlideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hd-map-wrap {
+    padding: 72px 8px 8px;
+  }
+}

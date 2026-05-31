@@ -20,16 +20,16 @@ export const ATMOS_PHOTOS = [
 // 3D 透视空间中从中心向外发散 + 首屏底部缩略图滚动条
 // x/y/z in rem — coordinates and spread pattern matched from kaitonote reel
 export const REEL_PHOTOS = [
-  { src: "/media/reel-01.jpg", alt: "校园 1", x: -34, y: -19, z: -5000 },
-  { src: "/media/reel-02.jpg", alt: "校园 2", x: 22, y: 31, z: -5000 },
-  { src: "/media/reel-03.jpg", alt: "校园 3", x: -50, y: 19, z: -5000 },
-  { src: "/media/reel-04.jpg", alt: "校园 4", x: 37, y: -19, z: -5000 },
-  { src: "/media/reel-05.jpg", alt: "校园 5", x: -19, y: -37, z: -5000 },
-  { src: "/media/reel-06.jpg", alt: "校园 6", x: 34, y: 43, z: -5000 },
-  { src: "/media/reel-07.jpg", alt: "校园 7", x: -31, y: 37, z: -5000 },
-  { src: "/media/reel-08.jpg", alt: "校园 8", x: 37, y: 19, z: -5000 },
-  { src: "/media/reel-09.jpg", alt: "校园 9", x: -50, y: -19, z: -5000 },
-  { src: "/media/reel-10.jpg", alt: "校园 10", x: 19, y: -37, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 1", x: -48, y: -24, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 2", x: 32, y: 42, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 3", x: -60, y: 26, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 4", x: 52, y: -26, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 5", x: -26, y: -52, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 6", x: 48, y: 56, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 7", x: -44, y: 48, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 8", x: 52, y: 26, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 9", x: -60, y: -26, z: -5000 },
+  { src: "/media/placeholder-reel.svg", alt: "校园 10", x: 26, y: -52, z: -5000 },
 ];
 
 // Filmstrip reuses reel photos
@@ -39,12 +39,12 @@ export const FILMSTRIP_PHOTOS = REEL_PHOTOS;
 // 院校卡片背景 + 择校维度左栏
 // 内容：校园生活、学生、实验室、宿舍、食堂等场景
 export const DISPLAY_PHOTOS = [
-  { src: "/media/feat-01.jpg", alt: "校园生活" },
-  { src: "/media/feat-02.jpg", alt: "实验室" },
-  { src: "/media/feat-03.jpg", alt: "学生活动" },
-  { src: "/media/feat-04.jpg", alt: "宿舍区" },
-  { src: "/media/feat-05.jpg", alt: "运动场馆" },
-  { src: "/media/feat-06.jpg", alt: "校园夜景" },
+  { src: "/media/placeholder-feat.svg", alt: "校园生活" },
+  { src: "/media/placeholder-feat.svg", alt: "实验室" },
+  { src: "/media/placeholder-feat.svg", alt: "学生活动" },
+  { src: "/media/placeholder-feat.svg", alt: "宿舍区" },
+  { src: "/media/placeholder-feat.svg", alt: "运动场馆" },
+  { src: "/media/placeholder-feat.svg", alt: "校园夜景" },
 ];
 
 // ══════════════════════════════════════════════════
@@ -106,12 +106,12 @@ export const MARQUEE_NAMES = UNIVERSITIES.map((u) => u.name);
 // 内容：校园建筑细节、学生生活、图书馆、自然特写、夜景、四季
 
 export const GALLERY_PHOTOS = [
-  { src: "/media/gallery-01.jpg", alt: "校园建筑细节" },
-  { src: "/media/gallery-01v.jpg", alt: "学生生活瞬间", portrait: true },
-  { src: "/media/gallery-02.jpg", alt: "图书馆内景" },
-  { src: "/media/gallery-02v.jpg", alt: "校园自然特写", portrait: true },
-  { src: "/media/gallery-03.jpg", alt: "校园夜景" },
-  { src: "/media/gallery-04.jpg", alt: "四季校园" },
+  { src: "/media/placeholder-gallery.svg", alt: "校园建筑细节" },
+  { src: "/media/placeholder-gallery.svg", alt: "学生生活瞬间", portrait: true },
+  { src: "/media/placeholder-gallery.svg", alt: "图书馆内景" },
+  { src: "/media/placeholder-gallery.svg", alt: "校园自然特写", portrait: true },
+  { src: "/media/placeholder-gallery.svg", alt: "校园夜景" },
+  { src: "/media/placeholder-gallery.svg", alt: "四季校园" },
 ];
 
 // Grid layout map for GalleryWall: which items span extra columns
@@ -121,8 +121,8 @@ export const GALLERY_LAYOUT: number[] = [2, -1, -1, 2, -1, 2];
 // ── E. BladeRows: Nanjing — 4 张，单行交替布局 ──
 
 export const BLADE_PHOTOS = [
-  { src: "/media/gallery-01v.jpg", alt: "梧桐大道", portrait: true },
-  { src: "/media/gallery-01.jpg", alt: "金陵学府" },
-  { src: "/media/gallery-02v.jpg", alt: "秦淮流韵", portrait: true },
-  { src: "/media/gallery-04.jpg", alt: "钟山毓秀" },
+  { src: "/media/placeholder-gallery.svg", alt: "梧桐大道", portrait: true },
+  { src: "/media/placeholder-gallery.svg", alt: "金陵学府" },
+  { src: "/media/placeholder-gallery.svg", alt: "秦淮流韵", portrait: true },
+  { src: "/media/placeholder-gallery.svg", alt: "钟山毓秀" },
 ];
