@@ -164,49 +164,6 @@ const FloatingCardWrap = styled.div`
   @media (max-width: 720px) { right: 16px; bottom: 16px; max-width: calc(100% - 32px); }
 `;
 
-const ModeSwitchButton = styled.button`
-  position: absolute;
-  z-index: 16;
-  top: 24px;
-  right: 24px;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid rgba(200, 170, 150, 0.20);
-  border-radius: 10px;
-  background: rgba(255, 252, 247, 0.68);
-  color: #7f6d61;
-  cursor: pointer;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 12px;
-  font-weight: 800;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 6px 18px rgba(158, 126, 104, 0.08);
-  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
-
-  &:hover {
-    background: rgba(255, 252, 247, 0.9);
-    border-color: rgba(200, 150, 130, 0.34);
-    color: #4f4037;
-  }
-
-  &:focus-visible {
-    outline: 3px solid rgba(199, 107, 94, 0.18);
-    outline-offset: 2px;
-  }
-
-  @media (max-width: 900px) {
-    top: 72px;
-    right: 16px;
-  }
-
-  @media (max-width: 640px) {
-    top: 66px;
-    right: 12px;
-    min-height: 34px;
-    font-size: 11px;
-  }
-`;
-
 const SceneFallback = styled.div`
   position: absolute;
   inset: 0;
