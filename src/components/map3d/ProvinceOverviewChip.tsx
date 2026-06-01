@@ -2,7 +2,7 @@ import styled from "styled-components";
 import { Sparkles } from "lucide-react";
 
 const ChipShell = styled.button`
-  position: absolute; z-index: 10; top: 27px; right: 32px;
+  position: absolute; z-index: 10; top: 72px; right: 24px;
   display: flex; align-items: center; gap: 6px;
   padding: 7px 12px;
   border: 1px solid rgba(214, 175, 145, 0.15);
@@ -22,7 +22,8 @@ const ChipShell = styled.button`
     color: #5a4a3a;
   }
   svg { color: #c76b5e; width: 13px; height: 13px; }
-  @media (max-width: 720px) { top: 72px; right: 12px; font-size: 10px; padding: 5px 8px; }
+  @media (max-width: 900px) { top: 116px; right: 16px; }
+  @media (max-width: 640px) { top: 108px; right: 12px; font-size: 10px; padding: 5px 8px; }
 `;
 
 interface ProvinceOverviewChipProps {

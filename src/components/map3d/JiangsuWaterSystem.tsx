@@ -1,6 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
 
 const WATER_Y = 0.03;   // recessed below city bases at Y=0
 
@@ -9,17 +8,9 @@ const WATER_Y = 0.03;   // recessed below city bases at Y=0
 function WaterTable() {
   const geo = useMemo(() => new THREE.PlaneGeometry(10, 9), []);
 
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
-  useFrame(() => {
-    if (matRef.current) {
-      matRef.current.opacity = 0.10 + Math.sin(Date.now() * 0.0003) * 0.025;
-    }
-  });
-
   return (
     <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_Y, 0]} renderOrder={0}>
       <meshBasicMaterial
-        ref={matRef}
         color="#D0E0EC"
         transparent
         opacity={0.10}
@@ -74,22 +65,14 @@ function YangtzeRiver() {
     return new THREE.TubeGeometry(curve, 160, 0.018, 8, false);
   }, []);
 
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
-  useFrame(() => {
-    if (matRef.current) {
-      matRef.current.opacity = 0.32 + Math.sin(Date.now() * 0.0004) * 0.06;
-    }
-  });
-
   return (
     <group>
       {/* Wide river channel */}
       <mesh geometry={riverGeo} rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_Y + 0.005, 0]} renderOrder={1}>
         <meshBasicMaterial
-          ref={matRef}
           color="#B0D0E0"
           transparent
-          opacity={0.28}
+          opacity={0.32}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
@@ -135,13 +118,6 @@ function TaihuLake() {
   const lakeX = 2.1;
   const lakeZ = 2.3;
 
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
-  useFrame(() => {
-    if (matRef.current) {
-      matRef.current.opacity = 0.44 + Math.sin(Date.now() * 0.0004 + 1) * 0.05;
-    }
-  });
-
   return (
     <group>
       {/* Lake bed (dark, deep) */}
@@ -151,7 +127,6 @@ function TaihuLake() {
       {/* Lake surface */}
       <mesh geometry={surfaceGeo} rotation={[-Math.PI / 2, 0, 0]} position={[lakeX, WATER_Y + 0.008, lakeZ]} renderOrder={1}>
         <meshBasicMaterial
-          ref={matRef}
           color="#C0DCE8"
           transparent
           opacity={0.44}

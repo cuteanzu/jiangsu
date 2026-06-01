@@ -8,7 +8,7 @@ import type { CityCockpitProfile } from "../../data/city-profiles";
 
 const DrawerShell = styled.aside<{ $open: boolean }>`
   position: absolute; z-index: 11; top: 0; left: 0; bottom: 0;
-  width: 320px;
+  width: min(320px, calc(100vw - 52px));
   background: rgba(255, 252, 247, 0.90);
   border-right: 1px solid rgba(214, 175, 145, 0.20);
   box-shadow: 4px 0 32px rgba(158, 126, 104, 0.10);
@@ -18,6 +18,10 @@ const DrawerShell = styled.aside<{ $open: boolean }>`
   display: flex; flex-direction: column;
   font-family: "Noto Sans SC","PingFang SC",sans-serif;
   overflow: hidden;
+
+  @media (max-width: 720px) {
+    background: rgba(255, 252, 247, 0.94);
+  }
 `;
 
 const DrawerInner = styled.div`
@@ -62,9 +66,11 @@ interface MapDrawerProps {
   hotCities: HotCity[];
   popularSchools: University[];
   selectedCityProfile: CityCockpitProfile;
+  showAllPins: boolean;
   onSetMode: (mode: CockpitMode) => void;
   onSetHoveredName: (v: string | null) => void;
   onSetHoveredSchoolName: (v: string | null) => void;
+  onSetShowAllPins: (v: boolean) => void;
   onSelectSchool: (name: string | null) => void;
   onUpdateSelection: (city: string | null, school: string | null) => void;
   onBackToOverview: () => void;
@@ -73,12 +79,11 @@ interface MapDrawerProps {
 export default function MapDrawer({
   open, mode, selectedName, selectedSchoolName,
   hoveredName, cityUniversities, hotCities, popularSchools,
-  selectedCityProfile,
-  onSetMode, onSetHoveredName, onSetHoveredSchoolName,
+  selectedCityProfile, showAllPins,
+  onSetMode, onSetHoveredName, onSetHoveredSchoolName, onSetShowAllPins,
   onSelectSchool, onUpdateSelection, onBackToOverview,
 }: MapDrawerProps) {
   const [leftSearch, setLeftSearch] = useState("");
-  const [showAllPins, setShowAllPins] = useState(false);
 
   // Auto-switch to city mode when a city is selected
   useEffect(() => {
@@ -112,7 +117,7 @@ export default function MapDrawer({
           popularSchools={popularSchools}
           selectedCityProfile={selectedCityProfile}
           onSetLeftSearch={setLeftSearch}
-          onSetShowAllPins={setShowAllPins}
+          onSetShowAllPins={onSetShowAllPins}
           onSetHoveredName={onSetHoveredName}
           onSetHoveredSchoolName={onSetHoveredSchoolName}
           onSelectSchool={onSelectSchool}

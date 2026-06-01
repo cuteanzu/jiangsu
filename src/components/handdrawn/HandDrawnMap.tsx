@@ -1,8 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
-import type { University } from "../../data/jiangsu-universities";
-import { useHandDrawnProjection } from "./useHandDrawnProjection";
-import type { CityPathData } from "./useHandDrawnProjection";
-import CityFocusView from "./CityFocusView";
+import type { MapProjection2D } from "./useHandDrawnProjection";
 
 // ═══ Watercolor palette ═══
 const FILL: Record<string, string> = {
@@ -109,68 +105,26 @@ const CITY_ILLUSTRATION: Record<string, React.FC<{ cx: number; cy: number }>> = 
 // ═══════════════════════════════════════════════
 
 export interface HandDrawnMapProps {
+  proj: MapProjection2D;
   selectedCity: string | null;
   hoveredCity: string | null;
-  selectedSchool: string | null;
-  hoveredSchool: string | null;
-  showAllPins: boolean;
-  cityUniversities: University[];
   schoolCounts?: Record<string, number>;
-  cityProfile?: { cost?: string; transit?: string; jobs?: string; tags?: string[]; audience?: string };
-  isExiting?: boolean;
   debug?: boolean;
   onHoverCity: (name: string | null) => void;
   onSelectCity: (name: string | null) => void;
-  onHoverSchool: (name: string | null) => void;
-  onSelectSchool: (name: string | null) => void;
-  onViewDetail: (school: University) => void;
 }
 
 export default function HandDrawnMap({
-  selectedCity, hoveredCity, selectedSchool, hoveredSchool,
-  showAllPins, cityUniversities, schoolCounts, cityProfile, isExiting = false, debug = false,
-  onHoverCity, onSelectCity, onHoverSchool, onSelectSchool, onViewDetail,
+  proj, selectedCity, hoveredCity,
+  schoolCounts, debug = false,
+  onHoverCity, onSelectCity,
 }: HandDrawnMapProps) {
-  const proj = useHandDrawnProjection();
 
-  const cityMap = useMemo(() => {
-    if (!proj) return new Map<string, CityPathData>();
-    const m = new Map<string, CityPathData>();
-    proj.cityPaths.forEach((c) => m.set(c.name, c));
-    return m;
-  }, [proj]);
-
-  const pathCount = proj?.cityPaths?.length ?? 0;
-  const pathsWithData = proj?.cityPaths?.filter((c) => c.pathD && c.pathD.length > 10) ?? [];
-  const missingPaths = proj?.cityPaths?.filter((c) => !c.pathD || c.pathD.length <= 10) ?? [];
+  const pathCount = proj.cityPaths.length;
+  const pathsWithData = proj.cityPaths.filter((c) => c.pathD && c.pathD.length > 10);
+  const missingPaths = proj.cityPaths.filter((c) => !c.pathD || c.pathD.length <= 10);
 
   const isFocused = selectedCity !== null;
-  const selectedData = isFocused && selectedCity ? cityMap.get(selectedCity) ?? null : null;
-
-  // Entrance / exit trigger for CityFocusView
-  const [stageVisible, setStageVisible] = useState(false);
-  useEffect(() => {
-    if (isFocused && selectedData && !isExiting) {
-      setStageVisible(false);
-      const raf = requestAnimationFrame(() => setStageVisible(true));
-      return () => cancelAnimationFrame(raf);
-    } else {
-      setStageVisible(false);
-    }
-  }, [isFocused, selectedData, isExiting]);
-
-  // ═══ LOADING ═══
-  if (!proj) {
-    return (
-      <div style={{
-        width: "100%", height: "100%", display: "flex",
-        flexDirection: "column", alignItems: "center", justifyContent: "center",
-        color: "#9a8a7d", fontFamily: '"Noto Serif SC",serif', fontSize: 15, gap: 8,
-      }}>
-        <div>正在加载地图数据...</div>
-      </div>
-    );
-  }
 
   // ═══ ERROR STATES ═══
   if (pathCount !== 13) {
@@ -256,7 +210,7 @@ export default function HandDrawnMap({
         {/* ═══ Main map group — dims when focused ═══ */}
         <g
           transform="translate(560, 410) scale(1.62) translate(-600, -380)"
-          opacity={isFocused && !isExiting ? 0.06 : 1}
+          opacity={isFocused ? 0.06 : 1}
           style={{ transition: "opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1)" }}
         >
           {/* Province silhouette */}
@@ -462,22 +416,6 @@ export default function HandDrawnMap({
         </g>
       </svg>
 
-      {/* CityFocusView — city journal card on the left */}
-      {isFocused && selectedData && (
-        <CityFocusView
-          city={selectedData}
-          cityUniversities={cityUniversities}
-          selectedSchool={selectedSchool}
-          hoveredSchool={hoveredSchool}
-          showAllPins={showAllPins}
-          schoolCounts={schoolCounts}
-          cityProfile={cityProfile}
-          visible={stageVisible}
-          onHoverSchool={onHoverSchool}
-          onSelectSchool={onSelectSchool}
-          onViewDetail={onViewDetail}
-        />
-      )}
     </div>
   );
 }

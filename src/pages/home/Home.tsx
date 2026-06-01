@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import Lenis from "lenis";
+import styled from "styled-components";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Page, CursorAura, Shell } from "./Home.styles";
@@ -12,8 +12,46 @@ import GalleryWall from "./sections/GalleryWall";
 import FeaturedUniversities from "./sections/FeaturedUniversities";
 import BladeRows from "./sections/BladeRows";
 import Contact from "./sections/Contact";
+import { useLenisScroll } from "../../hooks/useLenisScroll";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
+import { useCustomCursor } from "../../hooks/useCustomCursor";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const StyledFooter = styled.footer`
+  position: relative;
+  margin-top: 40px;
+  padding: clamp(60px, 10vw, 100px) 0 40px;
+  text-align: center;
+  color: #6b5d53;
+  font-size: 13px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  background: linear-gradient(180deg, #fcfaf5 0%, #f8f4f0 100%);
+  border-top: 1px solid rgba(180, 150, 130, 0.12);
+  overflow: hidden;
+`;
+
+const FooterTransitionBg = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: clamp(280px, 40vh, 520px);
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(252, 250, 245, 0.55) 40%,
+    rgba(252, 250, 245, 0.92) 80%,
+    rgba(248, 244, 240, 1) 100%
+  );
+`;
+
+const FooterContent = styled.div`
+  position: relative;
+  z-index: 1;
+`;
 
 export default function Home() {
   const pageRef = useRef<HTMLDivElement | null>(null);
@@ -23,6 +61,11 @@ export default function Home() {
     if (el) setScrollerEl(el);
   }, []);
 
+  useLenisScroll(scrollerEl);
+  useScrollReveal(scrollerEl);
+  useCustomCursor(scrollerEl);
+
+  // ── GSAP animations (hero intro, Reel3D, Gallery, Blade) ──
   useEffect(() => {
     const root = pageRef.current;
     if (!root) return;
@@ -31,77 +74,54 @@ export default function Home() {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    // ── Lenis ──
-    const lenis = new Lenis({
-      wrapper: root,
-      content: root.querySelector<HTMLElement>("[data-page-content]") ?? undefined,
-      duration: 1.3,
-      easing: (t: number) => 1 - Math.pow(1 - t, 4),
-      smoothWheel: true,
-      syncTouch: false,
-      wheelMultiplier: 0.86,
-    });
-
-    lenis.on("scroll", ScrollTrigger.update);
-    const tick = (time: number) => {
-      lenis.raf(time);
-      requestAnimationFrame(tick);
-    };
-    const rafId = requestAnimationFrame(tick);
-
-    const resizeLenis = () => lenis.resize();
-    ScrollTrigger.addEventListener("refresh", resizeLenis);
-
-    // ── GSAP context ──
-    // Wrap in rAF to guarantee DOM layout is complete before animation starts.
-    // Without this, the intro can flash visible or delay on SPA navigation.
     const ctx = gsap.context(() => {
       if (reducedMotion) return;
       requestAnimationFrame(() => {
 
-      // ── First View intro ──
+      // ── First View intro (kaitonote-pace: inTitle 1.6s / inText 2s / inLine 2s) ──
       const intro = gsap.timeline({ defaults: { ease: "expo.out" } });
 
       intro
         .fromTo(
           "[data-motion-hero='gradient']",
-          { scale: 0.3, autoAlpha: 0 },
-          { scale: 1, autoAlpha: 0.8, duration: 3, ease: "power3.out" },
+          { autoAlpha: 0.65, scale: 0.95 },
+          { autoAlpha: 0.8, scale: 1, duration: 2, ease: "power3.out" },
           "0",
-        )
-        .fromTo(
-          "[data-motion-hero='kicker']",
-          { autoAlpha: 0, y: 18 },
-          { autoAlpha: 1, y: 0, duration: 0.78 },
-        )
-        .fromTo(
-          "[data-title-word]",
-          { autoAlpha: 0, yPercent: 110 },
-          {
-            autoAlpha: 1,
-            yPercent: 0,
-            duration: 1.2,
-            stagger: 0.14,
-            ease: "expo.out",
-          },
-          "-=0.3",
-        )
-        .fromTo(
-          "[data-motion-hero='copy']",
-          { autoAlpha: 0, y: 28 },
-          { autoAlpha: 1, y: 0, duration: 0.85, stagger: 0.1 },
-          "-=0.55",
         )
         .fromTo(
           ".first-line",
           { scaleX: 0 },
           {
             scaleX: 1,
-            duration: 1.4,
-            stagger: 0.22,
+            duration: 2,
+            stagger: 0.25,
             ease: "power3.inOut",
           },
-          "-=0.5",
+          "0",
+        )
+        .fromTo(
+          "[data-motion-hero='kicker']",
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 1.6 },
+          "0.15",
+        )
+        .fromTo(
+          "[data-title-word]",
+          { autoAlpha: 0, y: 24, scale: 0.98 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 1.6,
+            stagger: 0.1,
+          },
+          "0.3",
+        )
+        .fromTo(
+          "[data-motion-hero='copy']",
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 2, stagger: 0.15 },
+          "0.55",
         );
 
       // ── Reel 3D: kaitonote-style cinematic sequence ──
@@ -123,13 +143,10 @@ export default function Home() {
         },
       });
 
-      // 1. Copy text fades in (early, before images spread)
       if (reelCopyWrap) {
         reelMain.to(reelCopyWrap, { opacity: 1, duration: 0.75 }, "first+=0.65");
       }
 
-      // 2. Images: start at center, spread outward + come forward
-      // Scale coordinates by viewport width so images spread proportionally on large screens
       const vwScale = Math.max(1, window.innerWidth / 1440);
       reelWorkEls.forEach((el, i) => {
         const x = `${(parseFloat(el.dataset.x ?? "0") * vwScale).toFixed(1)}rem`;
@@ -151,17 +168,14 @@ export default function Home() {
         );
       });
 
-      // 3. Blur overlay fades in (darkens background behind text)
       if (reelBlur) {
         reelMain.to(reelBlur, { opacity: 1, duration: 0.5 }, "first+=1.5");
       }
 
-      // 4. Copy text fades out (as images dominate)
       if (reelCopyWrap) {
         reelMain.to(reelCopyWrap, { opacity: 0, duration: 0.5 }, "first+=1.75");
       }
 
-      // Paused text reveal timeline
       const reelTextTl = gsap.timeline({ paused: true });
 
       reelCopyEls.forEach((el, i) => {
@@ -197,21 +211,7 @@ export default function Home() {
         "first+=0.8",
       );
 
-      // ── Scroll reveal for sections ──
-      const revealTargets = Array.from(
-        root.querySelectorAll<HTMLElement>("[data-reveal]"),
-      );
-      revealTargets.forEach((target) => {
-        ScrollTrigger.create({
-          trigger: target,
-          scroller: root,
-          start: "top 78%",
-          once: true,
-          onEnter: () => target.classList.add("is-visible"),
-        });
-      });
-
-      // ── GalleryWall: kaitonote-style image reveal (mask + scale) ──
+      // ── GalleryWall: kaitonote-style image reveal ──
       const galleryItems = gsap.utils.toArray<HTMLElement>(
         "[data-gallery-item]",
       );
@@ -219,7 +219,6 @@ export default function Home() {
         const img = item.querySelector<HTMLElement>("img");
         if (!img) return;
 
-        // Initial state: scaled up (mask hidden via CSS default)
         gsap.set(img, { scale: 1.6 });
 
         ScrollTrigger.create({
@@ -228,13 +227,11 @@ export default function Home() {
           start: "top center+=25%",
           once: true,
           onEnter: () => {
-            // Mask reveal (kaitonote inImageMask)
             gsap.to(img, {
               "--gallery-mask": "100%",
               duration: 1.2,
               ease: "power3.out",
             });
-            // Scale down (kaitonote inImage)
             gsap.to(img, {
               scale: 1,
               duration: 2,
@@ -244,7 +241,7 @@ export default function Home() {
         });
       });
 
-      // ── BladeRows: alternating single-row reveal (mask + scale + label fade) ──
+      // ── BladeRows: alternating single-row reveal ──
       const bladeRows = gsap.utils.toArray<HTMLElement>("[data-blade-row]");
       bladeRows.forEach((row) => {
         const photoImg = row.querySelector<HTMLElement>("[data-blade-photo] img");
@@ -274,83 +271,32 @@ export default function Home() {
           );
         }
       });
+
+      // ── Footer transition: fade AtmosphereLayer out ──
+      const atmosphere = document.querySelector<HTMLElement>("[data-atmosphere]");
+      if (atmosphere) {
+        ScrollTrigger.create({
+          trigger: "[data-footer-trigger]",
+          scroller: root,
+          start: "top bottom+=5%",
+          end: "top center+=15%",
+          scrub: true,
+          onUpdate: (self) => {
+            gsap.set(atmosphere, { opacity: 1 - self.progress });
+          },
+        });
+      }
       }); // close requestAnimationFrame
     }, root);
 
-    // ── Custom cursor ──
-    const cursor = root.querySelector<HTMLElement>("[data-cursor]");
-    const cursorText = root.querySelector<HTMLElement>("[data-cursor-text]");
-    const cursorTargets = Array.from(
-      root.querySelectorAll<HTMLElement>("[data-mouse-target]"),
-    );
-    const canUseCursor =
-      cursor &&
-      !window.matchMedia("(pointer: coarse), (max-width: 760px)").matches;
-
-    if (cursor && canUseCursor) {
-      gsap.set(cursor, { xPercent: -50, yPercent: -50, autoAlpha: 0, scale: 0.82 });
-      const xTo = gsap.quickTo(cursor, "x", { duration: 0.46, ease: "power3" });
-      const yTo = gsap.quickTo(cursor, "y", { duration: 0.46, ease: "power3" });
-
-      const onPointerMove = (e: PointerEvent) => {
-        xTo(e.clientX);
-        yTo(e.clientY);
-        gsap.to(cursor, { autoAlpha: 1, duration: 0.28, overwrite: true });
-      };
-
-      const onTargetEnter = (e: Event) => {
-        const target = e.currentTarget as HTMLElement;
-        if (cursorText)
-          cursorText.textContent = target.dataset.mouseTarget ?? "";
-        gsap.to(cursor, {
-          scale: 1.4,
-          duration: 0.38,
-          ease: "expo.out",
-          overwrite: true,
-        });
-      };
-
-      const onTargetLeave = () => {
-        if (cursorText) cursorText.textContent = "";
-        gsap.to(cursor, {
-          scale: 0.82,
-          duration: 0.42,
-          ease: "expo.out",
-          overwrite: true,
-        });
-      };
-
-      window.addEventListener("pointermove", onPointerMove);
-      cursorTargets.forEach((target) => {
-        target.addEventListener("pointerenter", onTargetEnter);
-        target.addEventListener("pointerleave", onTargetLeave);
-      });
-
-      return () => {
-        window.removeEventListener("pointermove", onPointerMove);
-        cursorTargets.forEach((target) => {
-          target.removeEventListener("pointerenter", onTargetEnter);
-          target.removeEventListener("pointerleave", onTargetLeave);
-        });
-        gsap.killTweensOf(cursor);
-        ctx.revert();
-        ScrollTrigger.removeEventListener("refresh", resizeLenis);
-        cancelAnimationFrame(rafId);
-        lenis.destroy();
-      };
-    }
-
-    // ── Cleanup ──
+    // ── Refresh after layout settles ──
     const refreshId = window.setTimeout(() => {
-      lenis.resize();
       ScrollTrigger.refresh();
     }, 300);
+
     return () => {
       window.clearTimeout(refreshId);
       ctx.revert();
-      ScrollTrigger.removeEventListener("refresh", resizeLenis);
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
     };
   }, []);
 
@@ -386,18 +332,10 @@ export default function Home() {
             <Contact />
           </section>
 
-          <footer
-            style={{
-              padding: "40px 0",
-              textAlign: "center",
-              color: "var(--color-text-muted)",
-              fontSize: 13,
-              borderTop: "1px solid rgba(255,255,255,0.06)",
-              marginTop: 40,
-            }}
-          >
-            江苏高校地图
-          </footer>
+          <StyledFooter data-footer-trigger>
+            <FooterTransitionBg />
+            <FooterContent>江苏高校地图</FooterContent>
+          </StyledFooter>
         </Shell>
       </Page>
     </>

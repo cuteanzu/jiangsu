@@ -1,46 +1,22 @@
-import { useState, useCallback, useMemo, useEffect, type FormEvent } from "react";
+import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, ArrowLeft } from "lucide-react";
-import HandDrawnMap from "../components/handdrawn/HandDrawnMap";
+import HanddrawnTopNav from "../components/handdrawn/HanddrawnTopNav";
+import JiangsuHanddrawnMap from "../components/handdrawn/JiangsuHanddrawnMap";
+import CityIllustrationMap from "../components/handdrawn/CityIllustrationMap";
+import UniversityListPanel from "../components/handdrawn/UniversityListPanel";
+import { useHandDrawnProjection } from "../components/handdrawn/useHandDrawnProjection";
 import "../components/handdrawn/handdrawn.css";
-import { UNIVERSITIES } from "../data/jiangsu-universities";
-import type { Tier, University } from "../data/jiangsu-universities";
-import { TIER_LABEL } from "../data/jiangsu-universities";
+import { UNIVERSITIES, type University } from "../data/jiangsu-universities";
+import { getCityMeta } from "../data/city-profiles";
 import { normalizeCityParam } from "../utils/jiangsuPresentation";
-import { getCityProfile } from "../data/city-profiles";
 
-// ── Helpers ──
-
-const TIER_DOT_COLOR: Record<Tier, string> = {
-  "985": "#C87A6A",
-  "211": "#B0A0C0",
-  "dual": "#78A0B8",
-  "provincial": "#90A890",
-};
-
-const TIER_TAG_BG: Record<Tier, string> = {
-  "985": "rgba(200,120,100,0.12)",
-  "211": "rgba(160,140,180,0.12)",
-  "dual": "rgba(100,140,170,0.11)",
-  "provincial": "rgba(130,150,130,0.10)",
-};
-
-const TIER_TAG_COLOR: Record<Tier, string> = {
-  "985": "#B06050",
-  "211": "#8070A0",
-  "dual": "#507090",
-  "provincial": "#608060",
-};
-
-// ═══════════════════════════════════════════════
+const DEFAULT_OVERVIEW_CITY = "南京";
 
 export default function HandDrawnJiangsuMap() {
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // ── Restore state from URL ──
   const urlCity = searchParams.get("city") ?? null;
   const urlSchoolId = searchParams.get("school") ?? null;
-  const urlView = searchParams.get("view") ?? null;
 
   const restoredSchool = useMemo(() => {
     if (!urlSchoolId) return null;
@@ -48,429 +24,353 @@ export default function HandDrawnJiangsuMap() {
   }, [urlSchoolId]);
 
   const selectedName = normalizeCityParam(urlCity) ?? restoredSchool?.city ?? null;
-  const selectedSchoolName = restoredSchool?.name ?? null;
-  const isDetailView = urlView === "detail";
+  const selectedUniversity = restoredSchool ?? null;
+  const isDetail = Boolean(selectedName);
+  const proj = useHandDrawnProjection();
 
-  // ── State ──
-  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
-  const [hoveredSchool, setHoveredSchool] = useState<string | null>(null);
-  const [showAllPins, setShowAllPins] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [panelVisible, setPanelVisible] = useState(isDetailView);
-  const [isExiting, setIsExiting] = useState(false);
-
-  // Delay info panel 250ms after stage animation starts
-  useEffect(() => {
-    if (selectedName && !isDetailView) {
-      setPanelVisible(false);
-      const timer = setTimeout(() => setPanelVisible(true), 250);
-      return () => clearTimeout(timer);
-    } else if (isDetailView && selectedSchoolName) {
-      setPanelVisible(false);
-      const timer = setTimeout(() => setPanelVisible(true), 250);
-      return () => clearTimeout(timer);
-    } else {
-      setPanelVisible(false);
-    }
-  }, [selectedName, isDetailView, selectedSchoolName]);
-
-  const currentSearch = searchParams.toString();
-
-  // ── URL helpers ──
-  const updateParams = useCallback((
-    city: string | null,
-    schoolName: string | null,
-    view: "detail" | null = null,
-  ) => {
-    const params = new URLSearchParams();
-    params.set("mode", "handdrawn"); // preserve mode
-    const school = schoolName ? UNIVERSITIES.find((u) => u.name === schoolName) ?? null : null;
-    const nextCity = city ?? school?.city ?? null;
-    if (nextCity) params.set("city", nextCity);
-    if (school) params.set("school", school.id);
-    if (view === "detail" && school) params.set("view", "detail");
-    if (params.toString() !== currentSearch) {
-      setSearchParams(params, { replace: true });
-    }
-  }, [currentSearch, setSearchParams]);
-
-  // ── Exit animation flow ──
-  const handleBackToOverview = useCallback(() => {
-    if (!selectedName) return;
-    setIsExiting(true);
-    setTimeout(() => {
-      updateParams(null, null);
-      setIsExiting(false);
-      setPanelVisible(false);
-    }, 420);
-  }, [selectedName, updateParams]);
-
-  // ── Handlers ──
-  const handleHoverCity = useCallback((name: string | null) => setHoveredCity(name), []);
-  const handleSelectCity = useCallback((name: string | null) => {
-    updateParams(name, null);
-  }, [updateParams]);
-
-  const handleHoverSchool = useCallback((name: string | null) => setHoveredSchool(name), []);
-  const handleSelectSchool = useCallback((name: string | null) => {
-    updateParams(selectedName, selectedSchoolName === name ? null : name);
-  }, [selectedName, selectedSchoolName, updateParams]);
-
-  const handleViewDetail = useCallback((school: University) => {
-    updateParams(school.city, school.name, "detail");
-  }, [updateParams]);
-
-  const handleSearch = useCallback((e: FormEvent) => {
-    e.preventDefault();
-    const raw = searchText.trim();
-    if (!raw) return;
-
-    // Search school first
-    const school = UNIVERSITIES.find((u) =>
-      u.name.includes(raw) || raw.includes(u.name),
-    );
-    if (school) {
-      updateParams(school.city, school.name);
-      return;
-    }
-
-    // Search city
-    const city = UNIVERSITIES.find((u) => {
-      const nc = normalizeCityParam(u.city);
-      return nc && (raw.includes(nc) || nc.includes(raw));
-    });
-    if (city) {
-      updateParams(city.city, null);
-      return;
-    }
-  }, [searchText, updateParams]);
-
-  // ── Derived data ──
-  const cityUniversities = useMemo(
-    () => UNIVERSITIES.filter((u) => u.city === selectedName),
-    [selectedName],
-  );
-
-  const tierCounts = useMemo(() => {
-    const counts: Record<Tier, number> = { "985": 0, "211": 0, "dual": 0, "provincial": 0 };
-    cityUniversities.forEach((u) => { counts[u.tier]++; });
-    return counts;
-  }, [cityUniversities]);
-
-  const cityProfile = useMemo(() => getCityProfile(selectedName), [selectedName]);
+  const [overviewCity, setOverviewCity] = useState(restoredSchool?.city ?? DEFAULT_OVERVIEW_CITY);
+  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
+  const [hoveredUniversity, setHoveredUniversity] = useState<University | null>(null);
+  const [selectedPreviewCity, setSelectedPreviewCity] = useState<string | null>(null);
 
   const schoolCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     UNIVERSITIES.forEach((u) => {
-      counts[u.city] = (counts[u.city] || 0) + 1;
+      counts[u.city] = (counts[u.city] ?? 0) + 1;
     });
     return counts;
   }, []);
 
-  const provinceKeyCount = useMemo(() => {
-    let n = 0;
-    UNIVERSITIES.forEach((u) => { if (u.tier !== "provincial") n++; });
-    return n;
+  const keyCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    UNIVERSITIES.forEach((u) => {
+      if (u.tier === "provincial") return;
+      counts[u.city] = (counts[u.city] ?? 0) + 1;
+    });
+    return counts;
   }, []);
 
-  const detailSchool = useMemo(() => {
-    if (!isDetailView || !selectedSchoolName) return null;
-    return UNIVERSITIES.find((u) => u.name === selectedSchoolName) ?? null;
-  }, [isDetailView, selectedSchoolName]);
+  const provinceCityCount = useMemo(
+    () => new Set(UNIVERSITIES.map((u) => u.city)).size,
+    [],
+  );
 
-  // ═══════════════ Render ═══════════════
+  const provinceKeyCount = useMemo(
+    () => UNIVERSITIES.filter((u) => u.tier !== "provincial").length,
+    [],
+  );
+
+  const provinceTotalCount = UNIVERSITIES.length;
+
+  const hoveredMeta = useMemo(() => {
+    if (!hoveredCity) return null;
+    return getCityMeta(hoveredCity);
+  }, [hoveredCity]);
+
+  const previewMeta = useMemo(() => {
+    if (!selectedPreviewCity) return null;
+    return getCityMeta(selectedPreviewCity);
+  }, [selectedPreviewCity]);
+
+  const displayCityName = hoveredCity ?? selectedPreviewCity ?? null;
+  const displayMeta = hoveredCity ? hoveredMeta : previewMeta;
+  const displaySchoolCount = displayCityName ? (schoolCounts[displayCityName] ?? 0) : 0;
+
+  const selectedCityPath = useMemo(() => {
+    if (!proj || !selectedName) return null;
+    return proj.cityPaths.find((c) => c.name === selectedName) ?? null;
+  }, [proj, selectedName]);
+
+  const cityUniversities = useMemo(
+    () => UNIVERSITIES.filter((u) => u.city === selectedName),
+    [selectedName],
+  );
+  const cityMeta = useMemo(() => getCityMeta(selectedName), [selectedName]);
+
+  const safeImpressions: string[] = cityMeta?.impressionTags ?? [];
+  const safeSuitable: string[] = cityMeta?.suitableFor ?? [];
+  const safeExploreTip: string = cityMeta?.exploreTip ?? "";
+
+  const updateParams = useCallback((
+    city: string | null,
+    school: University | null = null,
+  ) => {
+    const params = new URLSearchParams();
+    params.set("mode", "handdrawn");
+    const nextCity = city ?? school?.city ?? null;
+    if (nextCity) params.set("city", nextCity);
+    if (school) params.set("school", school.id);
+    setSearchParams(params, { replace: true });
+  }, [setSearchParams]);
+
+  const handleSearch = useCallback((event: FormEvent) => {
+    event.preventDefault();
+    const raw = searchText.trim();
+    if (!raw) return;
+
+    const school = UNIVERSITIES.find((u) =>
+      u.name.includes(raw) ||
+      u.shortName?.includes(raw) ||
+      u.aliases?.some((a) => a.toLowerCase().includes(raw.toLowerCase())),
+    );
+    if (school) {
+      if (isDetail) updateParams(school.city, school);
+      else {
+        setSelectedPreviewCity(school.city);
+        setOverviewCity(school.city);
+      }
+      setHoveredCity(null);
+      return;
+    }
+
+    const city = normalizeCityParam(raw) ?? UNIVERSITIES.find((u) => {
+      const normalized = normalizeCityParam(u.city);
+      return normalized && (raw.includes(normalized) || normalized.includes(raw));
+    })?.city ?? null;
+
+    if (city) {
+      if (isDetail) updateParams(city, null);
+      else {
+        setSelectedPreviewCity(city);
+        setOverviewCity(city);
+      }
+      setHoveredCity(null);
+    }
+  }, [isDetail, searchText, updateParams]);
+
+  const handleSwitchMode = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("mode");
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleOverviewCitySelect = useCallback((cityName: string) => {
+    setSelectedPreviewCity(cityName);
+    setHoveredCity(null);
+  }, []);
+
+  const handleEnterCity = useCallback(() => {
+    if (!selectedPreviewCity) return;
+    updateParams(selectedPreviewCity, null);
+  }, [selectedPreviewCity, updateParams]);
+
+  const handleSelectUniversity = useCallback((u: University) => {
+    updateParams(selectedName, u);
+  }, [selectedName, updateParams]);
 
   return (
-    <div className="hd-page">
-      {/* Mode toggle — back to 3D */}
-      <button
-        className="hd-mode-toggle"
-        onClick={() => {
-          const params = new URLSearchParams(searchParams);
-          params.delete("mode");
-          setSearchParams(params);
-        }}
-      >
-        3D 沙盘
-      </button>
+    <div className={`handdrawn-page${isDetail ? " handdrawn-page--detail" : " handdrawn-page--overview"}`}>
+      <HanddrawnTopNav />
 
-      {/* Search bar */}
-      <form className="hd-search" onSubmit={handleSearch}>
-        <Search size={16} />
-        <input
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          placeholder="搜索城市或高校，例如 南京 / 苏州大学"
-        />
-        <button className="hd-search-btn" type="submit">搜索</button>
-      </form>
+      {/* ═══ Overview ═══ */}
+      {!isDetail && (
+        <>
+          {/* Hero: page title + search */}
+          <section className="hd-overview-hero">
+            <div className="hd-hero-title">
+              <h2>江苏高校地图</h2>
+              <p>手绘地图探索江苏高校分布</p>
+            </div>
+            <form className="hd-search" onSubmit={handleSearch}>
+              <Search size={17} />
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="搜索城市或高校，例如 南京 / 苏州大学"
+              />
+              <button className="hd-search-btn" type="submit">搜索</button>
+            </form>
+          </section>
 
-      {/* Back button */}
-      {selectedName && (
-        <button className="hd-back-btn" onClick={handleBackToOverview}>
-          <ArrowLeft size={14} style={{ marginRight: 4, verticalAlign: -2 }} />
-          返回全省总览
-        </button>
-      )}
-
-      {/* Province overview hint card */}
-      {!selectedName && (
-        <div className="hd-overview-card">
-          <div style={{
-            display: "flex", alignItems: "baseline", justifyContent: "space-between",
-            marginBottom: 4, paddingBottom: 8,
-            borderBottom: "1px dashed rgba(200,170,150,0.22)",
-          }}>
-            <h3 style={{ margin: 0 }}>江苏高校探索</h3>
-            <span style={{
-              fontSize: 8, fontWeight: 600, color: "#B0A090",
-              fontFamily: '"Noto Serif SC",serif', letterSpacing: "0.4px",
-            }}>
-              手绘地图
-            </span>
-          </div>
-          <div style={{ fontSize: 11, color: "#8b7d73", marginBottom: 10, letterSpacing: "0.2px" }}>
-            {(() => {
-              const citySet = UNIVERSITIES.reduce((s, u) => { if (!s.includes(u.city)) s.push(u.city); return s; }, [] as string[]);
-              return `${citySet.length} 市 · ${UNIVERSITIES.length} 所本科 · ${provinceKeyCount} 所重点`;
-            })()}
-          </div>
-          <div style={{
-            fontSize: 10, fontWeight: 700, color: "#2A1810", marginBottom: 6,
-            letterSpacing: "0.6px", fontFamily: '"Noto Serif SC",serif',
-          }}>
-            推荐探索
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
-            {["南京", "苏州", "无锡", "徐州"].map((city) => {
-              const c = schoolCounts[city];
-              return (
-                <button key={city}
-                  onClick={() => handleSelectCity(city)}
-                  onMouseEnter={() => setHoveredCity(city)}
-                  onMouseLeave={() => setHoveredCity(null)}
-                  style={{
-                    border: "1px solid rgba(200,170,150,0.20)", borderRadius: 8,
-                    background: "rgba(255,252,248,0.55)", padding: "5px 12px",
-                    cursor: "pointer", fontFamily: "inherit",
-                    fontSize: 11, fontWeight: 700, color: "#5A4A3A",
-                    transition: "all 0.15s ease",
-                    display: "flex", alignItems: "center", gap: 3,
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = "rgba(200,160,130,0.12)";
-                    e.currentTarget.style.borderColor = "rgba(200,160,130,0.30)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = "rgba(255,252,248,0.55)";
-                    e.currentTarget.style.borderColor = "rgba(200,170,150,0.20)";
-                  }}
-                >
-                  {city}{c && <span style={{ fontSize: 9, fontWeight: 500, color: "#B0A090", marginLeft: 2 }}>{c}所</span>}
-                  <span style={{ fontSize: 9, color: "#C8B8A8", marginLeft: 1 }}>→</span>
+          {/* Main canvas */}
+          <main className="hd-overview-canvas">
+            {/* Floating sticker */}
+            <div className={`hd-floating-sticker${displayCityName ? " has-city" : ""}`}>
+              {displayCityName ? (
+                <>
+                  <h2>{displayCityName}</h2>
+                  {displayMeta?.identity && <p>{displayMeta.identity}</p>}
+                  <div className="hd-sticker-stats">
+                    <span>{displaySchoolCount} 所高校</span>
+                    {displayMeta?.costLevel && <span>{displayMeta.costLevel}</span>}
+                    {displayMeta?.transportLevel && <span>{displayMeta.transportLevel}</span>}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2>江苏高校地图</h2>
+                  <p>手绘地图探索江苏高校分布</p>
+                  <div className="hd-sticker-stats">
+                    <span>{provinceTotalCount} 所本科高校</span>
+                    <span>{provinceKeyCount} 所重点</span>
+                    <span>{provinceCityCount} 个城市</span>
+                  </div>
+                </>
+              )}
+              {selectedPreviewCity && (
+                <button className="hd-sticker-enter-btn" type="button" onClick={handleEnterCity}>
+                  进入城市详情 →
                 </button>
-              );
-            })}
-          </div>
-          <div style={{
-            paddingTop: 8, borderTop: "1px dashed rgba(200,170,150,0.14)",
-            textAlign: "center",
-          }}>
-            <span style={{
-              fontSize: 10, color: "#B0A090", fontWeight: 600,
-              fontFamily: '"Noto Serif SC",serif', letterSpacing: "0.3px",
-            }}>
-              点击城市查看高校分布
-            </span>
-          </div>
-        </div>
+              )}
+            </div>
+
+            {/* Map */}
+            {proj ? (
+              <JiangsuHanddrawnMap
+                proj={proj}
+                activeCity={selectedPreviewCity ?? overviewCity}
+                hoveredCity={hoveredCity}
+                schoolCounts={schoolCounts}
+                keyCounts={keyCounts}
+                onHoverCity={setHoveredCity}
+                onSelectCity={handleOverviewCitySelect}
+              />
+            ) : (
+              <div className="hd-loading">正在加载手绘地图...</div>
+            )}
+
+            {/* Bottom chips */}
+            <div className="hd-overview-chips">
+              <span className="hd-overview-chip">
+                <strong>{provinceTotalCount}</strong> 所本科高校
+              </span>
+              <span className="hd-overview-chip">
+                <strong>{provinceKeyCount}</strong> 所重点高校
+              </span>
+              <span className="hd-overview-chip">
+                覆盖 <strong>{provinceCityCount}</strong> 个城市
+              </span>
+              <span className="hd-overview-chip">
+                手绘地图 · 水彩风格
+              </span>
+            </div>
+          </main>
+        </>
       )}
 
-      {/* Map area */}
-      <div className="hd-map-wrap">
-        <HandDrawnMap
-          selectedCity={selectedName}
-          hoveredCity={hoveredCity}
-          selectedSchool={selectedSchoolName}
-          hoveredSchool={hoveredSchool}
-          showAllPins={showAllPins}
-          cityUniversities={cityUniversities}
-          schoolCounts={schoolCounts}
-          cityProfile={cityProfile}
-          isExiting={isExiting}
-          onHoverCity={handleHoverCity}
-          onSelectCity={handleSelectCity}
-          onHoverSchool={handleHoverSchool}
-          onSelectSchool={handleSelectSchool}
-          onViewDetail={handleViewDetail}
-        />
-      </div>
-
-      {/* City info panel — journal page style */}
-      {panelVisible && selectedName && !isDetailView && (
-        <div className={`hd-info-panel${isExiting ? " hd-info-panel--exit" : ""}`}>
-          {/* Decorative header — handwritten journal feel */}
-          <div style={{
-            display: "flex", alignItems: "baseline", justifyContent: "space-between",
-            marginBottom: 4, paddingBottom: 8,
-            borderBottom: "1px dashed rgba(200,170,150,0.22)",
-          }}>
-            <h3 style={{ margin: 0 }}>{selectedName}</h3>
-            <span style={{
-              fontSize: 9, fontWeight: 600, color: "#B0A090",
-              fontFamily: '"Noto Serif SC",serif', letterSpacing: "0.5px",
-            }}>
-              手账笔记
-            </span>
+      {/* ═══ Detail ═══ */}
+      {isDetail && selectedName && (
+        <>
+          {/* Toolbar: back + search + 3D toggle */}
+          <div className="hd-detail-toolbar">
+            <button className="hd-back-btn" type="button" onClick={() => updateParams(null, null)}>
+              <ArrowLeft size={15} />
+              返回全省总览
+            </button>
+            <form className="hd-search" onSubmit={handleSearch}>
+              <Search size={17} />
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="搜索城市或高校，例如 南京 / 苏州大学"
+              />
+              <button className="hd-search-btn" type="submit">搜索</button>
+            </form>
+            <button className="hd-mode-toggle" type="button" onClick={handleSwitchMode}>
+              3D 沙盘
+            </button>
           </div>
 
-          <div className="hd-subtitle" style={{ borderBottom: "none", marginBottom: 10, paddingBottom: 0 }}>
-            {cityProfile?.cost && `${cityProfile.cost} · `}
-            {cityProfile?.transit && `${cityProfile.transit} · `}
-            {cityProfile?.jobs && cityProfile.jobs}
-          </div>
+          {/* Dual-column layout */}
+          <main className="hd-detail-layout-new">
+            <section className="hd-map-card-main">
+              {/* City info zone */}
+              <aside className="hd-city-info-zone">
+                <span className="hd-panel-kicker">CITY DOSSIER</span>
+                <div className="hd-city-name-block">
+                  <h2>{selectedName}</h2>
+                  {cityMeta.identity && (
+                    <span className="hd-city-identity-tag">{cityMeta.identity}</span>
+                  )}
+                </div>
 
-          {/* Tier summary — sticker badges */}
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 14 }}>
-            {tierCounts["985"] > 0 && (
-              <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 6, fontWeight: 700, background: TIER_TAG_BG["985"], color: TIER_TAG_COLOR["985"], border: "1px solid rgba(200,120,100,0.12)", boxShadow: "0 1px 2px rgba(180,140,120,0.06)" }}>
-                985 × {tierCounts["985"]}
-              </span>
-            )}
-            {tierCounts["211"] > 0 && (
-              <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 6, fontWeight: 700, background: TIER_TAG_BG["211"], color: TIER_TAG_COLOR["211"], border: "1px solid rgba(160,140,180,0.12)", boxShadow: "0 1px 2px rgba(180,140,120,0.06)" }}>
-                211 × {tierCounts["211"]}
-              </span>
-            )}
-            {tierCounts.dual > 0 && (
-              <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 6, fontWeight: 700, background: TIER_TAG_BG["dual"], color: TIER_TAG_COLOR["dual"], border: "1px solid rgba(100,140,170,0.12)", boxShadow: "0 1px 2px rgba(180,140,120,0.06)" }}>
-                双一流 × {tierCounts.dual}
-              </span>
-            )}
-            {tierCounts.provincial > 0 && (
-              <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 6, fontWeight: 700, background: TIER_TAG_BG["provincial"], color: TIER_TAG_COLOR["provincial"], border: "1px solid rgba(130,150,130,0.12)", boxShadow: "0 1px 2px rgba(180,140,120,0.06)" }}>
-                本科 × {tierCounts.provincial}
-              </span>
-            )}
-          </div>
+                <div className="hd-impression-chips">
+                  <span className="hd-info-chip">{cityUniversities.length} 所高校</span>
+                  <span className="hd-info-chip">{cityMeta.costLevel}</span>
+                  <span className="hd-info-chip">{cityMeta.transportLevel}</span>
+                  <span className="hd-info-chip">{cityMeta.rhythmLevel}</span>
+                </div>
 
-          {/* School list — journal entry style */}
-          <div style={{
-            fontSize: 10, fontWeight: 700, color: "#2A1810", marginBottom: 8,
-            letterSpacing: "0.8px", fontFamily: '"Noto Serif SC",serif',
-          }}>
-            驻地高校
-            <span style={{ fontSize: 9, fontWeight: 500, color: "#B0A090", marginLeft: 5 }}>
-              {cityUniversities.length} 所
-            </span>
-          </div>
-          {cityUniversities.map((u, i) => (
-            <div
-              key={u.id}
-              className="hd-school-item"
-              style={{ animationDelay: `${Math.min(0.22 + i * 0.035, 0.50)}s` }}
-              onMouseEnter={() => setHoveredSchool(u.name)}
-              onMouseLeave={() => setHoveredSchool(null)}
-              onClick={() => handleViewDetail(u)}
-            >
-              <span className="hd-tier-dot" style={{ background: TIER_DOT_COLOR[u.tier] }} />
-              <span className="hd-school-name">{u.name}</span>
-              <span className="hd-tier-tag" style={{
-                background: TIER_TAG_BG[u.tier],
-                color: TIER_TAG_COLOR[u.tier],
-              }}>
-                {TIER_LABEL[u.tier]}
-              </span>
-            </div>
-          ))}
+                {safeImpressions.length > 0 && (
+                  <>
+                    <p className="hd-section-label">城市印象</p>
+                    <div className="hd-impression-chips">
+                      {safeImpressions.map((imp) => (
+                        <span key={imp}>{imp}</span>
+                      ))}
+                    </div>
+                  </>
+                )}
 
-          <div style={{
-            marginTop: 14, paddingTop: 10,
-            borderTop: "1px dashed rgba(200,170,150,0.18)",
-          }}>
-            <label style={{ fontSize: 10, color: "#8b7d73", display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontWeight: 600 }}>
-              <input type="checkbox" checked={showAllPins} onChange={(e) => setShowAllPins(e.target.checked)}
-                style={{ accentColor: "#B09070" }} />
-              显示全部高校点位
-            </label>
-          </div>
-        </div>
-      )}
+                {safeSuitable.length > 0 && (
+                  <>
+                    <p className="hd-section-label">适合人群</p>
+                    <ul className="hd-suitable-list">
+                      {safeSuitable.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
 
-      {/* School detail overlay — journal spread */}
-      {panelVisible && isDetailView && detailSchool && (
-        <div className="hd-info-panel hd-detail-panel" style={{ top: 100, transform: "none", maxHeight: "calc(100vh - 140px)" }}>
-          <button
-            onClick={() => {
-              const params = new URLSearchParams();
-              params.set("mode", "handdrawn");
-              if (selectedName) params.set("city", selectedName);
-              const s = UNIVERSITIES.find((u) => u.name === selectedSchoolName);
-              if (s) params.set("school", s.id);
-              setSearchParams(params);
-            }}
-            style={{
-              border: "1px solid rgba(200,170,150,0.18)", borderRadius: 8,
-              background: "rgba(255,252,247,0.55)",
-              padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 700,
-              color: "#6B5D50", marginBottom: 14, fontFamily: "inherit",
-              boxShadow: "0 1px 3px rgba(180,150,130,0.05)",
-            }}
-          >
-            ← 返回城市
-          </button>
+                {safeExploreTip && (
+                  <p className="hd-explore-tip">{safeExploreTip}</p>
+                )}
+              </aside>
 
-          <div style={{
-            display: "flex", alignItems: "baseline", justifyContent: "space-between",
-            marginBottom: 4, paddingBottom: 8,
-            borderBottom: "1px dashed rgba(200,170,150,0.22)",
-          }}>
-            <h3 style={{ margin: 0 }}>{detailSchool.name}</h3>
-            <span style={{
-              fontSize: 9, fontWeight: 600, color: "#B0A090",
-              fontFamily: '"Noto Serif SC",serif', letterSpacing: "0.5px",
-            }}>
-              院校档案
-            </span>
-          </div>
-          <div className="hd-subtitle" style={{ borderBottom: "none", marginBottom: 8, paddingBottom: 0 }}>
-            {detailSchool.city} · {TIER_LABEL[detailSchool.tier]}
-            {detailSchool.founded && ` · ${detailSchool.founded}年建校`}
-          </div>
+              {/* Map visual zone */}
+              <div className="hd-map-visual-zone">
+                <div className="hd-map-visual-header">
+                  <h3>{selectedName}手绘地图</h3>
+                  <span className="hd-map-count-badge">
+                    {cityUniversities.length} 所高校
+                  </span>
+                </div>
 
-          <div style={{ marginTop: 12 }}>
-            <div style={{
-              fontSize: 11, fontWeight: 700, color: "#2A1810", marginBottom: 5,
-              letterSpacing: "0.8px", fontFamily: '"Noto Serif SC",serif',
-            }}>
-              学校概况
-            </div>
-            <p style={{ fontSize: 11, color: "#5a4a3a", lineHeight: 1.9, letterSpacing: "0.2px" }}>
-              {detailSchool.name}坐落于{detailSchool.city}，是江苏省高校版图中的重要坐标。
-              {detailSchool.tier === "985" && "作为985工程重点建设高校，综合实力与研究气质突出。"}
-              {detailSchool.tier === "211" && "作为211工程重点建设高校，学科底蕴清晰，专业传统深厚。"}
-              {detailSchool.tier === "dual" && "作为双一流建设高校，特色学科辨识度很高。"}
-              {detailSchool.tier === "provincial" && "与地方产业、师范教育、应用创新联系紧密。"}
-            </p>
-          </div>
+                {selectedCityPath ? (
+                  <CityIllustrationMap
+                    city={selectedCityPath}
+                    universities={cityUniversities}
+                    selectedUniversity={selectedUniversity}
+                    hoveredUniversity={hoveredUniversity}
+                    meta={cityMeta}
+                    onHoverUniversity={setHoveredUniversity}
+                    onSelectUniversity={handleSelectUniversity}
+                  />
+                ) : (
+                  <div className="hd-loading">正在加载城市地图...</div>
+                )}
 
-          <div style={{
-            marginTop: 12, paddingTop: 10,
-            borderTop: "1px dashed rgba(200,170,150,0.18)",
-          }}>
-            <div style={{
-              fontSize: 11, fontWeight: 700, color: "#2A1810", marginBottom: 5,
-              letterSpacing: "0.8px", fontFamily: '"Noto Serif SC",serif',
-            }}>
-              城市环境
-            </div>
-            <p style={{ fontSize: 11, color: "#5a4a3a", lineHeight: 1.9, letterSpacing: "0.2px" }}>
-              {cityProfile?.cost && `生活成本适中。`}
-              {cityProfile?.transit && `交通便利。`}
-              {cityProfile?.jobs && `就业机会丰富。`}
-            </p>
-          </div>
-        </div>
+                <div className="hd-city-stats-row">
+                  <span>面积：<strong>{cityMeta.area}</strong></span>
+                  <span>常住人口：<strong>{cityMeta.population}</strong></span>
+                  <span>高校数量：<strong>{cityUniversities.length} 所</strong></span>
+                </div>
+
+                <div className="hd-status-bar">
+                  <span className="hd-status-dot" />
+                  {selectedUniversity ? (
+                    <>当前查看：<strong>{selectedUniversity.name}</strong></>
+                  ) : (
+                    "点击地图上的高校或右侧列表查看详情"
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <UniversityListPanel
+              cityName={selectedName}
+              universities={cityUniversities}
+              selectedUniversity={selectedUniversity}
+              hoveredUniversity={hoveredUniversity}
+              meta={cityMeta}
+              onHoverUniversity={setHoveredUniversity}
+              onSelectUniversity={handleSelectUniversity}
+              onSelectNearbyCity={(city) => updateParams(city, null)}
+            />
+          </main>
+        </>
       )}
     </div>
   );

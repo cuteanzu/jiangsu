@@ -1,10 +1,16 @@
 import { useState, useEffect, useRef, useCallback, Component } from "react";
-import { useNavigate } from "react-router-dom";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
-import { Eye, EyeOff } from "lucide-react";
+import { BookOpen, Compass, Eye, EyeOff, GraduationCap } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { createSeasonalFX } from "seasonalfx";
 import type { ISeasonalFX } from "seasonalfx";
 import { useSettings } from "../settings-context";
+import { useTransition } from "../context/TransitionContext";
+import {
+  AUDIENCE_ROLE_ORDER,
+  useAudienceRole,
+  type AudienceRole,
+} from "../hooks/useAudienceRole";
 import Bokeh from "../Bokeh";
 import Komorebi from "../Komorebi";
 import GroundPetals from "../GroundPetals";
@@ -65,21 +71,6 @@ const InlineKeyframes = createGlobalStyle`
   }
 `;
 
-const transitionFade = keyframes`
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-`;
-
-const TransitionOverlay = styled.div<{ $active: boolean }>`
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  pointer-events: none;
-  opacity: ${(p) => (p.$active ? 1 : 0)};
-  background: radial-gradient(ellipse 55% 45% at 50% 48%, rgba(255,252,247,0.94) 0%, rgba(253,242,235,0.88) 40%, rgba(240,236,245,0.70) 100%);
-  transition: opacity 0.35s ease;
-  animation: ${(p) => (p.$active ? transitionFade : "none")} 0.35s ease both;
-`;
 
 // ── Scene ──
 
@@ -254,7 +245,7 @@ const SpiritHalo = styled.div<{ $active: boolean; $color: string }>`
 const FormPanel = styled.div`
   flex: 1;
   display: flex; flex-direction: column; justify-content: center;
-  padding: 48px 40px;
+  padding: 42px 40px;
   background: transparent;
 `;
 
@@ -265,6 +256,59 @@ const Title = styled.h2`
 
 const Subtitle = styled.p`
   font-size: 13px; color: oklch(0.5 0.02 20); margin: 4px 0 28px;
+`;
+
+const RoleField = styled.div`
+  margin-bottom: 16px;
+`;
+
+const RoleGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+`;
+
+const RoleButton = styled.button<{ $active: boolean }>`
+  min-height: 82px;
+  padding: 10px;
+  border: 1px solid ${(p) => p.$active ? "oklch(0.7 0.13 10 / 0.55)" : "oklch(0.84 0.02 20 / 0.38)"};
+  border-radius: 12px;
+  background: ${(p) => p.$active ? "oklch(0.96 0.025 20 / 0.84)" : "oklch(0.97 0.005 20 / 0.44)"};
+  color: ${(p) => p.$active ? "oklch(0.34 0.08 18)" : "oklch(0.45 0.02 20)"};
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  text-align: left;
+  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  box-shadow: ${(p) => p.$active ? "0 8px 22px oklch(0.7 0.13 10 / 0.11)" : "none"};
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+
+  svg {
+    width: 17px;
+    height: 17px;
+    color: ${(p) => p.$active ? "oklch(0.64 0.13 12)" : "oklch(0.55 0.035 20)"};
+  }
+
+  strong {
+    display: block;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  span {
+    color: oklch(0.52 0.02 20);
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: oklch(0.72 0.11 12 / 0.48);
+  }
 `;
 
 const Field = styled.div`
@@ -541,7 +585,6 @@ interface CharacterPose {
 const neutralPose: CharacterPose = { faceX: 0, faceY: 0, bodySkew: 0, stretch: 0 };
 
 type SpiritId = "purple" | "black" | "orange" | "yellow";
-
 const spiritGuides: Record<SpiritId, { name: string; title: string; description: string; color: string }> = {
   purple: {
     name: "地图探索",
@@ -566,6 +609,40 @@ const spiritGuides: Record<SpiritId, { name: string; title: string; description:
     title: "关注宿舍、食堂和交通",
     description: "这一块会承接全面升级规划，补齐更有用的校园生活内容。",
     color: "#e8d754",
+  },
+};
+
+const audienceRoles: Record<AudienceRole, {
+  label: string;
+  short: string;
+  description: string;
+  submitText: string;
+  icon: LucideIcon;
+  spirit: SpiritId;
+}> = {
+  gaokao: {
+    label: "高考毕业生",
+    short: "选学校 / 选城市",
+    description: "优先看地图、层次和择校线索",
+    submitText: "以高考毕业生身份进入",
+    icon: GraduationCap,
+    spirit: "purple",
+  },
+  freshman: {
+    label: "准大学生",
+    short: "提前熟悉校园",
+    description: "关注宿舍、食堂、交通和入学准备",
+    submitText: "以准大学生身份进入",
+    icon: Compass,
+    spirit: "yellow",
+  },
+  college: {
+    label: "在校大学生",
+    short: "经验 / 规划",
+    description: "优先进入经验、问答和成长路径",
+    submitText: "以在校大学生身份进入",
+    icon: BookOpen,
+    spirit: "orange",
   },
 };
 
@@ -608,7 +685,7 @@ class StageErrorBoundary extends Component<{ children: React.ReactNode }, { erro
 // ── Main ──
 
 export default function Login() {
-  const nav = useNavigate();
+  const { navigateWithTransition } = useTransition();
   const { s } = useSettings();
 
   // Scene
@@ -625,6 +702,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [submitHovered, setSubmitHovered] = useState(false);
   const [activeSpirit, setActiveSpirit] = useState<SpiritId>("purple");
+  const { role: selectedRole, setRole: setSelectedRole } = useAudienceRole();
 
   // Character states
   const [isTyping, setIsTyping] = useState(false);
@@ -753,14 +831,7 @@ export default function Login() {
   const orangePos = characterPose.orange;
   const yellowPos = characterPose.yellow;
   const activeSpiritInfo = spiritGuides[activeSpirit];
-
-  // Transition — simple fade, no SVG outline
-  const [transitioning, setTransitioning] = useState(false);
-
-  function startTransition() {
-    setTransitioning(true);
-    setTimeout(() => nav("/me"), 420);
-  }
+  const selectedRoleInfo = audienceRoles[selectedRole];
 
   // Submit
   const handleSubmit = (e: React.FormEvent) => {
@@ -775,9 +846,14 @@ export default function Login() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      startTransition();
+      navigateWithTransition("/me");
     }, 400);
   };
+
+  const handleRoleSelect = useCallback((role: AudienceRole) => {
+    setSelectedRole(role);
+    setActiveSpirit(audienceRoles[role].spirit);
+  }, []);
 
   const handleSpiritClick = useCallback((spirit: SpiritId, event?: React.MouseEvent<HTMLDivElement>) => {
     event?.stopPropagation();
@@ -1086,6 +1162,31 @@ export default function Login() {
             <Title>欢迎回来</Title>
             <Subtitle>登录后进入江苏高校生活指北，继续探索你的校园路线</Subtitle>
             <form onSubmit={handleSubmit}>
+              <RoleField>
+                <Label>你的身份</Label>
+                <RoleGrid>
+                  {AUDIENCE_ROLE_ORDER.map((role) => {
+                    const option = audienceRoles[role];
+                    const Icon = option.icon;
+                    const active = selectedRole === role;
+                    return (
+                      <RoleButton
+                        key={role}
+                        type="button"
+                        $active={active}
+                        aria-pressed={active}
+                        aria-label={`${option.label}：${option.description}`}
+                        title={option.description}
+                        onClick={() => handleRoleSelect(role)}
+                      >
+                        <Icon aria-hidden="true" />
+                        <strong>{option.label}</strong>
+                        <span>{option.short}</span>
+                      </RoleButton>
+                    );
+                  })}
+                </RoleGrid>
+              </RoleField>
               <Field>
                 <Label>邮箱</Label>
                 <Input
@@ -1126,11 +1227,14 @@ export default function Login() {
                 onMouseEnter={() => setSubmitHovered(true)}
                 onMouseLeave={() => setSubmitHovered(false)}
               >
-                {loading ? "正在进入..." : "进入校园入口"}
+                {loading ? "正在进入..." : selectedRoleInfo.submitText}
               </LoginBtn>
               <ErrorMsg>{error}</ErrorMsg>
               <Divider>或者</Divider>
-              <GoogleBtn type="button" onClick={startTransition}>
+              <GoogleBtn
+                type="button"
+                onClick={() => navigateWithTransition("/me")}
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -1146,7 +1250,6 @@ export default function Login() {
           </FormPanel>
         </Card>
       </CardLayer>
-      {transitioning && <TransitionOverlay $active={transitioning} />}
     </Wrapper>
   );
 }

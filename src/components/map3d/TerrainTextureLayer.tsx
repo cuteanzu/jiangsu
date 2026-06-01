@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 
-const TEX_SIZE = 512;
+const TEX_SIZE = 256;
 
 function generateTexture(): HTMLCanvasElement {
   const canvas = document.createElement("canvas");

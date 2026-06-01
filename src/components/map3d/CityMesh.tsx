@@ -1,6 +1,6 @@
 import { useRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
-import type { ThreeEvent } from "@react-three/fiber";
+import { useThree, type ThreeEvent } from "@react-three/fiber";
 import {
   HOVER_LIFT, HOVER_SCALE, DIM_OPACITY, BASE_OPACITY, SELECTED_OPACITY, SELECTED_COLOR,
   ROUGHNESS, SIDE_ROUGHNESS, METALNESS,
@@ -40,6 +40,7 @@ export default function CityMesh({
   onPointerEnter, onPointerLeave, onClick,
 }: CityMeshProps) {
   const groupRef = useRef<THREE.Group>(null);
+  const invalidate = useThree((state) => state.invalidate);
 
   const isTransparent = dimmed;
   const opacity = selected ? SELECTED_OPACITY : dimmed ? DIM_OPACITY : BASE_OPACITY;
@@ -127,11 +128,12 @@ export default function CityMesh({
       const et = easeOut(t);
       g.scale.setScalar(startScale + (targetScale - startScale) * et);
       g.position.y = startY + (targetY - startY) * et;
+      invalidate();
       if (t < 1) raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [hovered, selected, targetScale, targetY]);
+  }, [hovered, selected, targetScale, targetY, invalidate]);
 
   const handlePointerEnter = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
@@ -152,8 +154,6 @@ export default function CityMesh({
     <group ref={groupRef}>
       <mesh
         geometry={geometry}
-        castShadow
-        receiveShadow
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onClick={handleClick}

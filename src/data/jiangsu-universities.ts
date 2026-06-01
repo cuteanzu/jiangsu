@@ -9,6 +9,8 @@ export interface University {
   tier: Tier;
   founded?: number;
   website?: string;
+  shortName?: string;
+  aliases?: string[];
 }
 
 // Tier order for visual ranking
@@ -26,30 +28,51 @@ export const TIER_LABEL: Record<Tier, string> = {
   "provincial": "本科",
 };
 
+export function universityLevelTags(university: University): string[] {
+  if (university.tier === "985") return ["本科", "985", "211", "双一流"];
+  if (university.tier === "211") return ["本科", "211", "双一流"];
+  if (university.tier === "dual") return ["本科", "双一流"];
+  return ["本科"];
+}
+
+export function universityTypeTag(university: University): string {
+  const name = university.name;
+  if (name.includes("财经") || name.includes("审计")) return "财经类";
+  if (name.includes("师范") || name.includes("第二师范") || name.includes("晓庄")) return "师范类";
+  if (name.includes("医") || name.includes("药") || name.includes("中医")) return "医药类";
+  if (name.includes("农业") || name.includes("林业")) return "农林类";
+  if (name.includes("航空") || name.includes("理工") || name.includes("工业") || name.includes("工程") || name.includes("工学院") || name.includes("科技") || name.includes("矿业") || name.includes("邮电")) return "理工类";
+  if (name.includes("艺术")) return "艺术类";
+  if (name.includes("体育")) return "体育类";
+  if (name.includes("海洋")) return "海洋类";
+  if (name.includes("警察")) return "政法类";
+  return "综合类";
+}
+
 // All undergraduate universities in Jiangsu Province (~78)
 // Coordinates are approximate school locations
 export const UNIVERSITIES: University[] = [
   // ═══ 985 ═══
-  { id: "nju", name: "南京大学", city: "南京", lat: 32.1190, lng: 118.9532, tier: "985", founded: 1902 },
-  { id: "seu", name: "东南大学", city: "南京", lat: 31.8860, lng: 118.8158, tier: "985", founded: 1902 },
+  { id: "nju", name: "南京大学", city: "南京", lat: 32.1190, lng: 118.9532, tier: "985", founded: 1902, shortName: "南大", aliases: ["NJU"] },
+  { id: "seu", name: "东南大学", city: "南京", lat: 31.8860, lng: 118.8158, tier: "985", founded: 1902, shortName: "东大", aliases: ["SEU"] },
 
   // ═══ 211 ═══
-  { id: "nuaa", name: "南京航空航天大学", city: "南京", lat: 31.9387, lng: 118.7929, tier: "211", founded: 1952 },
-  { id: "njust", name: "南京理工大学", city: "南京", lat: 32.0353, lng: 118.8559, tier: "211", founded: 1953 },
-  { id: "hhu", name: "河海大学", city: "南京", lat: 31.9103, lng: 118.7591, tier: "211", founded: 1915 },
-  { id: "njau", name: "南京农业大学", city: "南京", lat: 32.0376, lng: 118.8416, tier: "211", founded: 1902 },
-  { id: "cpu", name: "中国药科大学", city: "南京", lat: 31.8992, lng: 118.9112, tier: "211", founded: 1936 },
-  { id: "njnu", name: "南京师范大学", city: "南京", lat: 32.1044, lng: 118.9111, tier: "211", founded: 1902 },
-  { id: "suda", name: "苏州大学", city: "苏州", lat: 31.3066, lng: 120.6387, tier: "211", founded: 1900 },
-  { id: "jiangnan", name: "江南大学", city: "无锡", lat: 31.4909, lng: 120.2730, tier: "211", founded: 1958 },
-  { id: "cumt", name: "中国矿业大学", city: "徐州", lat: 34.2188, lng: 117.1945, tier: "211", founded: 1909 },
+  { id: "nuaa", name: "南京航空航天大学", city: "南京", lat: 31.9387, lng: 118.7929, tier: "211", founded: 1952, shortName: "南航", aliases: ["NUAA"] },
+  { id: "njust", name: "南京理工大学", city: "南京", lat: 32.0353, lng: 118.8559, tier: "211", founded: 1953, shortName: "南理工", aliases: ["NJUST"] },
+  { id: "hhu", name: "河海大学", city: "南京", lat: 31.9103, lng: 118.7591, tier: "211", founded: 1915, shortName: "河海", aliases: ["HHU"] },
+  { id: "njau", name: "南京农业大学", city: "南京", lat: 32.0376, lng: 118.8416, tier: "211", founded: 1902, shortName: "南农", aliases: ["NJAU"] },
+  { id: "cpu", name: "中国药科大学", city: "南京", lat: 31.8992, lng: 118.9112, tier: "211", founded: 1936, shortName: "药科大", aliases: ["CPU"] },
+  { id: "njnu", name: "南京师范大学", city: "南京", lat: 32.1044, lng: 118.9111, tier: "211", founded: 1902, shortName: "南师大", aliases: ["NJNU"] },
+  { id: "suda", name: "苏州大学", city: "苏州", lat: 31.3066, lng: 120.6387, tier: "211", founded: 1900, shortName: "苏大", aliases: ["SUDA"] },
+  { id: "jiangnan", name: "江南大学", city: "无锡", lat: 31.4909, lng: 120.2730, tier: "211", founded: 1958, shortName: "江大" },
+  { id: "cumt", name: "中国矿业大学", city: "徐州", lat: 34.2188, lng: 117.1945, tier: "211", founded: 1909, shortName: "矿大", aliases: ["CUMT"] },
 
   // ═══ 双一流 ═══
-  { id: "nuist", name: "南京信息工程大学", city: "南京", lat: 32.2065, lng: 118.7173, tier: "dual", founded: 1960 },
-  { id: "njupt", name: "南京邮电大学", city: "南京", lat: 32.0800, lng: 118.9458, tier: "dual", founded: 1942 },
-  { id: "njfu", name: "南京林业大学", city: "南京", lat: 32.0793, lng: 118.8135, tier: "dual", founded: 1902 },
-  { id: "njmu", name: "南京医科大学", city: "南京", lat: 31.9460, lng: 118.7621, tier: "dual", founded: 1934 },
-  { id: "njucm", name: "南京中医药大学", city: "南京", lat: 32.0972, lng: 118.9536, tier: "dual", founded: 1954 },
+  { id: "nuist", name: "南京信息工程大学", city: "南京", lat: 32.2065, lng: 118.7173, tier: "dual", founded: 1960, shortName: "南信大" },
+  { id: "njupt", name: "南京邮电大学", city: "南京", lat: 32.0800, lng: 118.9458, tier: "dual", founded: 1942, shortName: "南邮" },
+  { id: "njfu", name: "南京林业大学", city: "南京", lat: 32.0793, lng: 118.8135, tier: "dual", founded: 1902, shortName: "南林" },
+  { id: "njmu", name: "南京医科大学", city: "南京", lat: 31.9460, lng: 118.7621, tier: "dual", founded: 1934, shortName: "南医大" },
+  { id: "njucm", name: "南京中医药大学", city: "南京", lat: 32.0972, lng: 118.9536, tier: "dual", founded: 1954, shortName: "南中医" },
 
   // ═══ 南京本科 ═══
   { id: "njupt2", name: "南京工业大学", city: "南京", lat: 32.0789, lng: 118.6489, tier: "provincial" },

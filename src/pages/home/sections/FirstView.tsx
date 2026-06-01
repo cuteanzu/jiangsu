@@ -1,10 +1,10 @@
-import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ArrowRight, Compass, GraduationCap, MapPin } from "lucide-react";
 import { spin } from "../Home.styles";
 import { TIER_LABEL } from "../../../data/jiangsu-universities";
 import type { Tier } from "../../../data/jiangsu-universities";
 import { FILMSTRIP_PHOTOS } from "../data";
+import { useTransition } from "../../../context/TransitionContext";
 
 const TIERS: Tier[] = ["985", "211", "dual", "provincial"];
 
@@ -264,7 +264,7 @@ const FilmLabelText = styled.span`
 `;
 
 export default function FirstView() {
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useTransition();
 
   return (
     <Wrapper>
@@ -294,14 +294,15 @@ export default function FirstView() {
         <Actions data-motion-hero="copy">
           <ActionButton
             $primary
+            className="ui-press"
             data-mouse-target="入图"
-            onClick={() => navigate("/jiangsu")}
+            onClick={() => navigateWithTransition("/jiangsu")}
           >
             <MapPin size={17} />
             查看地图
             <ArrowRight size={16} />
           </ActionButton>
-          <ActionButton data-mouse-target="问答" onClick={() => navigate("/qa")}>
+          <ActionButton className="ui-press" data-mouse-target="问答" onClick={() => navigateWithTransition("/qa")}>
             <Compass size={17} />
             问答
           </ActionButton>

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ArrowRight } from "lucide-react";
 import { marqueeScroll } from "../Home.styles";
 import { MARQUEE_NAMES } from "../data";
+import { useTransition } from "../../../context/TransitionContext";
 
 const Wrapper = styled.section`
   position: relative;
@@ -145,7 +145,7 @@ const MarqueeItem = styled.span`
 const BLADE_ROTATIONS = Array.from({ length: 12 }, (_, i) => (i * 360) / 12);
 
 export default function Contact() {
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useTransition();
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -164,8 +164,9 @@ export default function Contact() {
         ))}
 
         <CTAButton
+          className="ui-press"
           data-mouse-target="查看地图"
-          onClick={() => navigate("/jiangsu")}
+          onClick={() => navigateWithTransition("/jiangsu")}
         >
           查看高校地图
           <ArrowRight size={20} />
@@ -174,7 +175,7 @@ export default function Contact() {
 
       <SubLink
         data-mouse-target="校园经验分享"
-        onClick={() => navigate("/experiences")}
+        onClick={() => navigateWithTransition("/experiences")}
       >
         校园经验分享
         <ArrowRight size={14} />

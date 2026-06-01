@@ -4,6 +4,9 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
 import { SettingsProvider } from "./Settings";
 import NavBar from "./components/NavBar";
+import PageTransitionOverlay from "./components/PageTransitionOverlay";
+import { TransitionProvider } from "./context/TransitionContext";
+import "./styles/interactions.css";
 
 const Home = lazy(() => import("./pages/home/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -69,11 +72,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isLogin = location.pathname === "/login";
+  const isHome = location.pathname === "/" || location.pathname === "/home";
 
   if (isLogin) return <>{children}</>;
   return (
     <>
-      <NavBar />
+      <NavBar $hideOnScroll={isHome} />
+      <PageTransitionOverlay />
       <PageShell>{children}</PageShell>
     </>
   );
@@ -85,19 +90,21 @@ export default function App() {
       <SettingsProvider>
         <GlobalStyle />
         <BrowserRouter>
-          <AppLayout>
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/me" element={<Me />} />
-                <Route path="/home" element={<Home />} />
-                <Route path="/jiangsu" element={<JiangsuMap3D />} />
-                <Route path="/experiences" element={<Experiences />} />
-                <Route path="/qa" element={<QA />} />
-              </Routes>
-            </Suspense>
-          </AppLayout>
+          <TransitionProvider>
+            <AppLayout>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/me" element={<Me />} />
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/jiangsu" element={<JiangsuMap3D />} />
+                  <Route path="/experiences" element={<Experiences />} />
+                  <Route path="/qa" element={<QA />} />
+                </Routes>
+              </Suspense>
+            </AppLayout>
+          </TransitionProvider>
         </BrowserRouter>
       </SettingsProvider>
     </ErrorBoundary>

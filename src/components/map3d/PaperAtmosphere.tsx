@@ -1,6 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
 
 const PARTICLE_COUNT = 40;
 const AREA_HALF = 4.5;
@@ -48,29 +47,17 @@ function SakuraParticles() {
     return arr;
   }, []);
 
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const children = groupRef.current?.children;
-    if (!children) return;
-
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-      const p = particles[i];
-      child.position.x = p.pos.x + Math.sin(t * p.speed + p.phase) * 0.6;
-      child.position.z = p.pos.z + Math.cos(t * p.speed * 0.7 + p.phase) * 0.5;
-      child.position.y = p.pos.y + Math.sin(t * p.speed * 0.5 + p.phase) * 0.3;
-      child.rotation.z = Math.sin(t * 0.3 + p.phase) * 0.3;
-      const s = 0.7 + Math.sin(t * p.speed + p.phase) * 0.3;
-      child.scale.setScalar(s);
-    }
-  });
-
   return (
-    <group ref={groupRef}>
-      {particles.map((_p, i) => (
-        <mesh key={i} geometry={geo} renderOrder={99}>
+    <group>
+      {particles.map((p, i) => (
+        <mesh
+          key={i}
+          geometry={geo}
+          position={p.pos}
+          rotation={[0, 0, Math.sin(p.phase) * 0.3]}
+          scale={0.7 + Math.sin(p.phase) * 0.3}
+          renderOrder={99}
+        >
           <meshBasicMaterial
             map={texture}
             transparent
@@ -123,23 +110,8 @@ function MistClouds() {
   }, []);
 
   const geo = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const children = groupRef.current?.children;
-    if (!children) return;
-    for (let i = 0; i < children.length; i++) {
-      const c = clouds[i];
-      children[i].position.x = c.pos.x + Math.sin(t * c.speed + c.phase) * 0.25;
-      children[i].position.z = c.pos.z + Math.cos(t * c.speed * 0.6 + c.phase) * 0.2;
-      const s = c.scale.x + Math.sin(t * c.speed * 0.4 + c.phase) * 0.05;
-      children[i].scale.setScalar(s);
-    }
-  });
-
   return (
-    <group ref={groupRef}>
+    <group>
       {clouds.map((c, i) => (
         <mesh
           key={i}

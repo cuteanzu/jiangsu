@@ -101,7 +101,7 @@ export default function AtmosphereLayer({
   }, [scroller]);
 
   return (
-    <Wrapper ref={wrapperRef}>
+    <Wrapper ref={wrapperRef} data-atmosphere>
       {ATMOS_PHOTOS.map((photo, i) => (
         <PhotoLayer
           key={i}

@@ -1,5 +1,7 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import styled from "styled-components";
+import { useTransition } from "../context/TransitionContext";
 
 const NAV_ITEMS = [
   { path: "/", label: "首页" },
@@ -8,7 +10,7 @@ const NAV_ITEMS = [
   { path: "/qa", label: "问答" },
 ] as const;
 
-const Bar = styled.nav<{ $dark?: boolean }>`
+const Bar = styled.nav<{ $dark?: boolean; $hidden: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
@@ -28,6 +30,8 @@ const Bar = styled.nav<{ $dark?: boolean }>`
       p.$dark ? "rgba(255, 255, 255, 0.08)" : "rgba(180, 150, 130, 0.18)"};
   font-family: "Noto Serif SC", "Songti SC", "STSong", "KaiTi", serif;
   box-sizing: border-box;
+  transform: translateY(${(p) => (p.$hidden ? "-100%" : "0")});
+  transition: transform 0.35s ease;
 
   @media (max-width: 640px) {
     padding: 0 18px;
@@ -56,6 +60,7 @@ const Links = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
+  position: relative;
 `;
 
 const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
@@ -85,26 +90,19 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
       p.$dark ? "rgba(199, 107, 94, 0.1)" : "rgba(199, 107, 94, 0.06)"};
   }
 
-  ${(p) =>
-    p.$active &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 20px;
-      height: 2px;
-      background: #c76b5e;
-      border-radius: 1px;
-    }
-  `}
-
   @media (max-width: 640px) {
     font-size: 13px;
     padding: 6px 8px;
   }
+`;
+
+const Indicator = styled.div`
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: #c76b5e;
+  border-radius: 1px;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
@@ -147,10 +145,55 @@ const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
   }
 `;
 
-export default function NavBar() {
+export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: boolean }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useTransition();
   const currentPath = location.pathname;
+
+  // ── Scroll hide (homepage only) ──
+  const [hidden, setHidden] = useState(false);
+  const prevScrollRef = useRef(0);
+
+  useEffect(() => {
+    if (!$hideOnScroll) {
+      setHidden(false);
+      return;
+    }
+
+    // Lenis adds .lenis-smooth class to the wrapper
+    const scroller = document.querySelector<HTMLElement>(".lenis-smooth");
+    if (!scroller) return;
+
+    const onScroll = () => {
+      const current = scroller.scrollTop;
+      if (current > prevScrollRef.current && current > 100) {
+        setHidden(true);
+      } else if (current < prevScrollRef.current) {
+        setHidden(false);
+      }
+      prevScrollRef.current = current;
+    };
+
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [$hideOnScroll]);
+
+  // ── Animated active indicator ──
+  const linksRef = useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  useLayoutEffect(() => {
+    const container = linksRef.current;
+    if (!container) return;
+
+    const activeLink = container.querySelector<HTMLElement>("[data-active]");
+    if (activeLink) {
+      setIndicatorStyle({
+        left: activeLink.offsetLeft,
+        width: activeLink.offsetWidth,
+      });
+    }
+  }, [currentPath]);
 
   // Hide on login pages
   if (currentPath === "/login") {
@@ -164,26 +207,36 @@ export default function NavBar() {
 
   const isDark = currentPath === "/" || currentPath === "/home";
 
+  const handleNav = useCallback(
+    (path: string) => {
+      if (currentPath === path) return;
+      navigateWithTransition(path);
+    },
+    [currentPath, navigateWithTransition],
+  );
+
   return (
-    <Bar $dark={isDark}>
-      <Brand $dark={isDark} onClick={() => navigate("/")}>
+    <Bar $dark={isDark} $hidden={hidden}>
+      <Brand $dark={isDark} onClick={() => handleNav("/")}>
         江苏高校地图
       </Brand>
-      <Links>
+      <Links ref={linksRef}>
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.path}
             $active={isActive(item.path)}
             $dark={isDark}
-            onClick={() => navigate(item.path)}
+            data-active={isActive(item.path) ? "" : undefined}
+            onClick={() => handleNav(item.path)}
           >
             {item.label}
           </NavLink>
         ))}
+        <Indicator style={indicatorStyle} />
         <LoginLink
           $active={isActive("/me")}
           $dark={isDark}
-          onClick={() => navigate("/me")}
+          onClick={() => handleNav("/me")}
         >
           我
         </LoginLink>

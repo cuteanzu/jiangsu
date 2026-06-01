@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ArrowRight, BookOpen, MapPin } from "lucide-react";
 import { getFeatured, TIER_COLORS, DISPLAY_PHOTOS } from "../data";
 import { TIER_LABEL } from "../../../data/jiangsu-universities";
 import { cityRouteParam } from "../../../utils/jiangsuPresentation";
 import { marqueeScroll } from "../Home.styles";
+import { useTransition } from "../../../context/TransitionContext";
 
 const Wrapper = styled.section`
   position: relative;
@@ -180,21 +180,35 @@ const BgMarquee = styled.div<{ $visible: boolean }>`
   align-items: center;
   white-space: nowrap;
   overflow: hidden;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
 `;
 
 const MarqueeTrack = styled.div`
   display: flex;
   animation: ${marqueeScroll} 40s linear infinite;
+  will-change: transform;
 `;
 
 const MarqueeName = styled.span`
   padding: 0 36px;
   font-family: var(--font-display, serif);
-  font-size: 160px;
+  font-size: 120px;
   font-weight: 900;
   color: var(--color-text, #fff);
   line-height: 1;
-  filter: blur(6px);
   opacity: 0.35;
   user-select: none;
 `;
@@ -202,7 +216,7 @@ const MarqueeName = styled.span`
 const FEATURED = getFeatured();
 
 export default function FeaturedUniversities() {
-  const navigate = useNavigate();
+  const { navigateWithTransition } = useTransition();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
@@ -246,7 +260,7 @@ export default function FeaturedUniversities() {
                 onMouseEnter={() => setHoveredId(u.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 onClick={() =>
-                  navigate(
+                  navigateWithTransition(
                     `/jiangsu?city=${encodeURIComponent(cityRouteParam(u.city))}`,
                   )
                 }

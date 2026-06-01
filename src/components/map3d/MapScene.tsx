@@ -1,7 +1,7 @@
-import { Suspense, useMemo, useRef } from "react";
+import { lazy, Suspense, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, ContactShadows } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import JiangsuExtrudedMap from "./JiangsuExtrudedMap";
 import CityBeacons from "./CityBeacons";
@@ -78,7 +78,7 @@ function StageGlow() {
 
 function StageFloor() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]} receiveShadow renderOrder={0}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]} renderOrder={0}>
       <planeGeometry args={[15, 15]} />
       <shadowMaterial transparent opacity={0.28} />
     </mesh>
@@ -143,16 +143,6 @@ function Scene3D({
         onSelectSchool={onSelectSchool}
       />
 
-      <ContactShadows
-        position={[0, -0.022, 0]}
-        opacity={0.45}
-        scale={11}
-        blur={3.5}
-        far={5}
-        resolution={256}
-        renderOrder={1}
-      />
-
       <CameraController selectedCity={selectedName} cityCenters={cityCenters} controlsRef={controlsRef} />
 
       {/* ── Paper Diorama Lighting ── */}
@@ -163,15 +153,6 @@ function Scene3D({
         position={[-2, 9, 4]}
         intensity={2.2}
         color="#FFFEFB"
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={30}
-        shadow-camera-left={-8}
-        shadow-camera-right={8}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
-        shadow-bias={-0.00020}
       />
 
       <directionalLight position={[3, 4, -3]} intensity={0.55} color="#FFF8F2" />
@@ -192,21 +173,11 @@ function Scene3D({
 
 // ═══════════════════════  Lazy wrappers ═══════════════════════
 
-import JiangsuWaterSystem from "./JiangsuWaterSystem";
-import MiniCampusLandmarks from "./MiniCampusLandmarks";
-import TerrainTextureLayer from "./TerrainTextureLayer";
-import HeatmapLayer from "./HeatmapLayer";
-import PaperAtmosphere from "./PaperAtmosphere";
-
-function JiangsuWaterSystemLazy() { return <JiangsuWaterSystem />; }
-function MiniCampusLandmarksLazy({ hoveredCity, selectedCity }: { hoveredCity: string | null; selectedCity: string | null }) {
-  return <MiniCampusLandmarks hoveredCity={hoveredCity} selectedCity={selectedCity} />;
-}
-function TerrainTextureLayerLazy() { return <TerrainTextureLayer />; }
-function HeatmapLayerLazy({ selectedCity, cityCenters }: { selectedCity: string | null; cityCenters: CityCenter[] }) {
-  return <HeatmapLayer selectedCity={selectedCity} cityCenters={cityCenters} />;
-}
-function PaperAtmosphereLazy() { return <PaperAtmosphere />; }
+const JiangsuWaterSystemLazy = lazy(() => import("./JiangsuWaterSystem"));
+const MiniCampusLandmarksLazy = lazy(() => import("./MiniCampusLandmarks"));
+const TerrainTextureLayerLazy = lazy(() => import("./TerrainTextureLayer"));
+const HeatmapLayerLazy = lazy(() => import("./HeatmapLayer"));
+const PaperAtmosphereLazy = lazy(() => import("./PaperAtmosphere"));
 
 // ═══════════════════════  Main Component ═══════════════════════
 
@@ -238,8 +209,9 @@ export default function MapScene({
       <Canvas
         style={{ background: MAP_BACKGROUND }}
         camera={{ position: CAMERA_POSITION, fov: 35, near: 0.1, far: 50 }}
-        gl={{ antialias: true, alpha: true }}
-        shadows
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        frameloop="demand"
         onPointerMissed={() => onUnhover()}
       >
         <Suspense fallback={null}>

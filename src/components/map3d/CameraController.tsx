@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { CAMERA_POSITION, CAMERA_TARGET } from "./mapTheme";
 import type { CityCenter } from "./mapTheme";
@@ -19,6 +19,7 @@ export default function CameraController({ selectedCity, cityCenters, controlsRe
   const targetPos = useRef(OVERVIEW_POS.clone());
   const targetLook = useRef(OVERVIEW_TARGET.clone());
   const isAnimating = useRef(false);
+  const invalidate = useThree((state) => state.invalidate);
 
   const centerMap = useMemo(() => {
     const map = new Map<string, CityCenter>();
@@ -45,7 +46,8 @@ export default function CameraController({ selectedCity, cityCenters, controlsRe
     targetPos.current.copy(desiredPos);
     targetLook.current.copy(desiredTarget);
     isAnimating.current = true;
-  }, [desiredPos, desiredTarget]);
+    invalidate();
+  }, [desiredPos, desiredTarget, invalidate]);
 
   useFrame((_, delta) => {
     const controls = controlsRef.current;
@@ -62,6 +64,7 @@ export default function CameraController({ selectedCity, cityCenters, controlsRe
       look.copy(targetLook.current);
       controls.update();
       isAnimating.current = false;
+      invalidate();
       return;
     }
 
@@ -69,6 +72,7 @@ export default function CameraController({ selectedCity, cityCenters, controlsRe
     pos.lerp(targetPos.current, t);
     look.lerp(targetLook.current, t);
     controls.update();
+    invalidate();
   });
 
   return null;
