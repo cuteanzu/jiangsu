@@ -1,15 +1,6 @@
-import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useLocation, useNavigationType } from "react-router-dom";
-
-interface TransitionContextValue {
-  navigateWithTransition: (to: string) => void;
-  isTransitioning: boolean;
-}
-
-const TransitionContext = createContext<TransitionContextValue>({
-  navigateWithTransition: () => {},
-  isTransitioning: false,
-});
+import { TransitionContext } from "./transition";
 
 export function TransitionProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -72,8 +63,4 @@ export function TransitionProvider({ children }: { children: React.ReactNode }) 
       {children}
     </TransitionContext.Provider>
   );
-}
-
-export function useTransition() {
-  return useContext(TransitionContext);
 }

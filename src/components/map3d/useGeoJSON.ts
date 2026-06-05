@@ -19,10 +19,7 @@ export function useGeoJSON(): JiangsuGeoJSON | null {
   const [data, setData] = useState<JiangsuGeoJSON | null>(cached);
 
   useEffect(() => {
-    if (cached) {
-      setData(cached);
-      return;
-    }
+    if (cached) return;
     if (pending) {
       let cancelled = false;
       pending.then((result) => {

@@ -36,6 +36,7 @@ export interface MapSceneProps {
   onSelect: (name: string) => void;
   onHoverSchool: (name: string | null) => void;
   onSelectSchool: (name: string | null) => void;
+  onCameraSettled?: (city: string | null) => void;
 }
 
 // ═══════════════════════  Diorama Stage ═══════════════════════
@@ -92,6 +93,7 @@ function Scene3D({
   hoveredSchoolName, showAllPins, hideOverlays,
   onHover, onUnhover, onSelect,
   onHoverSchool, onSelectSchool,
+  onCameraSettled,
 }: {
   cities: CityGeometryResult[];
   cityCenters: CityCenter[];
@@ -106,6 +108,7 @@ function Scene3D({
   onSelect: (n: string) => void;
   onHoverSchool: (name: string | null) => void;
   onSelectSchool: (name: string | null) => void;
+  onCameraSettled?: (city: string | null) => void;
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
@@ -143,7 +146,12 @@ function Scene3D({
         onSelectSchool={onSelectSchool}
       />
 
-      <CameraController selectedCity={selectedName} cityCenters={cityCenters} controlsRef={controlsRef} />
+      <CameraController
+        selectedCity={selectedName}
+        cityCenters={cityCenters}
+        controlsRef={controlsRef}
+        onSettled={onCameraSettled}
+      />
 
       {/* ── Paper Diorama Lighting ── */}
       <ambientLight intensity={0.75} color="#FFFBF6" />
@@ -186,6 +194,7 @@ export default function MapScene({
   hoveredSchoolName, showAllPins, hideOverlays,
   onHover, onUnhover, onSelect,
   onHoverSchool, onSelectSchool,
+  onCameraSettled,
 }: MapSceneProps) {
   const mapResult = useMapProjection();
 
@@ -229,6 +238,7 @@ export default function MapScene({
             onSelect={onSelect}
             onHoverSchool={onHoverSchool}
             onSelectSchool={onSelectSchool}
+            onCameraSettled={onCameraSettled}
           />
         </Suspense>
       </Canvas>

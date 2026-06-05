@@ -4,7 +4,7 @@ import { spin } from "../Home.styles";
 import { TIER_LABEL } from "../../../data/jiangsu-universities";
 import type { Tier } from "../../../data/jiangsu-universities";
 import { FILMSTRIP_PHOTOS } from "../data";
-import { useTransition } from "../../../context/TransitionContext";
+import { useTransition } from "../../../context/useTransition";
 
 const TIERS: Tier[] = ["985", "211", "dual", "provincial"];
 

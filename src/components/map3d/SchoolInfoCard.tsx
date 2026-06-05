@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import { MapPin, Clock, BookOpen, MessageCircle, HelpCircle, X } from "lucide-react";
-import { UNIVERSITIES, TIER_LABEL } from "../../data/jiangsu-universities";
+import { UNIVERSITIES, TIER_LABEL, isTierOnePlusUniversity, universityBandLabel } from "../../data/jiangsu-universities";
 import type { University, Tier } from "../../data/jiangsu-universities";
 import { SCHOOL_REC } from "./schoolRecommendations";
 
@@ -174,7 +174,7 @@ export default function SchoolInfoCard({ schoolName, onClose, onViewDetail }: Sc
 
   if (!school) return null;
 
-  const isKey = school.tier === "985" || school.tier === "211" || school.tier === "dual";
+  const isKey = isTierOnePlusUniversity(school);
 
   return (
     <CardWrapper>
@@ -185,7 +185,7 @@ export default function SchoolInfoCard({ schoolName, onClose, onViewDetail }: Sc
 
       <MetaLine>
         <MapPin size={13} /> {school.city}市
-        <TierBadge $tier={school.tier}>{TIER_LABEL[school.tier]}</TierBadge>
+        <TierBadge $tier={school.tier}>{universityBandLabel(school)}</TierBadge>
         {school.founded && (
           <>
             <Clock size={13} /> {school.founded} 年建校

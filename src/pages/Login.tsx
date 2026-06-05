@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { createSeasonalFX } from "seasonalfx";
 import type { ISeasonalFX } from "seasonalfx";
 import { useSettings } from "../settings-context";
-import { useTransition } from "../context/TransitionContext";
+import { useTransition } from "../context/useTransition";
 import {
   AUDIENCE_ROLE_ORDER,
   useAudienceRole,
@@ -853,7 +853,7 @@ export default function Login() {
   const handleRoleSelect = useCallback((role: AudienceRole) => {
     setSelectedRole(role);
     setActiveSpirit(audienceRoles[role].spirit);
-  }, []);
+  }, [setSelectedRole]);
 
   const handleSpiritClick = useCallback((spirit: SpiritId, event?: React.MouseEvent<HTMLDivElement>) => {
     event?.stopPropagation();

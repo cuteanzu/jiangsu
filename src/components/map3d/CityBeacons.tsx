@@ -67,7 +67,7 @@ function GlassLabel({ b, count, selected, hovered, visible }: {
           color: "#9a8a7d",
           marginTop: 1,
         }}>
-          {count} 所高校
+          {count} 所一本+
         </div>
       </div>
     </Html>

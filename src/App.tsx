@@ -99,6 +99,9 @@ export default function App() {
                   <Route path="/me" element={<Me />} />
                   <Route path="/home" element={<Home />} />
                   <Route path="/jiangsu" element={<JiangsuMap3D />} />
+                  <Route path="/jiangsu/:citySlug" element={<JiangsuMap3D />} />
+                  <Route path="/map" element={<JiangsuMap3D />} />
+                  <Route path="/map/:citySlug" element={<JiangsuMap3D />} />
                   <Route path="/experiences" element={<Experiences />} />
                   <Route path="/qa" element={<QA />} />
                 </Routes>

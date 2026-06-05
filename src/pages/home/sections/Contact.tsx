@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { ArrowRight } from "lucide-react";
 import { marqueeScroll } from "../Home.styles";
 import { MARQUEE_NAMES } from "../data";
-import { useTransition } from "../../../context/TransitionContext";
+import { useTransition } from "../../../context/useTransition";
 
 const Wrapper = styled.section`
   position: relative;

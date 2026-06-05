@@ -2,6 +2,8 @@
 // 江苏高校探索沙盘 — 江南纸雕风格视觉结构
 // ═══════════════════════════════════════════
 
+import { countTierOnePlusByCity } from "../../data/jiangsu-universities";
+
 export interface CityColor {
   name: string;
   base: string;
@@ -39,12 +41,8 @@ export function cityColors(name: string): CityColor {
   return cityColorMap.get(name) ?? { name, base: PAPER_TOP, hover: PAPER_HOVER, side: PAPER_SIDE };
 }
 
-// ── University counts ──
-export const CITY_UNIVERSITY_COUNT: Record<string, number> = {
-  "南京": 26, "苏州": 6, "徐州": 4, "无锡": 3, "常州": 3,
-  "镇江": 2, "盐城": 2, "泰州": 2, "南通": 2, "淮安": 2,
-  "扬州": 1, "宿迁": 1, "连云港": 1,
-};
+// ── Tier-one-plus university counts ──
+export const CITY_UNIVERSITY_COUNT: Record<string, number> = countTierOnePlusByCity();
 
 // ── Computed city center (produced by useMapProjection at runtime) ──
 export interface CityCenter {

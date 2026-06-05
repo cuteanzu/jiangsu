@@ -4,6 +4,11 @@ import * as THREE from "three";
 const PARTICLE_COUNT = 40;
 const AREA_HALF = 4.5;
 
+function seededUnit(seed: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 function sakuraTexture(): THREE.Texture {
   const size = 32;
   const canvas = document.createElement("canvas");
@@ -36,12 +41,12 @@ function SakuraParticles() {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       arr.push({
         pos: new THREE.Vector3(
-          (Math.random() - 0.5) * AREA_HALF * 2,
-          0.5 + Math.random() * 2.5,
-          (Math.random() - 0.5) * AREA_HALF * 2,
+          (seededUnit(i * 5 + 1) - 0.5) * AREA_HALF * 2,
+          0.5 + seededUnit(i * 5 + 2) * 2.5,
+          (seededUnit(i * 5 + 3) - 0.5) * AREA_HALF * 2,
         ),
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.15 + Math.random() * 0.4,
+        phase: seededUnit(i * 5 + 4) * Math.PI * 2,
+        speed: 0.15 + seededUnit(i * 5 + 5) * 0.4,
       });
     }
     return arr;
@@ -81,11 +86,11 @@ function MistClouds() {
       { pos: [-0.7, 0.22, -1.1], scale: [0.7, 0.35, 0.7] }, // Hongze Lake
       { pos: [2.8, 0.28, 1.0], scale: [0.8, 0.3, 0.6] },    // east coast
     ];
-    return configs.map((c) => ({
+    return configs.map((c, index) => ({
       pos: new THREE.Vector3(...c.pos),
       scale: new THREE.Vector3(...c.scale),
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.12 + Math.random() * 0.25,
+      phase: seededUnit(index * 3 + 101) * Math.PI * 2,
+      speed: 0.12 + seededUnit(index * 3 + 102) * 0.25,
     }));
   }, []);
 

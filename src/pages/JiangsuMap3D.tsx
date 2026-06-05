@@ -1,16 +1,27 @@
-import { Suspense, useCallback, useEffect, useMemo, useState, lazy, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Suspense, useCallback, useMemo, useState, lazy, type FormEvent } from "react";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import styled from "styled-components";
 import { Search, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import SchoolInfoCard from "../components/map3d/SchoolInfoCard";
 import SchoolDetailOverlay from "../components/map3d/SchoolDetailOverlay";
 import MapDrawer from "../components/map3d/MapDrawer";
-import FloatingCityCard from "../components/map3d/FloatingCityCard";
+import CityDetailPage from "../components/map3d/CityDetailPage";
 import ProvinceOverviewChip from "../components/map3d/ProvinceOverviewChip";
-import { UNIVERSITIES } from "../data/jiangsu-universities";
+import {
+  TIER_ONE_PLUS_UNIVERSITIES,
+  UNIVERSITIES,
+  getTierOnePlusUniversities,
+  isTierOnePlusUniversity,
+} from "../data/jiangsu-universities";
 import type { Tier, University } from "../data/jiangsu-universities";
 import { normalizeCityParam } from "../utils/jiangsuPresentation";
 import { getCityProfile } from "../data/city-profiles";
+import {
+  getAdjacentCity,
+  getCityAtlasImage,
+  getCityFromRouteParam,
+  getCityRouteSlug,
+} from "../data/city-atlas";
 
 const MapScene = lazy(() => import("../components/map3d/MapScene"));
 // const HandDrawnJiangsuMap = lazy(() => import("./HandDrawnJiangsuMap"));
@@ -158,12 +169,6 @@ const DrawerToggle = styled.button<{ $open: boolean }>`
   }
 `;
 
-const FloatingCardWrap = styled.div`
-  position: absolute; z-index: 12; bottom: 32px; right: 32px;
-  max-width: 312px; width: calc(100% - 64px);
-  @media (max-width: 720px) { right: 16px; bottom: 16px; max-width: calc(100% - 32px); }
-`;
-
 const SceneFallback = styled.div`
   position: absolute;
   inset: 0;
@@ -188,6 +193,35 @@ const SceneFallback = styled.div`
   }
 `;
 
+const CityTransitionStatus = styled.div`
+  position: absolute;
+  z-index: 13;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid rgba(181, 148, 117, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 252, 247, 0.72);
+  box-shadow: 0 14px 40px rgba(109, 83, 61, 0.10);
+  color: #7d5539;
+  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  pointer-events: none;
+  backdrop-filter: blur(18px);
+
+  strong {
+    color: #2b1a12;
+    font-family: "Noto Serif SC", "Songti SC", serif;
+    font-size: 22px;
+    line-height: 1;
+  }
+`;
+
 function shouldOpenPanelByDefault() {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(min-width: 960px)").matches;
@@ -196,13 +230,18 @@ function shouldOpenPanelByDefault() {
 // ═══════════════════════  Page Component  ═══════════════════════
 
 export default function JiangsuMap3D() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { citySlug } = useParams<{ citySlug?: string }>();
 
   // ── Restore state from URL params ──
   const urlCity = searchParams.get("city") ?? null;
   const urlSchoolId = searchParams.get("school") ?? null;
   const urlView = searchParams.get("view") ?? null;
-  const currentSearch = searchParams.toString();
+  const routeCity = useMemo(() => getCityFromRouteParam(citySlug), [citySlug]);
+  const routeBase = location.pathname.startsWith("/map") ? "/map" : "/jiangsu";
+  const isCityDetailRoute = routeCity !== null;
 
   const restoredSchool = useMemo(() => {
     if (!urlSchoolId) return null;
@@ -210,7 +249,7 @@ export default function JiangsuMap3D() {
     return s ?? null;
   }, [urlSchoolId]);
 
-  const selectedName = normalizeCityParam(urlCity) ?? restoredSchool?.city ?? null;
+  const selectedName = routeCity ?? normalizeCityParam(urlCity) ?? restoredSchool?.city ?? null;
   const selectedSchoolName = restoredSchool?.name ?? null;
 
   // ── Lifted state ──
@@ -223,58 +262,65 @@ export default function JiangsuMap3D() {
   const [drawerPinned, setDrawerPinned] = useState(() => shouldOpenPanelByDefault());
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hoveredSuggestionIdx, setHoveredSuggestionIdx] = useState(-1);
-
-  useEffect(() => {
-    if (!selectedName || !shouldOpenPanelByDefault()) return;
-    setDrawerOpen(true);
-    setDrawerPinned(true);
-  }, [selectedName]);
+  const [settledCity, setSettledCity] = useState<string | null>(null);
 
   const updateSelectionParams = useCallback((
     city: string | null,
     schoolName: string | null,
     view: "detail" | null = null,
     replace = true,
+    asCityRoute = false,
   ) => {
     const params = new URLSearchParams();
     const school = schoolName ? UNIVERSITIES.find((u) => u.name === schoolName) ?? null : null;
-    const nextCity = city ?? school?.city ?? null;
-    if (nextCity) params.set("city", nextCity);
+    const nextCity = normalizeCityParam(city ?? school?.city ?? null);
+    if (nextCity && !asCityRoute) params.set("city", nextCity);
     if (school) params.set("school", school.id);
     if (view === "detail" && school) params.set("view", "detail");
-    if (params.toString() !== currentSearch) {
-      setSearchParams(params, { replace });
+    const pathname = nextCity && asCityRoute ? `${routeBase}/${getCityRouteSlug(nextCity)}` : routeBase;
+    const search = params.toString();
+    const nextUrl = `${pathname}${search ? `?${search}` : ""}`;
+    const currentUrl = `${location.pathname}${location.search}`;
+    if (nextUrl !== currentUrl) {
+      navigate({ pathname, search: search ? `?${search}` : "" }, { replace });
     }
-  }, [currentSearch, setSearchParams]);
+  }, [location.pathname, location.search, navigate, routeBase]);
 
   const handleHover = useCallback((name: string) => setHoveredName(name), []);
   const handleUnhover = useCallback(() => setHoveredName(null), []);
   const handleSelect = useCallback(
     (name: string) => {
-      updateSelectionParams(selectedName === name ? null : name, null);
+      updateSelectionParams(selectedName === name ? null : name, null, null, true, isCityDetailRoute);
       setShowAllPins(false);
       if (selectedName === name) {
+        setSettledCity(null);
         setDrawerMode("overview");
       } else {
+        setSettledCity(null);
         setDrawerMode("city");
+        if (shouldOpenPanelByDefault()) {
+          setDrawerOpen(true);
+          setDrawerPinned(true);
+        }
       }
     },
-    [selectedName, updateSelectionParams],
+    [isCityDetailRoute, selectedName, updateSelectionParams],
   );
 
   const handleHoverSchool = useCallback((name: string | null) => setHoveredSchoolName(name), []);
   const handleSelectSchool = useCallback(
     (name: string | null) => {
-      updateSelectionParams(selectedName, selectedSchoolName === name ? null : name);
+      if (name) setSettledCity(null);
+      updateSelectionParams(selectedName, selectedSchoolName === name ? null : name, null, true, isCityDetailRoute);
     },
-    [selectedName, selectedSchoolName, updateSelectionParams],
+    [isCityDetailRoute, selectedName, selectedSchoolName, updateSelectionParams],
   );
 
   const handleViewDetail = useCallback(
     (school: University) => {
-      updateSelectionParams(school.city, school.name, "detail", false);
+      updateSelectionParams(school.city, school.name, "detail", false, isCityDetailRoute);
     },
-    [updateSelectionParams],
+    [isCityDetailRoute, updateSelectionParams],
   );
 
   const handleTopSearch = useCallback((event: FormEvent) => {
@@ -282,22 +328,32 @@ export default function JiangsuMap3D() {
     setShowSuggestions(false);
     const raw = topSearch.trim();
     if (!raw) return;
-    const school = UNIVERSITIES.find((u) => u.name.includes(raw) || raw.includes(u.name));
+    const school = TIER_ONE_PLUS_UNIVERSITIES.find((u) => u.name.includes(raw) || raw.includes(u.name));
     if (school) {
       updateSelectionParams(school.city, school.name);
+      setSettledCity(null);
       setDrawerMode("city");
       setShowAllPins(false);
+      if (shouldOpenPanelByDefault()) {
+        setDrawerOpen(true);
+        setDrawerPinned(true);
+      }
       return;
     }
 
-    const city = UNIVERSITIES.find((u) => {
+    const city = TIER_ONE_PLUS_UNIVERSITIES.find((u) => {
       const nc = normalizeCityParam(u.city);
       return nc && (raw.includes(nc) || nc.includes(raw));
     });
     if (city) {
       updateSelectionParams(city.city, null);
+      setSettledCity(null);
       setDrawerMode("city");
       setShowAllPins(false);
+      if (shouldOpenPanelByDefault()) {
+        setDrawerOpen(true);
+        setDrawerPinned(true);
+      }
       return;
     }
   }, [topSearch, updateSelectionParams]);
@@ -307,7 +363,7 @@ export default function JiangsuMap3D() {
     const raw = topSearch.trim();
     if (!raw) return [];
     const lower = raw.toLowerCase();
-    return UNIVERSITIES
+    return TIER_ONE_PLUS_UNIVERSITIES
       .filter((u) => {
         if (u.name.includes(raw)) return true;
         if (u.shortName?.includes(raw)) return true;
@@ -320,8 +376,13 @@ export default function JiangsuMap3D() {
 
   const handleSuggestionSelect = useCallback((school: University) => {
     updateSelectionParams(school.city, school.name);
+    setSettledCity(null);
     setDrawerMode("city");
     setShowAllPins(false);
+    if (shouldOpenPanelByDefault()) {
+      setDrawerOpen(true);
+      setDrawerPinned(true);
+    }
     setShowSuggestions(false);
     setTopSearch(school.name);
     setHoveredSuggestionIdx(-1);
@@ -329,24 +390,18 @@ export default function JiangsuMap3D() {
 
   // ── Derived data ──
   const cityUniversities = useMemo(
-    () => UNIVERSITIES.filter((u) => u.city === selectedName),
+    () => getTierOnePlusUniversities(selectedName),
     [selectedName],
   );
 
-  const tierCounts = useMemo(() => {
-    const counts: Record<Tier, number> = { "985": 0, "211": 0, "dual": 0, "provincial": 0 };
-    cityUniversities.forEach((u) => { counts[u.tier]++; });
-    return counts;
-  }, [cityUniversities]);
-
   const provinceTierCounts = useMemo(() => {
     const counts: Record<Tier, number> = { "985": 0, "211": 0, "dual": 0, "provincial": 0 };
-    UNIVERSITIES.forEach((u) => { counts[u.tier]++; });
+    TIER_ONE_PLUS_UNIVERSITIES.forEach((u) => { counts[u.tier]++; });
     return counts;
   }, []);
 
   const hotCities = useMemo(
-    () => UNIVERSITIES
+    () => TIER_ONE_PLUS_UNIVERSITIES
       .reduce<{ name: string; count: number }[]>((acc, u) => {
         const existing = acc.find((c) => c.name === u.city);
         if (existing) existing.count++;
@@ -358,20 +413,28 @@ export default function JiangsuMap3D() {
   );
 
   const selectedCityProfile = useMemo(() => getCityProfile(selectedName), [selectedName]);
-
-  const representativeSchools = useMemo(() => {
-    const flagship = cityUniversities.filter((u) => u.tier !== "provincial");
-    return (flagship.length > 0 ? flagship : cityUniversities).slice(0, 3);
-  }, [cityUniversities]);
+  const selectedCityImage = useMemo(
+    () => (selectedName ? getCityAtlasImage(selectedName) : null),
+    [selectedName],
+  );
+  const previousCity = useMemo(
+    () => (selectedName ? getAdjacentCity(selectedName, -1) : null),
+    [selectedName],
+  );
+  const nextCity = useMemo(
+    () => (selectedName ? getAdjacentCity(selectedName, 1) : null),
+    [selectedName],
+  );
 
   const popularSchools = useMemo(
-    () => UNIVERSITIES
-      .filter((u) => u.tier === "985" || u.tier === "211" || u.tier === "dual")
+    () => TIER_ONE_PLUS_UNIVERSITIES
+      .filter((u) => isTierOnePlusUniversity(u))
       .slice(0, 6),
     [],
   );
 
   const isDetailView = urlView === "detail";
+  const cityDetailReady = Boolean(isCityDetailRoute && selectedName && settledCity === selectedName);
   const provinceKeyCount = provinceTierCounts["985"] + provinceTierCounts["211"] + provinceTierCounts.dual;
 
   const handleDrawerToggle = useCallback(() => {
@@ -380,15 +443,42 @@ export default function JiangsuMap3D() {
   }, []);
 
   const handleBackToOverview = useCallback(() => {
+    setSettledCity(null);
     updateSelectionParams(null, null);
     setDrawerMode("overview");
+  }, [updateSelectionParams]);
+
+  const handleBackToFocusedMap = useCallback(() => {
+    if (!selectedName) {
+      handleBackToOverview();
+      return;
+    }
+    setSettledCity(null);
+    updateSelectionParams(selectedName, null, null, false, false);
+    setDrawerMode("city");
+    if (shouldOpenPanelByDefault()) {
+      setDrawerOpen(true);
+      setDrawerPinned(true);
+    }
+  }, [handleBackToOverview, selectedName, updateSelectionParams]);
+
+  const handleAtlasCitySelect = useCallback((city: string) => {
+    setSettledCity(null);
+    updateSelectionParams(city, null, null, false, isCityDetailRoute);
+    setDrawerMode("city");
+    setShowAllPins(false);
+  }, [isCityDetailRoute, updateSelectionParams]);
+
+  const handleOpenCityDetail = useCallback((city: string) => {
+    setSettledCity(null);
+    updateSelectionParams(city, null, null, false, true);
   }, [updateSelectionParams]);
 
   return (
       <Page>
 {/* Mode toggle (hand-drawn map disabled) */}
 
-      {!isDetailView && (
+      {!isDetailView && !isCityDetailRoute && (
         <>
           <MinimalSearch $drawerOpen={drawerOpen} onSubmit={handleTopSearch}>
             <Search size={16} />
@@ -415,7 +505,7 @@ export default function JiangsuMap3D() {
                   handleSuggestionSelect(suggestions[hoveredSuggestionIdx]);
                 }
               }}
-              placeholder="搜索城市或高校，例如 南京 / 苏州大学"
+              placeholder="搜索城市或一本+院校，例如 南京 / 苏州大学"
             />
             <SearchBtn type="submit" className="ui-press">搜索</SearchBtn>
             {showSuggestions && suggestions.length > 0 && (
@@ -454,6 +544,7 @@ export default function JiangsuMap3D() {
             onSetShowAllPins={setShowAllPins}
             onSelectSchool={handleSelectSchool}
             onUpdateSelection={updateSelectionParams}
+            onOpenCityDetail={handleOpenCityDetail}
             onBackToOverview={handleBackToOverview}
           />
 
@@ -467,30 +558,10 @@ export default function JiangsuMap3D() {
             {drawerOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
           </DrawerToggle>
 
-          {selectedName && (
-            <FloatingCardWrap>
-              <FloatingCityCard
-                selectedName={selectedName}
-                selectedSchoolName={selectedSchoolName}
-                selectedCityProfile={selectedCityProfile}
-                cityUniversities={cityUniversities}
-                tierCounts={tierCounts}
-                representativeSchools={representativeSchools}
-                onSelectSchool={handleSelectSchool}
-                onSetHoveredSchoolName={setHoveredSchoolName}
-                onViewDetail={handleViewDetail}
-                onDismiss={() => {
-                  updateSelectionParams(null, null);
-                  setDrawerMode("overview");
-                }}
-              />
-            </FloatingCardWrap>
-          )}
-
           {!selectedName && !selectedSchoolName && (
             <ProvinceOverviewChip
               totalCities={13}
-              totalUniversities={UNIVERSITIES.length}
+              totalUniversities={TIER_ONE_PLUS_UNIVERSITIES.length}
               keyCount={provinceKeyCount}
               onClick={() => {
                 setDrawerMode("overview");
@@ -509,16 +580,39 @@ export default function JiangsuMap3D() {
           selectedSchoolName={selectedSchoolName}
           hoveredSchoolName={hoveredSchoolName}
           showAllPins={showAllPins}
-          hideOverlays={isDetailView}
+          hideOverlays={isDetailView || Boolean(selectedName)}
           onHover={handleHover}
           onUnhover={handleUnhover}
           onSelect={handleSelect}
           onHoverSchool={handleHoverSchool}
           onSelectSchool={handleSelectSchool}
+          onCameraSettled={setSettledCity}
         />
       </Suspense>
 
-      {selectedSchoolName && !isDetailView && (
+      {isCityDetailRoute && selectedName && !isDetailView && !cityDetailReady && (
+        <CityTransitionStatus>
+          进入 <strong>{selectedName}</strong>
+        </CityTransitionStatus>
+      )}
+
+      {isCityDetailRoute && selectedName && !isDetailView && cityDetailReady && selectedCityImage && previousCity && nextCity && (
+        <CityDetailPage
+          cityName={selectedName}
+          profile={selectedCityProfile}
+          cityUniversities={cityUniversities}
+          selectedSchoolName={selectedSchoolName}
+          imageSrc={selectedCityImage}
+          previousCity={previousCity}
+          nextCity={nextCity}
+          onBackToMap={handleBackToFocusedMap}
+          onSelectCity={handleAtlasCitySelect}
+          onSelectSchool={handleSelectSchool}
+          onViewSchoolDetail={handleViewDetail}
+        />
+      )}
+
+      {selectedSchoolName && !isDetailView && !isCityDetailRoute && (
         <SchoolInfoCard
           schoolName={selectedSchoolName}
           onClose={() => updateSelectionParams(selectedName, null)}
@@ -529,15 +623,7 @@ export default function JiangsuMap3D() {
       {isDetailView && selectedSchoolName && (
         <SchoolDetailOverlay
           schoolName={selectedSchoolName}
-          onClose={() => {
-            const params = new URLSearchParams();
-            if (selectedName) params.set("city", selectedName);
-            if (selectedSchoolName) {
-              const s = UNIVERSITIES.find((u) => u.name === selectedSchoolName);
-              if (s) params.set("school", s.id);
-            }
-            setSearchParams(params);
-          }}
+          onClose={() => updateSelectionParams(selectedName, selectedSchoolName, null, true, isCityDetailRoute)}
         />
       )}
     </Page>

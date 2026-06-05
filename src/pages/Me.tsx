@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useTransition } from "../context/TransitionContext";
+import { useTransition } from "../context/useTransition";
 import styled, { keyframes } from "styled-components";
 import {
   ArrowRight,

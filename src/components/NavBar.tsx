@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import styled from "styled-components";
-import { useTransition } from "../context/TransitionContext";
+import { useTransition } from "../context/useTransition";
 
 const NAV_ITEMS = [
   { path: "/", label: "首页" },
@@ -155,10 +155,7 @@ export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: bool
   const prevScrollRef = useRef(0);
 
   useEffect(() => {
-    if (!$hideOnScroll) {
-      setHidden(false);
-      return;
-    }
+    if (!$hideOnScroll) return;
 
     // Lenis adds .lenis-smooth class to the wrapper
     const scroller = document.querySelector<HTMLElement>(".lenis-smooth");
@@ -195,6 +192,14 @@ export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: bool
     }
   }, [currentPath]);
 
+  const handleNav = useCallback(
+    (path: string) => {
+      if (currentPath === path) return;
+      navigateWithTransition(path);
+    },
+    [currentPath, navigateWithTransition],
+  );
+
   // Hide on login pages
   if (currentPath === "/login") {
     return null;
@@ -207,16 +212,8 @@ export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: bool
 
   const isDark = currentPath === "/" || currentPath === "/home";
 
-  const handleNav = useCallback(
-    (path: string) => {
-      if (currentPath === path) return;
-      navigateWithTransition(path);
-    },
-    [currentPath, navigateWithTransition],
-  );
-
   return (
-    <Bar $dark={isDark} $hidden={hidden}>
+    <Bar $dark={isDark} $hidden={$hideOnScroll && hidden}>
       <Brand $dark={isDark} onClick={() => handleNav("/")}>
         江苏高校地图
       </Brand>

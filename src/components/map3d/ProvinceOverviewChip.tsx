@@ -39,7 +39,7 @@ export default function ProvinceOverviewChip({
   return (
     <ChipShell onClick={onClick}>
       <Sparkles size={14} />
-      {totalCities}市 · {totalUniversities}所本科 · {keyCount}所重点
+      {totalCities}市 · {totalUniversities}所一本+ · {keyCount}所双一流
     </ChipShell>
   );
 }

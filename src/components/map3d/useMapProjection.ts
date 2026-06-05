@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import * as THREE from "three";
 import { geoMercator } from "d3-geo";
 import { useGeoJSON } from "./useGeoJSON";
@@ -99,19 +99,12 @@ function computeCityCenter(geometries: THREE.BufferGeometry[]): { x: number; z: 
  */
 export function useMapProjection(): MapProjectionResult | null {
   const geoData = useGeoJSON();
-  const [result, setResult] = useState<MapProjectionResult | null>(null);
 
   // Build the projection pipeline (memoized, depends only on geoData)
-  const built = useMemo(() => {
+  return useMemo(() => {
     if (!geoData) return null;
     return buildFromGeoJSON(geoData);
   }, [geoData]);
-
-  useEffect(() => {
-    setResult(built);
-  }, [built]);
-
-  return result;
 }
 
 function buildFromGeoJSON(data: JiangsuGeoJSON): MapProjectionResult {

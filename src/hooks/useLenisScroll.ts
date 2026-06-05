@@ -10,11 +10,18 @@ interface UseLenisScrollOptions {
   reducedMotion?: boolean;
 }
 
-export function useLenisScroll(root: HTMLElement | null, _options?: UseLenisScrollOptions) {
+export function useLenisScroll(root: HTMLElement | null, options?: UseLenisScrollOptions) {
   const lenisRef = useRef<Lenis | null>(null);
+  const respectReducedMotion = options?.reducedMotion ?? false;
 
   useEffect(() => {
     if (!root) return;
+    if (
+      respectReducedMotion &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
 
     const lenis = new Lenis({
       wrapper: root,
@@ -43,7 +50,7 @@ export function useLenisScroll(root: HTMLElement | null, _options?: UseLenisScro
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, [root]);
+  }, [root, respectReducedMotion]);
 
   return lenisRef;
 }

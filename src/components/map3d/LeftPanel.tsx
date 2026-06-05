@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import { MapPin, BookOpen, Search, Sparkles, ArrowLeft } from "lucide-react";
-import { TIER_LABEL } from "../../data/jiangsu-universities";
+import { MapPin, BookOpen, Search, Sparkles, ArrowLeft, ArrowRight } from "lucide-react";
+import { universityBandLabel } from "../../data/jiangsu-universities";
 import type { University, Tier } from "../../data/jiangsu-universities";
 import type { CityCockpitProfile } from "../../data/city-profiles";
 
@@ -61,6 +61,36 @@ const BackBtn = styled.button`
   padding: 0; margin-bottom: 10px;
   &:hover { opacity: 0.7; }
   svg { width: 14px; height: 14px; }
+`;
+
+const PrimaryAction = styled.button`
+  width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(200, 130, 110, 0.26);
+  border-radius: 13px;
+  background: rgba(217, 120, 69, 0.11);
+  color: #8b3a2e;
+  cursor: pointer;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    background: rgba(217, 120, 69, 0.16);
+    border-color: rgba(200, 130, 110, 0.36);
+  }
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
 `;
 
 const SchoolItem = styled.div<{ $selected?: boolean }>`
@@ -152,6 +182,7 @@ interface LeftPanelProps {
   onSelectSchool: (name: string | null) => void;
   onSetActiveMode: (mode: CockpitMode) => void;
   onUpdateSelection: (city: string | null, school: string | null) => void;
+  onOpenCityDetail: (city: string) => void;
   onBackToOverview: () => void;
 }
 
@@ -161,26 +192,26 @@ export default function LeftPanel(props: LeftPanelProps) {
     leftSearch, showAllPins, cityUniversities, filteredSchools,
     hotCities, popularSchools, selectedCityProfile,
     onSetLeftSearch, onSetShowAllPins, onSetHoveredName, onSetHoveredSchoolName,
-    onSelectSchool, onSetActiveMode, onUpdateSelection, onBackToOverview,
+    onSelectSchool, onSetActiveMode, onUpdateSelection, onOpenCityDetail, onBackToOverview,
   } = props;
 
   if (displayMode === "route") {
     return (
       <>
         <PanelKicker>RECOMMENDED ROUTES</PanelKicker>
-        <PanelTitle><MapPin size={16} /> 路线推荐</PanelTitle>
-        <PanelHint>按目标组合城市。切换路线只调整页面信息，不重置当前 3D 相机视角。</PanelHint>
+        <PanelTitle><MapPin size={16} /> 一本+路线</PanelTitle>
+        <PanelHint>按目标组合重点本科城市。切换路线只聚焦地图，不自动跳详情。</PanelHint>
         <RouteCard onClick={() => { onUpdateSelection("南京", null); onSetShowAllPins(false); }}>
           <div className="title">高资源路线 · 南京</div>
-          <div className="desc">985/211 密集，适合科研、保研、实习资源优先的同学。</div>
+          <div className="desc">985/211/双一流最集中，适合科研、保研、实习资源优先。</div>
         </RouteCard>
         <RouteCard onClick={() => { onUpdateSelection("苏州", null); onSetShowAllPins(false); }}>
           <div className="title">产业机会路线 · 苏州 / 无锡</div>
-          <div className="desc">城市品质高，制造业、互联网、外企和创新产业更集中。</div>
+          <div className="desc">苏州、无锡产业资源强，适合重视城市机会和就业路径。</div>
         </RouteCard>
         <RouteCard onClick={() => { onUpdateSelection("徐州", null); onSetShowAllPins(false); }}>
           <div className="title">性价比路线 · 徐州 / 常州 / 镇江</div>
-          <div className="desc">生活成本更友好，学风扎实，适合稳扎稳打型报考。</div>
+          <div className="desc">徐州、常州、镇江有高性价比一本+院校，学风扎实。</div>
         </RouteCard>
         <SectionLabel>适合报考人群</SectionLabel>
         <ExpCard>
@@ -197,16 +228,21 @@ export default function LeftPanel(props: LeftPanelProps) {
         <BackBtn onClick={onBackToOverview}>
           <ArrowLeft size={14} /> 返回全省视图
         </BackBtn>
-        <PanelKicker>CITY EXPLORATION</PanelKicker>
-        <PanelTitle><BookOpen size={16} /> {selectedName}高校索引</PanelTitle>
+        <PanelKicker>CITY FOCUS</PanelKicker>
+        <PanelTitle><BookOpen size={16} /> {selectedName}一本+院校</PanelTitle>
         <PanelHint>
-          共 <span style={{ fontWeight: 800, color: "#5a4a3a" }}>{cityUniversities.length}</span> 所本科院校 · {selectedCityProfile.audience}
+          共 <span style={{ fontWeight: 800, color: "#5a4a3a" }}>{cityUniversities.length}</span> 所重点本科 · {selectedCityProfile.audience}
         </PanelHint>
+
+        <PrimaryAction type="button" onClick={() => onOpenCityDetail(selectedName)}>
+          进入城市详情
+          <ArrowRight size={15} />
+        </PrimaryAction>
 
         <SearchInput>
           <Search size={14} />
           <input
-            placeholder={`搜索${selectedName}高校…`}
+            placeholder={`搜索${selectedName}一本+院校…`}
             value={leftSearch}
             onChange={(e) => onSetLeftSearch(e.target.value)}
           />
@@ -224,7 +260,7 @@ export default function LeftPanel(props: LeftPanelProps) {
               onChange={(e) => onSetShowAllPins(e.target.checked)}
               style={{ accentColor: "#c76b5e", width: 13, height: 13, cursor: "pointer" }}
             />
-            显示全部本科高校
+            显示同城全部本科点位
           </label>
         )}
 
@@ -239,7 +275,7 @@ export default function LeftPanel(props: LeftPanelProps) {
             >
               <div className="row">
                 <span className="name">{u.name}</span>
-                <TierBadge $tier={u.tier}>{TIER_LABEL[u.tier]}</TierBadge>
+                <TierBadge $tier={u.tier}>{universityBandLabel(u)}</TierBadge>
               </div>
               {u.founded && <div className="founded">建校 {u.founded}</div>}
             </SchoolItem>
@@ -255,20 +291,20 @@ export default function LeftPanel(props: LeftPanelProps) {
   // Overview
   return (
     <>
-      <PanelKicker>DISCOVER JIANGSU</PanelKicker>
-      <PanelTitle><MapPin size={16} /> 推荐探索</PanelTitle>
-      <PanelHint>点击地图城市，或从下面选择城市，进入高校与生活指标概览。</PanelHint>
+      <PanelKicker>JIANGSU TIER-ONE PLUS</PanelKicker>
+      <PanelTitle><MapPin size={16} /> 一本+探索</PanelTitle>
+      <PanelHint>默认展示 47 所公办一本/重点本科院校。点击城市先聚焦，再进入详情；补充点位可查看同城其他本科。</PanelHint>
 
       <SearchInput>
         <Search size={14} />
         <input
-          placeholder="搜索城市或高校…"
+          placeholder="搜索城市或一本+院校…"
           value={leftSearch}
           onChange={(e) => onSetLeftSearch(e.target.value)}
         />
       </SearchInput>
 
-      <div style={{ fontSize: 11, color: "#a09080", marginBottom: 5, fontWeight: 600 }}>全部城市</div>
+      <div style={{ fontSize: 11, color: "#a09080", marginBottom: 5, fontWeight: 600 }}>重点城市</div>
       <CityListWrap>
         {hotCities
           .filter((c) => !leftSearch.trim() || c.name.includes(leftSearch.trim()))
@@ -291,7 +327,7 @@ export default function LeftPanel(props: LeftPanelProps) {
           ))}
       </CityListWrap>
 
-      <SectionLabel><Sparkles size={13} /> 热门高校</SectionLabel>
+      <SectionLabel><Sparkles size={13} /> 代表院校</SectionLabel>
       {popularSchools.slice(0, 4).map((school) => (
         <ExpCard
           key={school.id}
@@ -301,7 +337,7 @@ export default function LeftPanel(props: LeftPanelProps) {
           }}
         >
           <div className="title">{school.name}</div>
-          <div className="meta">{school.city} · {TIER_LABEL[school.tier]}</div>
+          <div className="meta">{school.city} · {universityBandLabel(school)}</div>
         </ExpCard>
       ))}
     </>

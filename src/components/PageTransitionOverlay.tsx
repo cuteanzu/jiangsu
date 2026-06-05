@@ -1,5 +1,5 @@
 import styled, { keyframes } from "styled-components";
-import { useTransition } from "../context/TransitionContext";
+import { useTransition } from "../context/useTransition";
 
 const transitionFade = keyframes`
   0% { opacity: 0; }

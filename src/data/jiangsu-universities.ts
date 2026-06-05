@@ -13,6 +13,22 @@ export interface University {
   aliases?: string[];
 }
 
+export type KeyUniversityBand =
+  | "985"
+  | "211"
+  | "double-first-class"
+  | "jiangsu-peak-a"
+  | "jiangsu-peak-b"
+  | "first-batch"
+  | "featured";
+
+export interface KeyUniversityMeta {
+  band: KeyUniversityBand;
+  label: string;
+  tags: string[];
+  reason: string;
+}
+
 // Tier order for visual ranking
 export const TIER_ORDER: Record<Tier, number> = {
   "985": 0,
@@ -28,7 +44,52 @@ export const TIER_LABEL: Record<Tier, string> = {
   "provincial": "本科",
 };
 
+const JIANGSU_PEAK_A_IDS = new Set([
+  "njtech2",
+  "ujs",
+  "yzu",
+]);
+
+const JIANGSU_PEAK_B_IDS = new Set([
+  "just",
+  "cczu",
+  "ntu",
+  "xzmc",
+  "jsnu",
+  "njue",
+  "nua",
+]);
+
+const FEATURED_TIER_ONE_IDS = new Set([
+  "njaudit",
+]);
+
+const FIRST_BATCH_PUBLIC_IDS = new Set([
+  "njit",
+  "njxzc",
+  "njty",
+  "njpu",
+  "jssnu",
+  "njtech",
+  "usts",
+  "cit",
+  "sit",
+  "wxit",
+  "jsut",
+  "xzit",
+  "czu",
+  "ycit",
+  "yctu",
+  "hyit",
+  "hytc",
+  "jou",
+  "tzuh",
+  "sqc",
+]);
+
 export function universityLevelTags(university: University): string[] {
+  const meta = getKeyUniversityMeta(university);
+  if (meta) return meta.tags;
   if (university.tier === "985") return ["本科", "985", "211", "双一流"];
   if (university.tier === "211") return ["本科", "211", "双一流"];
   if (university.tier === "dual") return ["本科", "双一流"];
@@ -75,7 +136,7 @@ export const UNIVERSITIES: University[] = [
   { id: "njucm", name: "南京中医药大学", city: "南京", lat: 32.0972, lng: 118.9536, tier: "dual", founded: 1954, shortName: "南中医" },
 
   // ═══ 南京本科 ═══
-  { id: "njupt2", name: "南京工业大学", city: "南京", lat: 32.0789, lng: 118.6489, tier: "provincial" },
+  { id: "njtech2", name: "南京工业大学", city: "南京", lat: 32.0789, lng: 118.6489, tier: "provincial" },
   { id: "njue", name: "南京财经大学", city: "南京", lat: 32.0930, lng: 118.9118, tier: "provincial" },
   { id: "njaudit", name: "南京审计大学", city: "南京", lat: 32.0420, lng: 118.5938, tier: "provincial" },
   { id: "njit", name: "南京工程学院", city: "南京", lat: 31.9343, lng: 118.8916, tier: "provincial" },
@@ -149,6 +210,92 @@ export const UNIVERSITIES_BY_TIER = {
   "dual": UNIVERSITIES.filter((u) => u.tier === "dual"),
   "provincial": UNIVERSITIES.filter((u) => u.tier === "provincial"),
 };
+
+export function getKeyUniversityMeta(university: University): KeyUniversityMeta | null {
+  if (university.tier === "985") {
+    return {
+      band: "985",
+      label: "985",
+      tags: ["985", "211", "双一流"],
+      reason: "国家重点建设高校，综合实力和学术平台最集中。",
+    };
+  }
+  if (university.tier === "211") {
+    return {
+      band: "211",
+      label: "211",
+      tags: ["211", "双一流"],
+      reason: "211 工程及双一流建设高校，学科平台和就业认可度高。",
+    };
+  }
+  if (university.tier === "dual") {
+    return {
+      band: "double-first-class",
+      label: "双一流",
+      tags: ["双一流", "特色学科"],
+      reason: "双一流建设高校，特色学科辨识度高。",
+    };
+  }
+  if (JIANGSU_PEAK_A_IDS.has(university.id)) {
+    return {
+      band: "jiangsu-peak-a",
+      label: "省高峰A",
+      tags: ["省高水平", "高峰A类"],
+      reason: "江苏高水平大学建设高峰计划 A 类建设高校。",
+    };
+  }
+  if (JIANGSU_PEAK_B_IDS.has(university.id)) {
+    return {
+      band: "jiangsu-peak-b",
+      label: "省高峰B",
+      tags: ["省高水平", "高峰B类"],
+      reason: "江苏高水平大学建设高峰计划 B 类建设高校。",
+    };
+  }
+  if (FEATURED_TIER_ONE_IDS.has(university.id)) {
+    return {
+      band: "featured",
+      label: "特色重点",
+      tags: ["特色重点", "财经审计"],
+      reason: "特色鲜明、报考热度高，适合作为一本以上择校池补充关注。",
+    };
+  }
+  if (FIRST_BATCH_PUBLIC_IDS.has(university.id)) {
+    return {
+      band: "first-batch",
+      label: "一本",
+      tags: ["公办一本", "区域重点"],
+      reason: "公办本科院校，适合作为一本以上择校池中的区域比较对象。",
+    };
+  }
+  return null;
+}
+
+export function isTierOnePlusUniversity(university: University): boolean {
+  return getKeyUniversityMeta(university) !== null;
+}
+
+export function universityBandLabel(university: University): string {
+  return getKeyUniversityMeta(university)?.label ?? TIER_LABEL[university.tier];
+}
+
+export function universityBandReason(university: University): string {
+  return getKeyUniversityMeta(university)?.reason ?? "普通本科院校，可作为补充比较对象。";
+}
+
+export const TIER_ONE_PLUS_UNIVERSITIES = UNIVERSITIES.filter(isTierOnePlusUniversity);
+
+export function getTierOnePlusUniversities(city?: string | null): University[] {
+  if (!city) return TIER_ONE_PLUS_UNIVERSITIES;
+  return TIER_ONE_PLUS_UNIVERSITIES.filter((university) => university.city === city);
+}
+
+export function countTierOnePlusByCity(): Record<string, number> {
+  return TIER_ONE_PLUS_UNIVERSITIES.reduce<Record<string, number>>((counts, university) => {
+    counts[university.city] = (counts[university.city] ?? 0) + 1;
+    return counts;
+  }, {});
+}
 
 // Jiangsu province bounding box for projection
 export const JIANGSU_BOUNDS = {

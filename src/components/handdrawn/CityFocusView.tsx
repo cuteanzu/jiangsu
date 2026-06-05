@@ -329,24 +329,30 @@ export default function CityFocusView({
   const prevVisibleRef = useRef(visible);
 
   useEffect(() => {
-    if (visible && !prevVisibleRef.current) {
-      setMapPhase("drawing");
-      const t1 = setTimeout(() => setMapPhase("complete"), 550);
-      return () => clearTimeout(t1);
-    }
-    if (!visible) {
-      setMapPhase("idle");
-    }
+    const wasVisible = prevVisibleRef.current;
     prevVisibleRef.current = visible;
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+
+    if (visible && !wasVisible) {
+      timers.push(setTimeout(() => setMapPhase("drawing"), 0));
+      timers.push(setTimeout(() => setMapPhase("complete"), 550));
+    } else if (!visible) {
+      timers.push(setTimeout(() => setMapPhase("idle"), 0));
+    }
+
+    return () => timers.forEach((timer) => clearTimeout(timer));
   }, [visible]);
 
   // One-time pulse when a school is selected
   useEffect(() => {
-    if (selectedSchool) {
-      setSelectedPulse(selectedSchool);
-      const t = setTimeout(() => setSelectedPulse(null), 2000);
-      return () => clearTimeout(t);
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    if (!selectedSchool) {
+      timers.push(setTimeout(() => setSelectedPulse(null), 0));
+    } else {
+      timers.push(setTimeout(() => setSelectedPulse(selectedSchool), 0));
+      timers.push(setTimeout(() => setSelectedPulse(null), 2000));
     }
+    return () => timers.forEach((timer) => clearTimeout(timer));
   }, [selectedSchool]);
 
   const isDrawing = mapPhase === "drawing";

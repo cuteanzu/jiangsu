@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { Html } from "@react-three/drei";
 import { useSchoolProjection } from "./useSchoolProjection";
 import type { SchoolSceneCoord } from "./useSchoolProjection";
-import { UNIVERSITIES } from "../../data/jiangsu-universities";
+import { UNIVERSITIES, isTierOnePlusUniversity } from "../../data/jiangsu-universities";
 import type { University, Tier } from "../../data/jiangsu-universities";
 
 // Pearl-toned pin colors — soft, warm, paper-diorama compatible
@@ -13,8 +13,6 @@ const TIER_PIN_COLOR: Record<Tier, string> = {
   "dual": "#C8D2E2",
   "provincial": "#C4D6C4",
 };
-
-const KEY_TIERS: Tier[] = ["985", "211", "dual"];
 
 interface SchoolPinsProps {
   selectedCity: string | null;
@@ -144,22 +142,22 @@ export default function SchoolPins({
     const citySchools = UNIVERSITIES.filter((u) => u.city === selectedCity);
     if (citySchools.length === 0) return [] as PlacedSchool[];
 
-    const keySchools = citySchools.filter((u) => KEY_TIERS.includes(u.tier));
-    const provincialSchools = citySchools.filter((u) => u.tier === "provincial");
+    const keySchools = citySchools.filter(isTierOnePlusUniversity);
+    const ordinarySchools = citySchools.filter((u) => !isTierOnePlusUniversity(u));
 
     let visible: University[];
     if (keySchools.length > 0) {
       visible = keySchools;
-      if (showAll) visible = [...keySchools, ...provincialSchools];
+      if (showAll) visible = [...keySchools, ...ordinarySchools];
     } else {
-      visible = provincialSchools.slice(0, 5);
-      if (showAll) visible = provincialSchools;
+      visible = ordinarySchools.slice(0, 5);
+      if (showAll) visible = ordinarySchools;
     }
 
     const raw: PlacedSchool[] = visible.map((s) => ({
       school: s,
       pos: toScene(s.lat, s.lng),
-      isKey: KEY_TIERS.includes(s.tier),
+      isKey: isTierOnePlusUniversity(s),
     }));
     return avoidOverlaps(raw);
   }, [selectedCity, toScene, showAll]);

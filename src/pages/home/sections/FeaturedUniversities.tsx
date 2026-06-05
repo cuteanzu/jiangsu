@@ -5,7 +5,7 @@ import { getFeatured, TIER_COLORS, DISPLAY_PHOTOS } from "../data";
 import { TIER_LABEL } from "../../../data/jiangsu-universities";
 import { cityRouteParam } from "../../../utils/jiangsuPresentation";
 import { marqueeScroll } from "../Home.styles";
-import { useTransition } from "../../../context/TransitionContext";
+import { useTransition } from "../../../context/useTransition";
 
 const Wrapper = styled.section`
   position: relative;

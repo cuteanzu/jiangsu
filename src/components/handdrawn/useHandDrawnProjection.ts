@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { geoMercator } from "d3-geo";
 import type { GeoProjection } from "d3-geo";
 import { useGeoJSON } from "../map3d/useGeoJSON";
+import type { JiangsuGeoJSON } from "../map3d/useGeoJSON";
 import type { CityCenter } from "../map3d/mapTheme";
 
 export interface CityPathData {
@@ -28,10 +29,22 @@ const SVG_W = 1200;
 const SVG_H = 760;
 const PAD = 150;
 
+type GeoGeometry = JiangsuGeoJSON["features"][number]["geometry"];
+type Coordinate = [number, number];
+type LinearRing = Coordinate[];
+type PolygonCoordinates = LinearRing[];
+
+function geometryPolygons(geometry: GeoGeometry): PolygonCoordinates[] {
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates as PolygonCoordinates[];
+  }
+  return [geometry.coordinates as PolygonCoordinates];
+}
+
 /**
  * Compute the geographic bounding box of all features.
  */
-function computeGeoBounds(geoData: any): {
+function computeGeoBounds(geoData: JiangsuGeoJSON): {
   minLng: number; maxLng: number;
   minLat: number; maxLat: number;
   centerLng: number; centerLat: number;
@@ -40,10 +53,7 @@ function computeGeoBounds(geoData: any): {
   let minLat = Infinity; let maxLat = -Infinity;
 
   for (const feature of geoData.features) {
-    const polygons: Array<Array<Array<[number, number]>>> =
-      feature.geometry.type === "MultiPolygon"
-        ? feature.geometry.coordinates
-        : [feature.geometry.coordinates];
+    const polygons = geometryPolygons(feature.geometry);
     for (const polygon of polygons) {
       for (const [lng, lat] of polygon[0]) {
         if (lng < minLng) minLng = lng;
@@ -65,7 +75,7 @@ function computeGeoBounds(geoData: any): {
  * Build a Mercator projection centered on Jiangsu's geographic center,
  * scaled to fit within [PAD, SVG_W-PAD] × [PAD, SVG_H-PAD].
  */
-function buildProjection(geoData: any): GeoProjection {
+function buildProjection(geoData: JiangsuGeoJSON): GeoProjection {
   const { centerLng, centerLat } = computeGeoBounds(geoData);
   const mapW = SVG_W - 2 * PAD;
   const mapH = SVG_H - 2 * PAD;
@@ -79,10 +89,7 @@ function buildProjection(geoData: any): GeoProjection {
   let minX = Infinity; let maxX = -Infinity;
   let minY = Infinity; let maxY = -Infinity;
   for (const feature of geoData.features) {
-    const polygons: Array<Array<Array<[number, number]>>> =
-      feature.geometry.type === "MultiPolygon"
-        ? feature.geometry.coordinates
-        : [feature.geometry.coordinates];
+    const polygons = geometryPolygons(feature.geometry);
     for (const polygon of polygons) {
       for (const [lng, lat] of polygon[0]) {
         const pt = tmp([lng, lat]);
@@ -111,13 +118,10 @@ function buildProjection(geoData: any): GeoProjection {
  * Bypasses d3-geo path generator to avoid clip-extent artifacts.
  */
 function buildPathD(
-  geometry: { type: string; coordinates: any },
+  geometry: GeoGeometry,
   projection: GeoProjection,
 ): string {
-  const polygons: Array<Array<Array<[number, number]>>> =
-    geometry.type === "MultiPolygon"
-      ? geometry.coordinates
-      : [geometry.coordinates];
+  const polygons = geometryPolygons(geometry);
 
   const parts: string[] = [];
 
@@ -145,17 +149,14 @@ function buildPathD(
  * Compute centroid by averaging projected polygon vertices.
  */
 function computeCentroid(
-  geometry: { type: string; coordinates: any },
+  geometry: GeoGeometry,
   projection: GeoProjection,
 ): { x: number; y: number } {
   let sumX = 0;
   let sumY = 0;
   let count = 0;
 
-  const polygons: Array<Array<Array<[number, number]>>> =
-    geometry.type === "MultiPolygon"
-      ? geometry.coordinates
-      : [geometry.coordinates];
+  const polygons = geometryPolygons(geometry);
 
   for (const polygon of polygons) {
     const ring = polygon[0];
@@ -175,7 +176,7 @@ function computeCentroid(
 }
 
 function buildProvinceOutline(
-  geoData: any,
+  geoData: JiangsuGeoJSON,
   projection: GeoProjection,
 ): string {
   const parts: string[] = [];

@@ -9,13 +9,14 @@ interface CameraControllerProps {
   selectedCity: string | null;
   cityCenters: CityCenter[];
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
+  onSettled?: (city: string | null) => void;
 }
 
 const SNAP_THRESHOLD = 0.08;
 const OVERVIEW_POS = new THREE.Vector3(...CAMERA_POSITION);
 const OVERVIEW_TARGET = new THREE.Vector3(...CAMERA_TARGET);
 
-export default function CameraController({ selectedCity, cityCenters, controlsRef }: CameraControllerProps) {
+export default function CameraController({ selectedCity, cityCenters, controlsRef, onSettled }: CameraControllerProps) {
   const targetPos = useRef(OVERVIEW_POS.clone());
   const targetLook = useRef(OVERVIEW_TARGET.clone());
   const isAnimating = useRef(false);
@@ -64,6 +65,7 @@ export default function CameraController({ selectedCity, cityCenters, controlsRe
       look.copy(targetLook.current);
       controls.update();
       isAnimating.current = false;
+      onSettled?.(selected?.name ?? null);
       invalidate();
       return;
     }

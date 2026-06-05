@@ -73,6 +73,7 @@ interface MapDrawerProps {
   onSetShowAllPins: (v: boolean) => void;
   onSelectSchool: (name: string | null) => void;
   onUpdateSelection: (city: string | null, school: string | null) => void;
+  onOpenCityDetail: (city: string) => void;
   onBackToOverview: () => void;
 }
 
@@ -81,7 +82,7 @@ export default function MapDrawer({
   hoveredName, cityUniversities, hotCities, popularSchools,
   selectedCityProfile, showAllPins,
   onSetMode, onSetHoveredName, onSetHoveredSchoolName, onSetShowAllPins,
-  onSelectSchool, onUpdateSelection, onBackToOverview,
+  onSelectSchool, onUpdateSelection, onOpenCityDetail, onBackToOverview,
 }: MapDrawerProps) {
   const [leftSearch, setLeftSearch] = useState("");
 
@@ -123,6 +124,7 @@ export default function MapDrawer({
           onSelectSchool={onSelectSchool}
           onSetActiveMode={onSetMode}
           onUpdateSelection={onUpdateSelection}
+          onOpenCityDetail={onOpenCityDetail}
           onBackToOverview={onBackToOverview}
         />
       </DrawerInner>

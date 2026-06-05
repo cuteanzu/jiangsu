@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import { X, ArrowLeft, MapPin, Clock, MessageCircle, HelpCircle } from "lucide-react";
-import { UNIVERSITIES, TIER_LABEL } from "../../data/jiangsu-universities";
+import { UNIVERSITIES, universityBandLabel, universityBandReason } from "../../data/jiangsu-universities";
 import type { Tier } from "../../data/jiangsu-universities";
 import { SCHOOL_REC } from "./schoolRecommendations";
 import { cityLifeNote } from "../../data/city-profiles";
@@ -183,18 +183,20 @@ export default function SchoolDetailOverlay({ schoolName, onClose }: Props) {
   if (!school) return null;
 
   const life = cityLifeNote(school.city);
-  const tierLabel = TIER_LABEL[school.tier];
+  const tierLabel = universityBandLabel(school);
   const tierDesc = school.tier === "985" ? "顶尖研究型大学"
     : school.tier === "211" ? "重点建设高校"
     : school.tier === "dual" ? "双一流学科建设高校"
-    : "省属本科院校";
+    : universityBandReason(school);
 
   const recText = SCHOOL_REC[school.name] ?? `位于${school.city}的一所优秀本科院校。`;
 
   return (
     <DetailOverlay onClick={onClose}>
       <MagazineCard onClick={(e) => e.stopPropagation()}>
-        <MagazineClose onClick={onClose}><X size={16} /></MagazineClose>
+        <MagazineClose type="button" aria-label="关闭学校详情" onClick={onClose}>
+          <X size={16} />
+        </MagazineClose>
 
         <HeroSection>
           <HeroName>{school.name}</HeroName>
