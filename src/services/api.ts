@@ -1,13 +1,18 @@
 import type {
   AuthResponse,
   CityProfileDTO,
+  CreateSubmissionPayload,
   ExperienceDTO,
   LoginPayload,
   QADTO,
   RegisterPayload,
+  ResetPasswordPayload,
   SchoolDTO,
   SchoolDetailDTO,
   SchoolSearchParams,
+  SendCodePayload,
+  SubmissionDTO,
+  UpdateProfilePayload,
   UniversityDTO,
 } from "./types";
 
@@ -47,15 +52,21 @@ export const authStorage = {
     if (!storageAvailable()) return null;
     return window.localStorage.getItem(TOKEN_KEY);
   },
+  getRefreshToken() {
+    if (!storageAvailable()) return null;
+    return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  },
   setAuth(auth: AuthResponse) {
     if (!storageAvailable()) return;
-    window.localStorage.setItem(TOKEN_KEY, auth.token);
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, auth.refreshToken);
+    if (auth.token) window.localStorage.setItem(TOKEN_KEY, auth.token);
+    if (auth.refreshToken) window.localStorage.setItem(REFRESH_TOKEN_KEY, auth.refreshToken);
+    window.dispatchEvent(new Event("jiangsu-auth-change"));
   },
   clear() {
     if (!storageAvailable()) return;
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+    window.dispatchEvent(new Event("jiangsu-auth-change"));
   },
 };
 
@@ -170,6 +181,9 @@ export const apiClient = {
 };
 
 export const authApi = {
+  sendCode(payload: SendCodePayload) {
+    return apiClient.post<string>("/auth/send-code", payload, { auth: false });
+  },
   async login(payload: LoginPayload) {
     const auth = await apiClient.post<AuthResponse>("/auth/login", payload, { auth: false });
     authStorage.setAuth(auth);
@@ -182,6 +196,19 @@ export const authApi = {
   },
   me() {
     return apiClient.get<AuthResponse>("/auth/me");
+  },
+  updateProfile(payload: UpdateProfilePayload) {
+    return apiClient.put<AuthResponse>("/auth/profile", payload);
+  },
+  resetPassword(payload: ResetPasswordPayload) {
+    return apiClient.post<void>("/auth/reset-password", payload, { auth: false });
+  },
+  async refresh() {
+    const refreshToken = authStorage.getRefreshToken();
+    if (!refreshToken) throw new ApiError("Missing refresh token", 401);
+    const auth = await apiClient.post<AuthResponse>("/auth/refresh", { refreshToken }, { auth: false });
+    authStorage.setAuth(auth);
+    return auth;
   },
   async logout() {
     try {
@@ -225,5 +252,23 @@ export const contentApi = {
   },
   qa(query: QueryParams = {}) {
     return apiClient.get<QADTO[]>("/qa", query);
+  },
+};
+
+export const userApi = {
+  favorites() {
+    return apiClient.get<SchoolDTO[]>("/user/favorites");
+  },
+  addFavorite(schoolId: number) {
+    return apiClient.post<void>(`/user/favorites/${schoolId}`);
+  },
+  removeFavorite(schoolId: number) {
+    return apiClient.remove<void>(`/user/favorites/${schoolId}`);
+  },
+  submissions() {
+    return apiClient.get<SubmissionDTO[]>("/user/submissions");
+  },
+  createSubmission(payload: CreateSubmissionPayload) {
+    return apiClient.post<SubmissionDTO>("/submissions", payload);
   },
 };

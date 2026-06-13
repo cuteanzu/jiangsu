@@ -1,21 +1,29 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
+  AlertCircle,
   ArrowRight,
   BookOpen,
   CheckCircle2,
+  ClipboardList,
   Compass,
+  Database,
   ExternalLink,
   GraduationCap,
-  History,
+  Heart,
+  Inbox,
   ListChecks,
   LogOut,
   MapPin,
   MessageCircle,
+  PenLine,
   Route,
+  Save,
   School,
   Search,
+  Send,
   Settings,
+  ShieldCheck,
   Sparkles,
   User,
   Wrench,
@@ -23,13 +31,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import CampusAtmosphere from "../components/CampusAtmosphere";
 import { useTransition } from "../context/useTransition";
-import {
-  CATEGORY_META,
-  EXPERIENCES,
-  QA_ENTRIES,
-  type ExperiencePost,
-  type QAEntry,
-} from "../data/mock-content";
+import { CATEGORY_META, EXPERIENCES, type ExperiencePost } from "../data/mock-content";
 import { UNIVERSITIES } from "../data/jiangsu-universities";
 import {
   AUDIENCE_ROLE_LABELS,
@@ -37,8 +39,12 @@ import {
   type AudienceRole,
   useAudienceRole,
 } from "../hooks/useAudienceRole";
+import { useAuth } from "../hooks/useAuth";
+import { ApiError, authApi, userApi } from "../services/api";
+import type { SchoolDTO, SubmissionDTO } from "../services/types";
 
-type TabKey = "schools" | "questions" | "notes" | "history";
+type TabKey = "schools" | "submissions" | "next";
+type SubmissionType = "EXPERIENCE" | "QUESTION" | "CORRECTION" | "SUGGESTION";
 
 type RouteAction = {
   label: string;
@@ -57,21 +63,11 @@ type RolePlan = {
   checklist: string[];
 };
 
-type TrackedSchool = {
-  name: string;
-  city: string;
-  tier: string;
-  status: string;
-  reason: string;
-  progress: number;
-  tags: string[];
-};
-
 const rolePlans: Record<AudienceRole, RolePlan> = {
   gaokao: {
-    title: "把目标学校压到可以比较的范围",
-    note: "先确定城市、层次和专业方向，再用经验和问答验证真实校园生活。",
-    nextStep: "添加 3 所想比较的学校",
+    title: "把目标学校压到可比较的范围",
+    note: "先固定城市、层次和专业方向，再用真实经验验证校园生活。",
+    nextStep: "收藏 3 所想比较的学校",
     primary: {
       label: "打开江苏地图",
       description: "按城市和学校层次筛第一轮名单。",
@@ -79,17 +75,17 @@ const rolePlans: Record<AudienceRole, RolePlan> = {
       icon: MapPin,
     },
     secondary: {
-      label: "看择校问答",
+      label: "查看择校问答",
       description: "先解决城市、层次、专业和转专业问题。",
       path: "/qa",
       icon: MessageCircle,
     },
-    focus: ["城市生活成本", "学校层次", "专业匹配", "就业去向"],
-    checklist: ["收藏目标学校", "查看宿舍和食堂经验", "确认转专业政策", "把城市放进对比"],
+    focus: ["城市成本", "学校层次", "专业匹配", "就业去向"],
+    checklist: ["收藏目标学校", "看宿舍和食堂经验", "确认转专业政策", "把城市放进对比"],
   },
   freshman: {
     title: "把入学前的不确定感降下来",
-    note: "优先看校区、宿舍、食堂、交通和开学准备，先把第一周过顺。",
+    note: "优先看校区、宿舍、食堂、交通和开学准备，让第一周更顺。",
     nextStep: "确认录取学校所在校区",
     primary: {
       label: "浏览入学经验",
@@ -107,7 +103,7 @@ const rolePlans: Record<AudienceRole, RolePlan> = {
     checklist: ["收藏录取学校", "看新生避坑", "记录交通路线", "整理开学问题"],
   },
   college: {
-    title: "整理下一步发展路径",
+    title: "整理下一步发展的路线",
     note: "把考研、实习、转专业和城市机会放在一起看，减少信息分散。",
     nextStep: "选择一个发展方向继续追踪",
     primary: {
@@ -127,48 +123,24 @@ const rolePlans: Record<AudienceRole, RolePlan> = {
   },
 };
 
-const trackedSchools: TrackedSchool[] = [
-  {
-    name: "苏州大学",
-    city: "苏州",
-    tier: "211",
-    status: "重点比较",
-    reason: "城市体验和校园生活都值得继续看",
-    progress: 78,
-    tags: ["古城校区", "城市生活", "新生体验"],
-  },
-  {
-    name: "南京师范大学",
-    city: "南京",
-    tier: "双一流",
-    status: "补充信息",
-    reason: "文科资源强，需要继续确认专业和校区",
-    progress: 62,
-    tags: ["专业学习", "仙林校区", "保研"],
-  },
-  {
-    name: "江南大学",
-    city: "无锡",
-    tier: "211",
-    status: "候选观察",
-    reason: "城市舒适度高，适合放进第二梯队",
-    progress: 46,
-    tags: ["无锡", "生活成本", "就业"],
-  },
-];
-
 const tabItems: Array<{ key: TabKey; label: string; icon: LucideIcon }> = [
   { key: "schools", label: "学校清单", icon: School },
-  { key: "questions", label: "我的问答", icon: MessageCircle },
-  { key: "notes", label: "保存经验", icon: BookOpen },
-  { key: "history", label: "最近浏览", icon: History },
+  { key: "submissions", label: "我的投稿", icon: ClipboardList },
+  { key: "next", label: "推荐下一步", icon: ListChecks },
+];
+
+const submissionTypes: Array<{ value: SubmissionType; label: string; hint: string }> = [
+  { value: "EXPERIENCE", label: "校园经验", hint: "宿舍、食堂、学习、城市生活都可以写" },
+  { value: "QUESTION", label: "问答线索", hint: "把你希望学长学姐回答的问题留下" },
+  { value: "CORRECTION", label: "数据纠错", hint: "学校信息、官网、地址、校区等纠错" },
+  { value: "SUGGESTION", label: "功能建议", hint: "告诉站长下一步应该补什么" },
 ];
 
 const creatorProof = [
-  { value: String(UNIVERSITIES.length), label: "高校数据" },
-  { value: "13", label: "城市入口" },
-  { value: "4", label: "核心模块" },
-  { value: "持续", label: "维护状态" },
+  { value: String(UNIVERSITIES.length), label: "高校基础数据" },
+  { value: "前后端", label: "完整工程链路" },
+  { value: "邮箱", label: "注册与找回" },
+  { value: "持续", label: "内容维护" },
 ];
 
 const Page = styled.div`
@@ -214,7 +186,7 @@ const Panel = styled.section`
 
 const Workbench = styled(Panel)`
   display: grid;
-  grid-template-columns: minmax(220px, 0.78fr) minmax(0, 1.22fr);
+  grid-template-columns: minmax(230px, 0.78fr) minmax(0, 1.22fr);
   overflow: hidden;
 
   @media (max-width: 820px) {
@@ -344,10 +316,6 @@ const AccountActions = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 18px;
-
-  @media (max-width: 760px) {
-    margin-top: 12px;
-  }
 `;
 
 const SmallButton = styled.button`
@@ -370,10 +338,82 @@ const SmallButton = styled.button`
     border-color: oklch(74% 0.06 45 / 0.7);
   }
 
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
+
   svg {
     width: 14px;
     height: 14px;
   }
+`;
+
+const ProfileEditor = styled.div`
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+const Input = styled.input`
+  min-height: 38px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid oklch(84% 0.026 74 / 0.72);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.72);
+  color: oklch(26% 0.035 58);
+  padding: 0 11px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+
+  &:focus {
+    border-color: oklch(63% 0.105 42 / 0.78);
+    box-shadow: 0 0 0 3px oklch(76% 0.06 42 / 0.18);
+  }
+`;
+
+const Select = styled.select`
+  min-height: 38px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid oklch(84% 0.026 74 / 0.72);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.72);
+  color: oklch(26% 0.035 58);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+`;
+
+const TextArea = styled.textarea`
+  min-height: 118px;
+  width: 100%;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid oklch(84% 0.026 74 / 0.72);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.72);
+  color: oklch(26% 0.035 58);
+  padding: 11px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+  outline: none;
+
+  &:focus {
+    border-color: oklch(63% 0.105 42 / 0.78);
+    box-shadow: 0 0 0 3px oklch(76% 0.06 42 / 0.18);
+  }
+`;
+
+const InlineMessage = styled.p<{ $error?: boolean }>`
+  margin: 0;
+  color: ${({ $error }) => ($error ? "oklch(48% 0.15 30)" : "oklch(44% 0.09 145)")};
+  font-size: 12px;
+  line-height: 1.6;
 `;
 
 const ProgressPane = styled.div`
@@ -429,6 +469,7 @@ const PrimaryButton = styled.button`
   min-height: 42px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 9px;
   border: 1px solid oklch(58% 0.13 42 / 0.72);
   border-radius: 8px;
@@ -442,6 +483,11 @@ const PrimaryButton = styled.button`
 
   &:hover {
     background: oklch(53% 0.13 42);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
   }
 
   svg {
@@ -600,11 +646,15 @@ const SectionHead = styled.div`
   }
 
   p {
-    max-width: 56ch;
+    max-width: 58ch;
     margin: 5px 0 0;
     color: oklch(48% 0.028 62);
     font-size: 13px;
     line-height: 1.7;
+  }
+
+  @media (max-width: 640px) {
+    display: grid;
   }
 `;
 
@@ -627,6 +677,34 @@ const TextButton = styled.button`
   }
 `;
 
+const AssetTabs = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid ${({ $active }) => ($active ? "oklch(67% 0.095 42 / 0.72)" : "oklch(84% 0.026 74 / 0.58)")};
+  border-radius: 8px;
+  background: ${({ $active }) => ($active ? "oklch(95% 0.025 45 / 0.72)" : "oklch(99% 0.008 78 / 0.58)")};
+  color: ${({ $active }) => ($active ? "oklch(43% 0.11 40)" : "oklch(38% 0.032 58)")};
+  padding: 0 11px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 840;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+`;
+
 const SchoolList = styled.div`
   display: grid;
   gap: 10px;
@@ -635,7 +713,7 @@ const SchoolList = styled.div`
 const SchoolRow = styled.button`
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
+  grid-template-columns: minmax(0, 1fr) 128px;
   gap: 16px;
   align-items: center;
   border: 1px solid oklch(84% 0.026 74 / 0.58);
@@ -682,6 +760,15 @@ const Tag = styled.span`
   font-weight: 820;
 `;
 
+const MiniTag = styled.span`
+  color: oklch(44% 0.032 62);
+  border: 1px solid oklch(84% 0.026 74 / 0.58);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 760;
+`;
+
 const Muted = styled.p`
   margin: 8px 0 0;
   color: oklch(47% 0.028 62);
@@ -696,65 +783,25 @@ const TagLine = styled.div`
   margin-top: 10px;
 `;
 
-const MiniTag = styled.span`
-  color: oklch(44% 0.032 62);
-  border: 1px solid oklch(84% 0.026 74 / 0.58);
-  border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 760;
-`;
-
-const ProgressBox = styled.div`
+const RowStat = styled.div`
   display: grid;
   gap: 8px;
+  justify-items: start;
 
   span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     color: oklch(45% 0.03 62);
     font-size: 12px;
     font-weight: 780;
   }
-`;
 
-const ProgressTrack = styled.div`
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: oklch(90% 0.018 70 / 0.82);
-`;
-
-const ProgressFill = styled.div<{ $value: number }>`
-  width: ${(p) => p.$value}%;
-  height: 100%;
-  border-radius: inherit;
-  background: oklch(58% 0.12 42);
-`;
-
-const AssetTabs = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-`;
-
-const TabButton = styled.button<{ $active: boolean }>`
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid ${({ $active }) => ($active ? "oklch(67% 0.095 42 / 0.72)" : "oklch(84% 0.026 74 / 0.58)")};
-  border-radius: 8px;
-  background: ${({ $active }) => ($active ? "oklch(95% 0.025 45 / 0.72)" : "oklch(99% 0.008 78 / 0.58)")};
-  color: ${({ $active }) => ($active ? "oklch(43% 0.11 40)" : "oklch(38% 0.032 58)")};
-  padding: 0 11px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 840;
-
-  svg {
-    width: 15px;
-    height: 15px;
+  strong {
+    color: oklch(44% 0.11 42);
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 900;
   }
 `;
 
@@ -790,13 +837,13 @@ const FeedMeta = styled.div`
   font-size: 12px;
 `;
 
-const CategoryPill = styled.span<{ $color: string }>`
+const CategoryPill = styled.span<{ $color?: string }>`
   display: inline-flex;
   align-items: center;
   min-height: 22px;
   border-radius: 999px;
-  background: ${(p) => p.$color}16;
-  color: ${(p) => p.$color};
+  background: ${({ $color }) => ($color ? `${$color}16` : "oklch(94% 0.028 55 / 0.74)")};
+  color: ${({ $color }) => $color ?? "oklch(45% 0.1 42)"};
   padding: 0 8px;
   font-size: 11px;
   font-weight: 840;
@@ -815,6 +862,73 @@ const FeedText = styled.p`
   color: oklch(47% 0.028 62);
   font-size: 13px;
   line-height: 1.75;
+`;
+
+const EmptyState = styled.div`
+  border: 1px dashed oklch(78% 0.045 66 / 0.7);
+  border-radius: 8px;
+  background: oklch(98% 0.012 76 / 0.64);
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+  color: oklch(45% 0.03 62);
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: oklch(46% 0.11 42);
+  }
+
+  strong {
+    color: oklch(24% 0.035 56);
+    font-size: 15px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+`;
+
+const Notice = styled.div<{ $error?: boolean }>`
+  border: 1px solid ${({ $error }) => ($error ? "oklch(72% 0.09 32 / 0.58)" : "oklch(78% 0.045 66 / 0.62)")};
+  border-radius: 8px;
+  background: ${({ $error }) => ($error ? "oklch(96% 0.026 36 / 0.62)" : "oklch(97% 0.018 62 / 0.68)")};
+  color: ${({ $error }) => ($error ? "oklch(42% 0.12 32)" : "oklch(42% 0.035 58)")};
+  padding: 12px;
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.65;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+`;
+
+const FormGrid = styled.form`
+  display: grid;
+  gap: 10px;
+`;
+
+const Field = styled.label`
+  display: grid;
+  gap: 6px;
+  color: oklch(40% 0.034 58);
+  font-size: 12px;
+  font-weight: 800;
+`;
+
+const FormHelper = styled.p`
+  margin: 0;
+  color: oklch(50% 0.026 62);
+  font-size: 12px;
+  line-height: 1.65;
 `;
 
 const CreatorPanel = styled(Panel)`
@@ -947,133 +1061,380 @@ const Footer = styled.footer`
   font-size: 12px;
 `;
 
-function pickPosts(ids: string[]): ExperiencePost[] {
-  return ids
-    .map((id) => EXPERIENCES.find((post) => post.id === id))
-    .filter((post): post is ExperiencePost => Boolean(post));
+function normalizeError(err: unknown) {
+  if (err instanceof ApiError) {
+    const payload = err.payload;
+    if (payload && typeof payload === "object" && "message" in payload) {
+      const message = (payload as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+    return err.message || "请求失败";
+  }
+  if (err instanceof Error) return err.message;
+  return "请求失败，请稍后再试";
 }
 
-function pickQuestions(ids: string[]): QAEntry[] {
-  return ids
-    .map((id) => QA_ENTRIES.find((entry) => entry.id === id))
-    .filter((entry): entry is QAEntry => Boolean(entry));
-}
-
-function clip(text: string, max = 86) {
+function clip(text: string, max = 96) {
   return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "刚刚";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "刚刚";
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function submissionTypeLabel(type?: string | null) {
+  const normalized = (type ?? "").toUpperCase();
+  return submissionTypes.find((item) => item.value === normalized)?.label ?? type ?? "投稿";
+}
+
+function statusLabel(status?: string | null) {
+  const normalized = (status ?? "").toUpperCase();
+  if (normalized === "APPROVED") return "已通过";
+  if (normalized === "REJECTED") return "未通过";
+  if (normalized === "PENDING") return "待审核";
+  return status || "待处理";
+}
+
+function statusTone(status?: string | null) {
+  const normalized = (status ?? "").toUpperCase();
+  if (normalized === "APPROVED") return "oklch(46% 0.11 145)";
+  if (normalized === "REJECTED") return "oklch(46% 0.14 30)";
+  return "oklch(45% 0.1 42)";
+}
+
+function ensureArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function schoolPath(school: SchoolDTO) {
+  const matched = UNIVERSITIES.find((item) => item.name === school.name);
+  if (matched) {
+    return `/jiangsu?city=${encodeURIComponent(matched.city)}&school=${encodeURIComponent(matched.id)}`;
+  }
+  if (school.cityName) {
+    return `/jiangsu?city=${encodeURIComponent(school.cityName.replace(/市$/, ""))}`;
+  }
+  return "/jiangsu";
+}
+
+function pickRecommendedPosts(role: AudienceRole): ExperiencePost[] {
+  const categories: Record<AudienceRole, string[]> = {
+    gaokao: ["study", "career", "city-life"],
+    freshman: ["freshman", "dorm", "cafeteria"],
+    college: ["exam", "career", "study"],
+  };
+  return EXPERIENCES.filter((post) => categories[role].includes(post.category)).slice(0, 3);
 }
 
 export default function Me() {
   const { navigateWithTransition } = useTransition();
+  const { authenticated, error: authError, loading: authLoading, logout, refreshUser, user } = useAuth();
   const { role, roleLabel, setRole } = useAudienceRole();
   const [tab, setTab] = useState<TabKey>("schools");
+  const [favorites, setFavorites] = useState<SchoolDTO[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionDTO[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetsError, setAssetsError] = useState("");
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [submitSchoolName, setSubmitSchoolName] = useState("");
+  const [submitType, setSubmitType] = useState<SubmissionType>("EXPERIENCE");
+  const [submitTitle, setSubmitTitle] = useState("");
+  const [submitContent, setSubmitContent] = useState("");
+  const [submitContact, setSubmitContact] = useState("");
+  const [submitAnonymous, setSubmitAnonymous] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
+
   const plan = rolePlans[role];
   const PrimaryIcon = plan.primary.icon;
   const SecondaryIcon = plan.secondary.icon;
+  const displayName = user?.nickname || user?.username || "我的账号";
+  const recommendedPosts = useMemo(() => pickRecommendedPosts(role), [role]);
 
-  const savedPosts = useMemo(() => pickPosts(["exp-3", "exp-5", "exp-6"]), []);
-  const savedQuestions = useMemo(() => pickQuestions(["qa-6", "qa-5", "qa-8"]), []);
-  const recentPosts = useMemo(() => [...EXPERIENCES].sort((a, b) => b.likes - a.likes).slice(0, 3), []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setProfileName(user?.nickname || user?.username || "");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [user?.nickname, user?.username]);
+
+  useEffect(() => {
+    if (!authenticated) return;
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setAssetsLoading(true);
+      setAssetsError("");
+      Promise.all([userApi.favorites(), userApi.submissions()])
+        .then(([nextFavorites, nextSubmissions]) => {
+          if (!active) return;
+          setFavorites(ensureArray<SchoolDTO>(nextFavorites));
+          setSubmissions(ensureArray<SubmissionDTO>(nextSubmissions));
+        })
+        .catch((err) => {
+          if (!active) return;
+          setAssetsError(normalizeError(err));
+        })
+        .finally(() => {
+          if (active) setAssetsLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [authenticated]);
 
   const go = (path: string) => navigateWithTransition(path);
 
   const metrics = [
-    { value: trackedSchools.length, label: "收藏学校" },
-    { value: 2, label: "对比清单" },
-    { value: savedQuestions.length, label: "关注问答" },
-    { value: savedPosts.length, label: "保存经验" },
+    { value: favorites.length, label: "收藏学校" },
+    { value: submissions.length, label: "我的投稿" },
+    { value: submissions.filter((item) => (item.status ?? "").toUpperCase() === "PENDING").length, label: "待审核" },
+    { value: UNIVERSITIES.length, label: "可探索高校" },
   ];
 
-  const renderFeed = () => {
-    if (tab === "schools") {
+  const handleLogout = async () => {
+    await logout();
+    navigateWithTransition("/login");
+  };
+
+  const handleSaveProfile = async () => {
+    const nextName = profileName.trim();
+    if (!nextName) {
+      setProfileMessage("昵称不能为空");
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileMessage("");
+    try {
+      await authApi.updateProfile({ nickname: nextName });
+      await refreshUser();
+      setEditingProfile(false);
+      setProfileMessage("昵称已更新");
+    } catch (err) {
+      setProfileMessage(normalizeError(err));
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleSubmitContribution = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const content = submitContent.trim();
+    const title = submitTitle.trim();
+    const schoolName = submitSchoolName.trim();
+    const contact = submitContact.trim();
+
+    if (content.length < 10) {
+      setSubmitError("内容至少写 10 个字，方便审核和整理。");
+      setSubmitMessage("");
+      return;
+    }
+
+    setSubmitLoading(true);
+    setSubmitError("");
+    setSubmitMessage("");
+    try {
+      const created = await userApi.createSubmission({
+        schoolName: schoolName || undefined,
+        title: title || undefined,
+        content,
+        type: submitType,
+        contact: contact || undefined,
+        isAnonymous: submitAnonymous,
+      });
+      setSubmissions((items) => [created, ...items]);
+      setSubmitTitle("");
+      setSubmitContent("");
+      setSubmitContact("");
+      setSubmitAnonymous(false);
+      setSubmitMessage("投稿已提交，审核通过后会进入公共内容。");
+      setTab("submissions");
+    } catch (err) {
+      setSubmitError(normalizeError(err));
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const renderSchools = () => {
+    if (assetsLoading) {
       return (
-        <SchoolList>
-          {trackedSchools.map((school) => (
-            <SchoolRow key={school.name} type="button" onClick={() => go("/jiangsu")}>
-              <div>
-                <SchoolName>
-                  <strong>{school.name}</strong>
-                  <Tag>{school.tier}</Tag>
-                  <MiniTag>{school.city}</MiniTag>
-                </SchoolName>
-                <Muted>{school.reason}</Muted>
-                <TagLine>
-                  {school.tags.map((tag) => (
-                    <MiniTag key={tag}>{tag}</MiniTag>
-                  ))}
-                </TagLine>
-              </div>
-              <ProgressBox>
-                <span>{school.status}</span>
-                <ProgressTrack>
-                  <ProgressFill $value={school.progress} />
-                </ProgressTrack>
-                <span>{school.progress}% 信息已看</span>
-              </ProgressBox>
-            </SchoolRow>
-          ))}
-        </SchoolList>
+        <Notice>
+          <Database />
+          <div>正在同步你的收藏学校...</div>
+        </Notice>
       );
     }
 
-    if (tab === "questions") {
+    if (favorites.length === 0) {
       return (
-        <FeedList>
-          {savedQuestions.map((entry) => (
-            <FeedRow key={entry.id} type="button" onClick={() => go("/qa")}>
-              <FeedMeta>
-                <CategoryPill $color="#4a8eb5">问答</CategoryPill>
-                {entry.schoolName && <span>{entry.schoolName}</span>}
-                <span>{entry.likes} 收藏</span>
-              </FeedMeta>
-              <FeedTitle>{entry.question}</FeedTitle>
-              <FeedText>{clip(entry.answer)}</FeedText>
-            </FeedRow>
-          ))}
-        </FeedList>
+        <EmptyState>
+          <Inbox />
+          <strong>还没有收藏学校</strong>
+          <p>先去江苏地图里点开高校档案，把真正想比较的学校加入清单。这里会变成你的择校工作台。</p>
+          <ActionRow>
+            <SecondaryButton type="button" onClick={() => go("/jiangsu")}>
+              去地图探索
+              <ArrowRight />
+            </SecondaryButton>
+          </ActionRow>
+        </EmptyState>
       );
     }
 
-    if (tab === "notes") {
+    return (
+      <SchoolList>
+        {favorites.map((school) => (
+          <SchoolRow key={school.id} type="button" onClick={() => go(schoolPath(school))}>
+            <div>
+              <SchoolName>
+                <strong>{school.name}</strong>
+                <Tag>{school.level || school.type || "高校"}</Tag>
+                {school.cityName && <MiniTag>{school.cityName}</MiniTag>}
+              </SchoolName>
+              <Muted>{school.brief || school.address || "已加入你的学校清单，后续可以继续补充经验和问答线索。"}</Muted>
+              <TagLine>
+                {school.website && <MiniTag>官网已收录</MiniTag>}
+                {school.address && <MiniTag>地址已收录</MiniTag>}
+                {school.isFavorited && <MiniTag>已收藏</MiniTag>}
+              </TagLine>
+            </div>
+            <RowStat>
+              <span>
+                <Heart size={12} />
+                收藏热度
+              </span>
+              <strong>{school.favoriteCount ?? 0}</strong>
+              <span>热度 {school.hotScore ?? 0}</span>
+            </RowStat>
+          </SchoolRow>
+        ))}
+      </SchoolList>
+    );
+  };
+
+  const renderSubmissions = () => {
+    if (assetsLoading) {
       return (
-        <FeedList>
-          {savedPosts.map((post) => {
-            const meta = CATEGORY_META[post.category];
-            return (
-              <FeedRow key={post.id} type="button" onClick={() => go("/experiences")}>
-                <FeedMeta>
-                  <CategoryPill $color={meta.color}>{meta.label}</CategoryPill>
-                  <span>{post.schoolName}</span>
-                  <span>{post.likes} 喜欢</span>
-                </FeedMeta>
-                <FeedTitle>{post.title}</FeedTitle>
-                <FeedText>{post.excerpt}</FeedText>
-              </FeedRow>
-            );
-          })}
-        </FeedList>
+        <Notice>
+          <Database />
+          <div>正在读取你的投稿记录...</div>
+        </Notice>
+      );
+    }
+
+    if (submissions.length === 0) {
+      return (
+        <EmptyState>
+          <PenLine />
+          <strong>还没有投稿</strong>
+          <p>你可以提交校园经验、问答线索或数据纠错。内容先进入审核，质量稳定后再公开展示。</p>
+        </EmptyState>
       );
     }
 
     return (
       <FeedList>
-        {recentPosts.map((post) => {
-          const meta = CATEGORY_META[post.category];
-          return (
-            <FeedRow key={post.id} type="button" onClick={() => go("/experiences")}>
-              <FeedMeta>
-                <CategoryPill $color={meta.color}>最近看过</CategoryPill>
-                <span>{post.schoolName}</span>
-                <span>{post.city}</span>
-              </FeedMeta>
-              <FeedTitle>{post.title}</FeedTitle>
-              <FeedText>{post.excerpt}</FeedText>
-            </FeedRow>
-          );
-        })}
+        {submissions.map((item) => (
+          <FeedRow key={item.id} type="button" onClick={() => setTab("submissions")}>
+            <FeedMeta>
+              <CategoryPill $color={statusTone(item.status)}>{statusLabel(item.status)}</CategoryPill>
+              <span>{submissionTypeLabel(item.type ?? item.category)}</span>
+              {item.schoolName && <span>{item.schoolName}</span>}
+              <span>{formatDate(item.createdAt)}</span>
+            </FeedMeta>
+            <FeedTitle>{item.title || "未命名投稿"}</FeedTitle>
+            <FeedText>{clip(item.content)}</FeedText>
+            {item.rejectReason && <FeedText>未通过原因：{item.rejectReason}</FeedText>}
+          </FeedRow>
+        ))}
       </FeedList>
     );
   };
+
+  const renderNext = () => (
+    <FeedList>
+      {recommendedPosts.map((post) => {
+        const meta = CATEGORY_META[post.category];
+        return (
+          <FeedRow key={post.id} type="button" onClick={() => go("/experiences")}>
+            <FeedMeta>
+              <CategoryPill $color={meta.color}>{meta.label}</CategoryPill>
+              <span>{post.schoolName}</span>
+              <span>{post.city}</span>
+            </FeedMeta>
+            <FeedTitle>{post.title}</FeedTitle>
+            <FeedText>{post.excerpt}</FeedText>
+          </FeedRow>
+        );
+      })}
+    </FeedList>
+  );
+
+  const renderAssetBody = () => {
+    if (assetsError) {
+      return (
+        <Notice $error>
+          <AlertCircle />
+          <div>个人数据暂时无法同步：{assetsError}</div>
+        </Notice>
+      );
+    }
+    if (tab === "schools") return renderSchools();
+    if (tab === "submissions") return renderSubmissions();
+    return renderNext();
+  };
+
+  if (authLoading) {
+    return (
+      <Page>
+        <CampusAtmosphere variant="profile" />
+        <Shell>
+          <Notice>
+            <Database />
+            <div>正在载入你的账号...</div>
+          </Notice>
+        </Shell>
+      </Page>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <Page>
+        <CampusAtmosphere variant="profile" />
+        <Shell>
+          <EmptyState>
+            <ShieldCheck />
+            <strong>登录状态已失效</strong>
+            <p>{authError || "请重新登录，再管理你的收藏、投稿和个人资料。"}</p>
+            <ActionRow>
+              <PrimaryButton type="button" onClick={() => go("/login")}>
+                去登录
+                <ArrowRight />
+              </PrimaryButton>
+            </ActionRow>
+          </EmptyState>
+        </Shell>
+      </Page>
+    );
+  }
 
   return (
     <Page>
@@ -1087,8 +1448,10 @@ export default function Me() {
                   <User size={26} />
                 </Avatar>
                 <div>
-                  <UserName>访客用户</UserName>
-                  <UserMeta>当前身份：{roleLabel}</UserMeta>
+                  <UserName>{displayName}</UserName>
+                  <UserMeta>
+                    {user?.username} · 当前身份：{roleLabel}
+                  </UserMeta>
                 </div>
               </UserRow>
 
@@ -1114,15 +1477,30 @@ export default function Me() {
               </RoleSwitch>
 
               <AccountActions>
-                <SmallButton type="button">
+                <SmallButton type="button" onClick={() => setEditingProfile((value) => !value)}>
                   <Settings />
                   设置
                 </SmallButton>
-                <SmallButton type="button" onClick={() => go("/login")}>
+                <SmallButton type="button" onClick={handleLogout}>
                   <LogOut />
                   退出
                 </SmallButton>
               </AccountActions>
+
+              {editingProfile && (
+                <ProfileEditor>
+                  <Input
+                    value={profileName}
+                    onChange={(event) => setProfileName(event.target.value)}
+                    placeholder="设置昵称"
+                  />
+                  <SmallButton type="button" onClick={handleSaveProfile} disabled={profileSaving}>
+                    <Save />
+                    {profileSaving ? "保存中" : "保存昵称"}
+                  </SmallButton>
+                </ProfileEditor>
+              )}
+              {profileMessage && <InlineMessage $error={profileMessage.includes("失败") || profileMessage.includes("不能为空")}>{profileMessage}</InlineMessage>}
             </IdentityPane>
 
             <ProgressPane>
@@ -1183,68 +1561,97 @@ export default function Me() {
             <SectionPanel>
               <SectionHead>
                 <div>
-                  <h3>我的学校清单</h3>
-                  <p>把想看的学校固定下来，再围绕城市、专业、生活体验和问答逐步补证据。</p>
+                  <h3>个人资产</h3>
+                  <p>收藏学校、投稿记录和下一步推荐都放在这里。注册账号的价值，是让你的择校线索能持续累积。</p>
                 </div>
                 <TextButton type="button" onClick={() => go("/jiangsu")}>
                   去地图补充
                   <ArrowRight />
                 </TextButton>
               </SectionHead>
-              <SchoolList>
-                {trackedSchools.map((school) => (
-                  <SchoolRow key={school.name} type="button" onClick={() => go("/jiangsu")}>
-                    <div>
-                      <SchoolName>
-                        <strong>{school.name}</strong>
-                        <Tag>{school.status}</Tag>
-                        <MiniTag>{school.city}</MiniTag>
-                        <MiniTag>{school.tier}</MiniTag>
-                      </SchoolName>
-                      <Muted>{school.reason}</Muted>
-                      <TagLine>
-                        {school.tags.map((tag) => (
-                          <MiniTag key={tag}>{tag}</MiniTag>
-                        ))}
-                      </TagLine>
-                    </div>
-                    <ProgressBox>
-                      <span>资料完整度</span>
-                      <ProgressTrack>
-                        <ProgressFill $value={school.progress} />
-                      </ProgressTrack>
-                      <span>{school.progress}%</span>
-                    </ProgressBox>
-                  </SchoolRow>
-                ))}
-              </SchoolList>
-            </SectionPanel>
-
-            <SectionPanel>
-              <SectionHead>
-                <div>
-                  <h3>个人资产</h3>
-                  <p>收藏、问答、经验和浏览记录放在一个地方，下一次回来不用重新找。</p>
-                </div>
-              </SectionHead>
               <AssetTabs>
                 {tabItems.map((item) => {
                   const Icon = item.icon;
                   const active = tab === item.key;
                   return (
-                    <TabButton
-                      key={item.key}
-                      type="button"
-                      $active={active}
-                      onClick={() => setTab(item.key)}
-                    >
+                    <TabButton key={item.key} type="button" $active={active} onClick={() => setTab(item.key)}>
                       <Icon />
                       {item.label}
                     </TabButton>
                   );
                 })}
               </AssetTabs>
-              {renderFeed()}
+              {renderAssetBody()}
+            </SectionPanel>
+
+            <SectionPanel>
+              <SectionHead>
+                <div>
+                  <h3>提交内容</h3>
+                  <p>你可以把真实校园经验、想追问的问题或数据纠错提交给站点，审核后再进入公共内容。</p>
+                </div>
+              </SectionHead>
+              <FormGrid onSubmit={handleSubmitContribution}>
+                <Field>
+                  投稿类型
+                  <Select value={submitType} onChange={(event) => setSubmitType(event.target.value as SubmissionType)}>
+                    {submissionTypes.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </Select>
+                  <FormHelper>{submissionTypes.find((item) => item.value === submitType)?.hint}</FormHelper>
+                </Field>
+                <Field>
+                  关联学校
+                  <Input
+                    value={submitSchoolName}
+                    onChange={(event) => setSubmitSchoolName(event.target.value)}
+                    placeholder="可选，例如南京大学"
+                  />
+                </Field>
+                <Field>
+                  标题
+                  <Input
+                    value={submitTitle}
+                    onChange={(event) => setSubmitTitle(event.target.value)}
+                    placeholder="可选，但建议写清楚主题"
+                  />
+                </Field>
+                <Field>
+                  内容
+                  <TextArea
+                    value={submitContent}
+                    onChange={(event) => setSubmitContent(event.target.value)}
+                    placeholder="写下你的经验、问题或纠错信息"
+                  />
+                </Field>
+                <Field>
+                  联系方式
+                  <Input
+                    value={submitContact}
+                    onChange={(event) => setSubmitContact(event.target.value)}
+                    placeholder="可选，方便站长核对"
+                  />
+                </Field>
+                <CheckItem>
+                  <input
+                    type="checkbox"
+                    checked={submitAnonymous}
+                    onChange={(event) => setSubmitAnonymous(event.target.checked)}
+                  />
+                  匿名提交到公共内容
+                </CheckItem>
+                <ActionRow>
+                  <PrimaryButton type="submit" disabled={submitLoading}>
+                    <Send />
+                    {submitLoading ? "提交中" : "提交审核"}
+                  </PrimaryButton>
+                </ActionRow>
+                {submitMessage && <InlineMessage>{submitMessage}</InlineMessage>}
+                {submitError && <InlineMessage $error>{submitError}</InlineMessage>}
+              </FormGrid>
             </SectionPanel>
           </Stack>
 
@@ -1265,11 +1672,11 @@ export default function Me() {
               <CreatorHeader>
                 <CreatorBadge>
                   <Wrench size={15} />
-                  网站缔造者
+                  网站创建者
                 </CreatorBadge>
-                <CreatorName>cuteanzu 在搭建这张江苏高校地图</CreatorName>
+                <CreatorName>cuteanzu 正在搭建这张江苏高校地图</CreatorName>
                 <CreatorCopy>
-                  这个站不是随手拼出来的页面。数据整理、地图交互、经验内容、问答结构、后端接口和上线流程都在持续打磨，目标是把零散的高校信息变成真正可用的择校工具。
+                  这个站点背后有数据整理、地图交互、内容结构、问答入口、后端接口、账号体系和上线流程。你的个人页会放用户资产，右侧保留创建者信息，让访问者知道这不是临时拼出来的页面。
                 </CreatorCopy>
               </CreatorHeader>
               <CreatorBody>
@@ -1282,19 +1689,11 @@ export default function Me() {
                   ))}
                 </ProofGrid>
                 <CreatorActions>
-                  <CreatorLink
-                    href="https://github.com/cuteanzu/jiangsu"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    查看项目仓库
+                  <CreatorLink href="https://github.com/cuteanzu/jiangsu" target="_blank" rel="noreferrer">
+                    查看前端仓库
                     <ExternalLink />
                   </CreatorLink>
-                  <CreatorLink
-                    href="https://github.com/orgs/cuteanzu/repositories"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <CreatorLink href="https://github.com/orgs/cuteanzu/repositories" target="_blank" rel="noreferrer">
                     了解更多作品
                     <ExternalLink />
                   </CreatorLink>

@@ -43,9 +43,14 @@ VITE_API_PROXY_TARGET=http://localhost:9090
 
 前端服务层在 `src/services/api.ts`：
 
+- `authApi.sendCode`：`POST /api/auth/send-code`
 - `authApi.login`：`POST /api/auth/login`
 - `authApi.register`：`POST /api/auth/register`
 - `authApi.me`：`GET /api/auth/me`
+- `authApi.updateProfile`：`PUT /api/auth/profile`
+- `authApi.resetPassword`：`POST /api/auth/reset-password`
+- `authApi.refresh`：`POST /api/auth/refresh`
+- `authApi.logout`：`POST /api/auth/logout`
 - `schoolsApi.listUniversities`：`GET /api/schools/universities`
 - `schoolsApi.search`：`GET /api/schools`
 - `schoolsApi.detail`：`GET /api/schools/{id}`
@@ -53,11 +58,26 @@ VITE_API_PROXY_TARGET=http://localhost:9090
 - `citiesApi.list`：`GET /api/cities/profiles`
 - `contentApi.experiences`：`GET /api/experiences`
 - `contentApi.qa`：`GET /api/qa`
+- `userApi.favorites`：`GET /api/user/favorites`
+- `userApi.addFavorite`：`POST /api/user/favorites/{schoolId}`
+- `userApi.removeFavorite`：`DELETE /api/user/favorites/{schoolId}`
+- `userApi.submissions`：`GET /api/user/submissions`
+- `userApi.createSubmission`：`POST /api/submissions`
+
+## 账号与内容闭环
+
+1. 游客可浏览地图、经验和问答。
+2. 用户通过邮箱验证码注册，之后可用用户名或邮箱登录。
+3. 忘记密码走邮箱验证码重置。
+4. 地图学校卡片可收藏，未登录时进入登录页。
+5. 个人中心读取当前用户、收藏学校和投稿记录。
+6. 个人中心可提交校园经验、问答线索、数据纠错和功能建议，后端返回审核状态。
 
 ## 下一步接入顺序
 
-1. 地图页先接 `schoolsApi.listUniversities()`，保留静态高校数据作为失败兜底。
+1. 把 `jiangsu_universities.csv` 的学校与生活字段导入后端数据库。
 2. 校园经验页接 `contentApi.experiences()`，把本地 mock 内容作为空数据兜底。
 3. 问答页接 `contentApi.qa()`。
-4. 登录页接 `authApi.login()`，个人中心接 `authApi.me()`、收藏和投稿接口。
-5. 把 `jiangsu_universities.csv` 的 183 条学校与生活字段导入后端数据库，再由接口输出给前端。
+4. 管理后台审核投稿，通过后再进入公开经验和问答。
+
+部署服务器时参考 [deployment.md](deployment.md)。

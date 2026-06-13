@@ -11,6 +11,7 @@ import {
   useAudienceRole,
   type AudienceRole,
 } from "../hooks/useAudienceRole";
+import { ApiError, authApi } from "../services/api";
 import Bokeh from "../Bokeh";
 import Komorebi from "../Komorebi";
 import GroundPetals from "../GroundPetals";
@@ -76,13 +77,19 @@ const InlineKeyframes = createGlobalStyle`
 
 const Wrapper = styled.div<{ $px: number; $py: number; $strength: number }>`
   width: 100vw; height: 100vh;
-  position: relative; overflow: hidden;
+  position: relative; overflow-x: hidden; overflow-y: auto;
   background: url(${bgImage}) center / cover no-repeat;
   background-position: ${(p) => 50 + p.$px * p.$strength * 3}% ${(p) => 50 + p.$py * p.$strength * 2}%;
 `;
 
 const FXLayer = styled.div`
   position: absolute; inset: 0; pointer-events: none; z-index: 1;
+`;
+
+const FloatingPetFrame = styled.div`
+  @media (max-width: 760px) {
+    display: none;
+  }
 `;
 
 const VignetteOverlay = styled.div<{ $opacity: number }>`
@@ -95,12 +102,22 @@ const VignetteOverlay = styled.div<{ $opacity: number }>`
 const CardLayer = styled.div`
   position: absolute; inset: 0; z-index: 15;
   display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 24px;
   pointer-events: none;
+
+  @media (max-width: 760px) {
+    align-items: flex-start;
+    padding: 18px 12px;
+  }
 `;
 
 const Card = styled.div`
   display: flex;
-  width: 820px; height: 540px;
+  width: min(820px, calc(100vw - 32px));
+  height: min(760px, calc(100vh - 48px));
+  min-height: 540px;
   border-radius: 20px;
   overflow: hidden;
   background: oklch(0.94 0.01 20 / 0.75);
@@ -109,6 +126,12 @@ const Card = styled.div`
   box-shadow: 0 16px 60px rgba(0,0,0,0.15);
   pointer-events: auto;
   animation: ${fadeUp} 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @media (max-width: 760px) {
+    width: min(100%, 430px);
+    height: auto;
+    min-height: 0;
+  }
 `;
 
 // ── Character stage ──
@@ -118,6 +141,10 @@ const CharStage = styled.div`
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, oklch(0.7 0.15 10 / 0.55), oklch(0.68 0.16 15 / 0.65), oklch(0.65 0.15 20 / 0.55));
+
+  @media (max-width: 760px) {
+    display: none;
+  }
 `;
 
 const StageGrid = styled.div`
@@ -244,9 +271,15 @@ const SpiritHalo = styled.div<{ $active: boolean; $color: string }>`
 
 const FormPanel = styled.div`
   flex: 1;
-  display: flex; flex-direction: column; justify-content: center;
-  padding: 42px 40px;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  overflow-y: auto;
+  padding: 34px 40px;
   background: transparent;
+
+  @media (max-width: 760px) {
+    overflow: visible;
+    padding: 24px 18px;
+  }
 `;
 
 const Title = styled.h2`
@@ -255,7 +288,7 @@ const Title = styled.h2`
 `;
 
 const Subtitle = styled.p`
-  font-size: 13px; color: oklch(0.5 0.02 20); margin: 4px 0 28px;
+  font-size: 13px; color: oklch(0.5 0.02 20); margin: 4px 0 18px;
 `;
 
 const RoleField = styled.div`
@@ -266,6 +299,31 @@ const RoleGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+`;
+
+const AuthModeTabs = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 4px;
+  border: 1px solid oklch(0.84 0.02 20 / 0.34);
+  border-radius: 12px;
+  background: oklch(0.96 0.006 20 / 0.46);
+`;
+
+const AuthModeButton = styled.button<{ $active: boolean }>`
+  min-height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: ${(p) => (p.$active ? "oklch(0.98 0.012 20 / 0.88)" : "transparent")};
+  color: ${(p) => (p.$active ? "oklch(0.34 0.08 18)" : "oklch(0.48 0.02 20)")};
+  cursor: pointer;
+  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  font-size: 12px;
+  font-weight: 750;
+  box-shadow: ${(p) => (p.$active ? "0 5px 14px oklch(0.42 0.05 20 / 0.08)" : "none")};
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 `;
 
 const RoleButton = styled.button<{ $active: boolean }>`
@@ -333,6 +391,36 @@ const Input = styled.input`
     border-color: oklch(0.7 0.13 10 / 0.6);
     box-shadow: 0 0 0 3px oklch(0.7 0.13 10 / 0.1);
   }
+`;
+
+const CodeRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 102px;
+  gap: 8px;
+`;
+
+const CodeButton = styled.button`
+  border: 1px solid oklch(0.78 0.06 18 / 0.42);
+  border-radius: 10px;
+  background: oklch(0.97 0.012 20 / 0.62);
+  color: oklch(0.48 0.09 18);
+  cursor: pointer;
+  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  font-size: 12px;
+  font-weight: 760;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.56;
+  }
+`;
+
+const FormNote = styled.p`
+  margin: -3px 0 12px;
+  color: oklch(0.5 0.02 20);
+  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  font-size: 11px;
+  line-height: 1.6;
 `;
 
 const PwdWrap = styled.div` position: relative; `;
@@ -585,6 +673,7 @@ interface CharacterPose {
 const neutralPose: CharacterPose = { faceX: 0, faceY: 0, bodySkew: 0, stretch: 0 };
 
 type SpiritId = "purple" | "black" | "orange" | "yellow";
+type AuthMode = "login" | "register" | "reset";
 const spiritGuides: Record<SpiritId, { name: string; title: string; description: string; color: string }> = {
   purple: {
     name: "地图探索",
@@ -694,12 +783,19 @@ export default function Login() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
   // Form
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [account, setAccount] = useState("");
+  const [username, setUsername] = useState("");
+  const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState("");
   const [shaking, setShaking] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [codeSending, setCodeSending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [submitHovered, setSubmitHovered] = useState(false);
   const [activeSpirit, setActiveSpirit] = useState<SpiritId>("purple");
   const { role: selectedRole, setRole: setSelectedRole } = useAudienceRole();
@@ -751,6 +847,12 @@ export default function Login() {
   useEffect(() => () => {
     if (typingTimer.current) clearTimeout(typingTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = window.setTimeout(() => setCountdown((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [countdown]);
 
   // SeasonalFX
   useEffect(() => {
@@ -834,20 +936,103 @@ export default function Login() {
   const selectedRoleInfo = audienceRoles[selectedRole];
 
   // Submit
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("先输入邮箱和密码，再进入校园入口");
+  const getSubmitText = () => {
+    if (loading) return "正在处理...";
+    if (authMode === "register") return "注册并保存我的择校进度";
+    if (authMode === "reset") return "重置密码";
+    return selectedRoleInfo.submitText;
+  };
+
+  const normalizeError = (err: unknown) => {
+    if (err instanceof ApiError) {
+      const payload = err.payload;
+      if (payload && typeof payload === "object" && "message" in payload) {
+        const message = (payload as { message?: unknown }).message;
+        if (typeof message === "string" && message.trim()) return message;
+      }
+      return err.message || "请求失败";
+    }
+    if (err instanceof Error) return err.message;
+    return "请求失败，请稍后再试";
+  };
+
+  const switchMode = (mode: AuthMode) => {
+    setAuthMode(mode);
+    setError("");
+    setCode("");
+    setShowPwd(false);
+  };
+
+  const handleSendCode = async () => {
+    const targetEmail = email.trim().toLowerCase();
+    if (!targetEmail || !targetEmail.includes("@")) {
+      setError("请先填写正确的邮箱地址");
       setShaking(true);
       setTimeout(() => setShaking(false), 500);
       return;
     }
+
+    setCodeSending(true);
+    setError("");
+    try {
+      await authApi.sendCode({ email: targetEmail });
+      setCountdown(60);
+    } catch (err) {
+      setError(normalizeError(err));
+    } finally {
+      setCodeSending(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedAccount = account.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedUsername = username.trim();
+    const trimmedNickname = nickname.trim();
+    const trimmedCode = code.trim();
+
+    const invalidLogin = authMode === "login" && (!trimmedAccount || !password);
+    const invalidRegister = authMode === "register" && (!trimmedUsername || !trimmedEmail || !trimmedCode || !password);
+    const invalidReset = authMode === "reset" && (!trimmedEmail || !trimmedCode || !password);
+
+    if (invalidLogin || invalidRegister || invalidReset) {
+      setError(authMode === "login" ? "请输入用户名/邮箱和密码" : "请填写邮箱、验证码和密码");
+      setShaking(true);
+      setTimeout(() => setShaking(false), 500);
+      return;
+    }
+
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      if (authMode === "login") {
+        await authApi.login({ username: trimmedAccount, password });
+      } else if (authMode === "register") {
+        await authApi.register({
+          username: trimmedUsername,
+          password,
+          nickname: trimmedNickname || trimmedUsername,
+          email: trimmedEmail,
+          code: trimmedCode,
+        });
+      } else {
+        await authApi.resetPassword({ email: trimmedEmail, code: trimmedCode, newPassword: password });
+        setAuthMode("login");
+        setAccount(trimmedEmail);
+        setPassword("");
+        setCode("");
+        setError("密码已重置，请用新密码登录");
+        return;
+      }
       navigateWithTransition("/me");
-    }, 400);
+    } catch (err) {
+      setError(normalizeError(err));
+      setShaking(true);
+      setTimeout(() => setShaking(false), 500);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRoleSelect = useCallback((role: AudienceRole) => {
@@ -881,7 +1066,9 @@ export default function Login() {
       <Komorebi />
       <GroundPetals />
       <VignetteOverlay $opacity={s.vignetteOpacity} />
-      <DeskPet />
+      <FloatingPetFrame>
+        <DeskPet />
+      </FloatingPetFrame>
       <InlineKeyframes />
 
       <CardLayer>
@@ -1162,6 +1349,20 @@ export default function Login() {
             <Title>欢迎回来</Title>
             <Subtitle>登录后进入江苏高校生活指北，继续探索你的校园路线</Subtitle>
             <form onSubmit={handleSubmit}>
+              <AuthModeTabs>
+                <AuthModeButton type="button" $active={authMode === "login"} onClick={() => switchMode("login")}>
+                  登录
+                </AuthModeButton>
+                <AuthModeButton type="button" $active={authMode === "register"} onClick={() => switchMode("register")}>
+                  注册
+                </AuthModeButton>
+                <AuthModeButton type="button" $active={authMode === "reset"} onClick={() => switchMode("reset")}>
+                  找回
+                </AuthModeButton>
+              </AuthModeTabs>
+              <FormNote>
+                游客可以直接浏览地图、经验和问答；注册后可保存学校清单、收藏内容和提交校园经验。
+              </FormNote>
               <RoleField>
                 <Label>你的身份</Label>
                 <RoleGrid>
@@ -1187,23 +1388,72 @@ export default function Login() {
                   })}
                 </RoleGrid>
               </RoleField>
+              {authMode === "register" && (
+                <>
+                  <Field>
+                    <Label>用户名</Label>
+                    <Input
+                      type="text"
+                      placeholder="3-50 位，之后可用来登录"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      autoComplete="username"
+                    />
+                  </Field>
+                  <Field>
+                    <Label>昵称</Label>
+                    <Input
+                      type="text"
+                      placeholder="可选，显示在个人页"
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      autoComplete="nickname"
+                    />
+                  </Field>
+                </>
+              )}
               <Field>
-                <Label>邮箱</Label>
+                <Label>{authMode === "login" ? "用户名 / 邮箱" : "邮箱"}</Label>
                 <Input
-                  type="email" placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type={authMode === "login" ? "text" : "email"}
+                  placeholder={authMode === "login" ? "输入用户名或邮箱" : "your@email.com"}
+                  value={authMode === "login" ? account : email}
+                  onChange={(e) => {
+                    if (authMode === "login") setAccount(e.target.value);
+                    else setEmail(e.target.value);
+                  }}
                   onFocus={handleEmailFocus}
                   onBlur={handleEmailBlur}
-                  autoComplete="off"
+                  autoComplete={authMode === "login" ? "username" : "email"}
                 />
               </Field>
+              {authMode !== "login" && (
+                <Field>
+                  <Label>邮箱验证码</Label>
+                  <CodeRow>
+                    <Input
+                      type="text"
+                      placeholder="输入 6 位验证码"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      autoComplete="one-time-code"
+                    />
+                    <CodeButton
+                      type="button"
+                      disabled={codeSending || countdown > 0}
+                      onClick={handleSendCode}
+                    >
+                      {countdown > 0 ? `${countdown}s` : codeSending ? "发送中" : "获取验证码"}
+                    </CodeButton>
+                  </CodeRow>
+                </Field>
+              )}
               <Field>
-                <Label>密码</Label>
+                <Label>{authMode === "reset" ? "新密码" : "密码"}</Label>
                 <PwdWrap>
                   <Input
                     type={showPwd ? "text" : "password"}
-                    placeholder="输入密码"
+                    placeholder={authMode === "reset" ? "设置新密码" : "输入密码"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -1213,11 +1463,17 @@ export default function Login() {
                 </PwdWrap>
               </Field>
               <Row>
-                <CheckLabel>
-                  <Checkbox type="checkbox" defaultChecked />
-                  记住我
-                </CheckLabel>
-                <Link>忘记密码？</Link>
+                {authMode === "login" ? (
+                  <CheckLabel>
+                    <Checkbox type="checkbox" defaultChecked />
+                    记住我
+                  </CheckLabel>
+                ) : (
+                  <span>验证码会发送到你的邮箱</span>
+                )}
+                <Link onClick={() => switchMode(authMode === "login" ? "reset" : "login")}>
+                  {authMode === "login" ? "忘记密码？" : "返回登录"}
+                </Link>
               </Row>
               <LoginBtn
                 type="submit"
@@ -1227,13 +1483,13 @@ export default function Login() {
                 onMouseEnter={() => setSubmitHovered(true)}
                 onMouseLeave={() => setSubmitHovered(false)}
               >
-                {loading ? "正在进入..." : selectedRoleInfo.submitText}
+                {getSubmitText()}
               </LoginBtn>
               <ErrorMsg>{error}</ErrorMsg>
               <Divider>或者</Divider>
               <GoogleBtn
                 type="button"
-                onClick={() => navigateWithTransition("/me")}
+                onClick={() => navigateWithTransition("/jiangsu")}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -1244,7 +1500,19 @@ export default function Login() {
                 游客体验
               </GoogleBtn>
               <RegisterHint>
-                还没有账号？ <Link>先以游客身份体验</Link>
+                {authMode === "login" ? (
+                  <>
+                    还没有账号？ <Link onClick={() => switchMode("register")}>邮箱注册</Link>
+                  </>
+                ) : authMode === "register" ? (
+                  <>
+                    已有账号？ <Link onClick={() => switchMode("login")}>返回登录</Link>
+                  </>
+                ) : (
+                  <>
+                    想起来了？ <Link onClick={() => switchMode("login")}>返回登录</Link>
+                  </>
+                )}
               </RegisterHint>
             </form>
           </FormPanel>

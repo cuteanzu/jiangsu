@@ -1,11 +1,12 @@
 import { Component, lazy, Suspense } from "react";
 import type { ReactNode } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from "react-router-dom";
 import styled, { createGlobalStyle } from "styled-components";
 import { SettingsProvider } from "./Settings";
 import NavBar from "./components/NavBar";
 import PageTransitionOverlay from "./components/PageTransitionOverlay";
 import { TransitionProvider } from "./context/TransitionContext";
+import { hasAuthToken } from "./hooks/useAuth";
 import "./styles/interactions.css";
 
 const Home = lazy(() => import("./pages/home/Home"));
@@ -48,6 +49,10 @@ function RouteFallback() {
       载入中...
     </div>
   );
+}
+
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  return hasAuthToken() ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -96,7 +101,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
-                  <Route path="/me" element={<Me />} />
+                  <Route path="/me" element={<ProtectedRoute><Me /></ProtectedRoute>} />
                   <Route path="/home" element={<Home />} />
                   <Route path="/jiangsu" element={<JiangsuMap3D />} />
                   <Route path="/jiangsu/:citySlug" element={<JiangsuMap3D />} />

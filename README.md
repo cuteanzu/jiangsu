@@ -37,7 +37,7 @@ VITE_API_BASE_URL=/api
 VITE_API_PROXY_TARGET=http://localhost:9090
 ```
 
-详细接口说明见 [docs/backend-integration.md](docs/backend-integration.md)。
+详细接口说明见 [docs/backend-integration.md](docs/backend-integration.md)，上线步骤见 [docs/deployment.md](docs/deployment.md)。
 
 ## 当前页面
 
@@ -59,3 +59,7 @@ VITE_API_PROXY_TARGET=http://localhost:9090
 npm run lint
 npm run build
 ```
+
+## 上线建议
+
+生产环境建议同域部署：Nginx 托管 `dist/`，并把 `/api` 反向代理到 Spring Boot。注册和找回密码依赖邮箱验证码，服务器上需要配置 SMTP、`JWT_SECRET` 和数据库连接。

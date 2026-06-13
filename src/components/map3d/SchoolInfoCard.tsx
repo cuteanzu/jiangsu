@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { MapPin, Clock, BookOpen, MessageCircle, HelpCircle, X, ExternalLink, Flame, Heart } from "lucide-react";
 import { UNIVERSITIES, TIER_LABEL, isTierOnePlusUniversity, universityBandLabel } from "../../data/jiangsu-universities";
 import type { University, Tier } from "../../data/jiangsu-universities";
+import { useTransition } from "../../context/useTransition";
+import { useAuth } from "../../hooks/useAuth";
+import { userApi } from "../../services/api";
 import type { SchoolDTO } from "../../services/types";
 import { SCHOOL_REC } from "./schoolRecommendations";
 
@@ -197,6 +200,10 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
     background: ${({ $primary }) => $primary ? "rgba(240,138,120,0.20)" : "rgba(200,170,150,0.20)"};
     border-color: rgba(200,150,130,0.45);
   }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
   svg { width: 14px; height: 14px; }
 `;
 
@@ -224,6 +231,13 @@ const ActionLink = styled.a`
   svg { width: 14px; height: 14px; }
 `;
 
+const InlineHint = styled.p<{ $error?: boolean }>`
+  margin: 10px 0 0;
+  color: ${({ $error }) => ($error ? "#a84c3d" : "#6b7f62")};
+  font-size: 11px;
+  line-height: 1.5;
+`;
+
 // ── Component ──
 
 interface SchoolInfoCardProps {
@@ -241,16 +255,68 @@ export default function SchoolInfoCard({
   onClose,
   onViewDetail,
 }: SchoolInfoCardProps) {
+  const { navigateWithTransition } = useTransition();
+  const { authenticated } = useAuth();
+  const [isFavorited, setIsFavorited] = useState(Boolean(schoolRecord?.isFavorited));
+  const [favoriteCount, setFavoriteCount] = useState(schoolRecord?.favoriteCount ?? 0);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteMessage, setFavoriteMessage] = useState("");
+  const [favoriteError, setFavoriteError] = useState(false);
   const school = useMemo(
     () => universities.find((u) => u.name === schoolName) ?? null,
     [schoolName, universities],
   );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsFavorited(Boolean(schoolRecord?.isFavorited));
+      setFavoriteCount(schoolRecord?.favoriteCount ?? 0);
+      setFavoriteMessage("");
+      setFavoriteError(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [schoolRecord?.favoriteCount, schoolRecord?.id, schoolRecord?.isFavorited]);
 
   if (!school) return null;
 
   const isKey = isTierOnePlusUniversity(school);
   const website = schoolRecord?.website ?? school.website ?? null;
   const summary = schoolRecord?.brief || getRec(school);
+
+  const handleToggleFavorite = async () => {
+    if (!schoolRecord) {
+      setFavoriteError(true);
+      setFavoriteMessage("后端档案同步后就可以收藏这所学校。");
+      return;
+    }
+
+    if (!authenticated) {
+      navigateWithTransition("/login");
+      return;
+    }
+
+    setFavoriteBusy(true);
+    setFavoriteMessage("");
+    setFavoriteError(false);
+    try {
+      if (isFavorited) {
+        await userApi.removeFavorite(schoolRecord.id);
+        setIsFavorited(false);
+        setFavoriteCount((count) => Math.max(0, count - 1));
+        setFavoriteMessage("已从个人页学校清单移除。");
+      } else {
+        await userApi.addFavorite(schoolRecord.id);
+        setIsFavorited(true);
+        setFavoriteCount((count) => count + 1);
+        setFavoriteMessage("已加入个人页学校清单。");
+      }
+    } catch (err) {
+      setFavoriteError(true);
+      setFavoriteMessage(err instanceof Error ? err.message : "收藏操作失败，请稍后再试。");
+    } finally {
+      setFavoriteBusy(false);
+    }
+  };
 
   return (
     <CardWrapper>
@@ -277,7 +343,7 @@ export default function SchoolInfoCard({
           </BackendDataItem>
           <BackendDataItem>
             <span><Heart size={11} /> 收藏</span>
-            <strong>{schoolRecord.favoriteCount}</strong>
+            <strong>{favoriteCount}</strong>
           </BackendDataItem>
           <BackendDataItem>
             <span><BookOpen size={11} /> 层次</span>
@@ -298,6 +364,9 @@ export default function SchoolInfoCard({
         <ActionBtn $primary onClick={() => onViewDetail(school)}>
           <BookOpen size={14} /> 查看校园详情
         </ActionBtn>
+        <ActionBtn onClick={handleToggleFavorite} disabled={favoriteBusy}>
+          <Heart size={14} /> {isFavorited ? "已收藏" : "收藏"}
+        </ActionBtn>
         {website && (
           <ActionLink href={website} target="_blank" rel="noreferrer">
             官网
@@ -313,6 +382,7 @@ export default function SchoolInfoCard({
           <HelpCircle size={14} /> 我要提问
         </ActionBtn>
       </ActionRow>
+      {favoriteMessage && <InlineHint $error={favoriteError}>{favoriteMessage}</InlineHint>}
     </CardWrapper>
   );
 }

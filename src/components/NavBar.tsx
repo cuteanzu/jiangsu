@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import styled from "styled-components";
 import { useTransition } from "../context/useTransition";
+import { useAuth } from "../hooks/useAuth";
 
 const NAV_ITEMS = [
   { path: "/", label: "首页" },
@@ -148,6 +149,7 @@ const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
 export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: boolean }) {
   const location = useLocation();
   const { navigateWithTransition } = useTransition();
+  const { authenticated, user } = useAuth();
   const currentPath = location.pathname;
 
   // ── Scroll hide (homepage only) ──
@@ -233,9 +235,9 @@ export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: bool
         <LoginLink
           $active={isActive("/me")}
           $dark={isDark}
-          onClick={() => handleNav("/me")}
+          onClick={() => handleNav(authenticated ? "/me" : "/login")}
         >
-          我
+          {authenticated ? user?.nickname || user?.username || "我" : "登录"}
         </LoginLink>
       </Links>
     </Bar>

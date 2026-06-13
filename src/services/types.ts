@@ -9,8 +9,8 @@ export interface AuthResponse {
   username: string;
   nickname: string;
   role: string;
-  token: string;
-  refreshToken: string;
+  token?: string | null;
+  refreshToken?: string | null;
 }
 
 export interface LoginPayload {
@@ -24,6 +24,49 @@ export interface RegisterPayload {
   nickname?: string;
   email?: string;
   code?: string;
+}
+
+export interface SendCodePayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface UpdateProfilePayload {
+  nickname?: string;
+  avatar?: string;
+}
+
+export interface SubmissionDTO {
+  id: number;
+  userId: number;
+  schoolId?: number | null;
+  schoolName?: string | null;
+  title?: string | null;
+  content: string;
+  type?: string | null;
+  category?: string | null;
+  isAnonymous?: number | boolean | null;
+  contact?: string | null;
+  status: string;
+  rejectReason?: string | null;
+  reviewedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateSubmissionPayload {
+  schoolId?: number | null;
+  schoolName?: string;
+  title?: string;
+  content: string;
+  type: string;
+  isAnonymous?: boolean;
+  contact?: string;
 }
 
 export interface CityProfileDTO {
