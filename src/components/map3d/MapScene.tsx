@@ -11,6 +11,7 @@ import { useMapProjection } from "./useMapProjection";
 import type { CityGeometryResult } from "./useMapProjection";
 import { CAMERA_POSITION, CAMERA_TARGET } from "./mapTheme";
 import type { CityCenter } from "./mapTheme";
+import type { University } from "../../data/jiangsu-universities";
 
 // ── Decoration toggles ──
 const ENABLE_WATER = true;
@@ -25,6 +26,7 @@ const MAP_BACKGROUND =
   "linear-gradient(160deg, #FCFAF5 0%, #F8F4F0 40%, #F2F0F5 100%)";
 
 export interface MapSceneProps {
+  universities: University[];
   hoveredName: string | null;
   selectedName: string | null;
   selectedSchoolName: string | null;
@@ -90,13 +92,14 @@ function StageFloor() {
 
 function Scene3D({
   cities, cityCenters, hoveredName, selectedName, selectedSchoolName,
-  hoveredSchoolName, showAllPins, hideOverlays,
+  hoveredSchoolName, showAllPins, hideOverlays, universities,
   onHover, onUnhover, onSelect,
   onHoverSchool, onSelectSchool,
   onCameraSettled,
 }: {
   cities: CityGeometryResult[];
   cityCenters: CityCenter[];
+  universities: University[];
   hoveredName: string | null;
   selectedName: string | null;
   selectedSchoolName: string | null;
@@ -137,6 +140,7 @@ function Scene3D({
         hideLabels={hideOverlays}
       />
       <SchoolPins
+        universities={universities}
         selectedCity={selectedName}
         hoveredSchoolName={hoveredSchoolName}
         selectedSchoolName={selectedSchoolName}
@@ -190,7 +194,7 @@ const PaperAtmosphereLazy = lazy(() => import("./PaperAtmosphere"));
 // ═══════════════════════  Main Component ═══════════════════════
 
 export default function MapScene({
-  hoveredName, selectedName, selectedSchoolName,
+  universities, hoveredName, selectedName, selectedSchoolName,
   hoveredSchoolName, showAllPins, hideOverlays,
   onHover, onUnhover, onSelect,
   onHoverSchool, onSelectSchool,
@@ -227,6 +231,7 @@ export default function MapScene({
           <Scene3D
             cities={cities}
             cityCenters={cityCenters}
+            universities={universities}
             hoveredName={hoveredName}
             selectedName={selectedName}
             selectedSchoolName={selectedSchoolName}

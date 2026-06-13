@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import { X, ArrowLeft, MapPin, Clock, MessageCircle, HelpCircle } from "lucide-react";
 import { UNIVERSITIES, universityBandLabel, universityBandReason } from "../../data/jiangsu-universities";
-import type { Tier } from "../../data/jiangsu-universities";
+import type { Tier, University } from "../../data/jiangsu-universities";
 import { SCHOOL_REC } from "./schoolRecommendations";
 import { cityLifeNote } from "../../data/city-profiles";
 
@@ -174,11 +174,12 @@ const TierBadge = styled.span<{ $tier: Tier }>`
 
 interface Props {
   schoolName: string;
+  universities?: University[];
   onClose: () => void;
 }
 
-export default function SchoolDetailOverlay({ schoolName, onClose }: Props) {
-  const school = useMemo(() => UNIVERSITIES.find((u) => u.name === schoolName) ?? null, [schoolName]);
+export default function SchoolDetailOverlay({ schoolName, universities = UNIVERSITIES, onClose }: Props) {
+  const school = useMemo(() => universities.find((u) => u.name === schoolName) ?? null, [schoolName, universities]);
 
   if (!school) return null;
 

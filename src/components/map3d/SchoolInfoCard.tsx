@@ -162,14 +162,15 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
 
 interface SchoolInfoCardProps {
   schoolName: string;
+  universities?: University[];
   onClose: () => void;
   onViewDetail: (school: University) => void;
 }
 
-export default function SchoolInfoCard({ schoolName, onClose, onViewDetail }: SchoolInfoCardProps) {
+export default function SchoolInfoCard({ schoolName, universities = UNIVERSITIES, onClose, onViewDetail }: SchoolInfoCardProps) {
   const school = useMemo(
-    () => UNIVERSITIES.find((u) => u.name === schoolName) ?? null,
-    [schoolName],
+    () => universities.find((u) => u.name === schoolName) ?? null,
+    [schoolName, universities],
   );
 
   if (!school) return null;

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { Html } from "@react-three/drei";
 import { useSchoolProjection } from "./useSchoolProjection";
 import type { SchoolSceneCoord } from "./useSchoolProjection";
-import { UNIVERSITIES, isTierOnePlusUniversity } from "../../data/jiangsu-universities";
+import { isTierOnePlusUniversity } from "../../data/jiangsu-universities";
 import type { University, Tier } from "../../data/jiangsu-universities";
 
 // Pearl-toned pin colors — soft, warm, paper-diorama compatible
@@ -15,6 +15,7 @@ const TIER_PIN_COLOR: Record<Tier, string> = {
 };
 
 interface SchoolPinsProps {
+  universities: University[];
   selectedCity: string | null;
   hoveredSchoolName: string | null;
   selectedSchoolName: string | null;
@@ -132,14 +133,14 @@ function PearlPin({ school, pos, isSelected, isHovered, isDimmed, hideLabels, on
 }
 
 export default function SchoolPins({
-  selectedCity, hoveredSchoolName, selectedSchoolName,
+  universities, selectedCity, hoveredSchoolName, selectedSchoolName,
   showAll, hideLabels, onHoverSchool, onSelectSchool,
 }: SchoolPinsProps) {
   const toScene = useSchoolProjection();
 
   const placed = useMemo(() => {
     if (!selectedCity || !toScene) return [] as PlacedSchool[];
-    const citySchools = UNIVERSITIES.filter((u) => u.city === selectedCity);
+    const citySchools = universities.filter((u) => u.city === selectedCity);
     if (citySchools.length === 0) return [] as PlacedSchool[];
 
     const keySchools = citySchools.filter(isTierOnePlusUniversity);
@@ -160,7 +161,7 @@ export default function SchoolPins({
       isKey: isTierOnePlusUniversity(s),
     }));
     return avoidOverlaps(raw);
-  }, [selectedCity, toScene, showAll]);
+  }, [universities, selectedCity, toScene, showAll]);
 
   if (!selectedCity || placed.length === 0) return null;
 

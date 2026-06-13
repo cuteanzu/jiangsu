@@ -8,12 +8,10 @@ import MapDrawer from "../components/map3d/MapDrawer";
 import CityDetailPage from "../components/map3d/CityDetailPage";
 import ProvinceOverviewChip from "../components/map3d/ProvinceOverviewChip";
 import {
-  TIER_ONE_PLUS_UNIVERSITIES,
-  UNIVERSITIES,
-  getTierOnePlusUniversities,
   isTierOnePlusUniversity,
 } from "../data/jiangsu-universities";
 import type { Tier, University } from "../data/jiangsu-universities";
+import { useUniversitiesData } from "../services/universities";
 import { normalizeCityParam } from "../utils/jiangsuPresentation";
 import { getCityProfile } from "../data/city-profiles";
 import {
@@ -234,6 +232,11 @@ export default function JiangsuMap3D() {
   const navigate = useNavigate();
   const location = useLocation();
   const { citySlug } = useParams<{ citySlug?: string }>();
+  const { universities } = useUniversitiesData();
+  const tierOnePlusUniversities = useMemo(
+    () => universities.filter(isTierOnePlusUniversity),
+    [universities],
+  );
 
   // ── Restore state from URL params ──
   const urlCity = searchParams.get("city") ?? null;
@@ -245,9 +248,9 @@ export default function JiangsuMap3D() {
 
   const restoredSchool = useMemo(() => {
     if (!urlSchoolId) return null;
-    const s = UNIVERSITIES.find((u) => u.id === urlSchoolId);
+    const s = universities.find((u) => u.id === urlSchoolId);
     return s ?? null;
-  }, [urlSchoolId]);
+  }, [urlSchoolId, universities]);
 
   const selectedName = routeCity ?? normalizeCityParam(urlCity) ?? restoredSchool?.city ?? null;
   const selectedSchoolName = restoredSchool?.name ?? null;
@@ -272,7 +275,7 @@ export default function JiangsuMap3D() {
     asCityRoute = false,
   ) => {
     const params = new URLSearchParams();
-    const school = schoolName ? UNIVERSITIES.find((u) => u.name === schoolName) ?? null : null;
+    const school = schoolName ? universities.find((u) => u.name === schoolName) ?? null : null;
     const nextCity = normalizeCityParam(city ?? school?.city ?? null);
     if (nextCity && !asCityRoute) params.set("city", nextCity);
     if (school) params.set("school", school.id);
@@ -284,7 +287,7 @@ export default function JiangsuMap3D() {
     if (nextUrl !== currentUrl) {
       navigate({ pathname, search: search ? `?${search}` : "" }, { replace });
     }
-  }, [location.pathname, location.search, navigate, routeBase]);
+  }, [location.pathname, location.search, navigate, routeBase, universities]);
 
   const handleHover = useCallback((name: string) => setHoveredName(name), []);
   const handleUnhover = useCallback(() => setHoveredName(null), []);
@@ -328,7 +331,7 @@ export default function JiangsuMap3D() {
     setShowSuggestions(false);
     const raw = topSearch.trim();
     if (!raw) return;
-    const school = TIER_ONE_PLUS_UNIVERSITIES.find((u) => u.name.includes(raw) || raw.includes(u.name));
+    const school = tierOnePlusUniversities.find((u) => u.name.includes(raw) || raw.includes(u.name));
     if (school) {
       updateSelectionParams(school.city, school.name);
       setSettledCity(null);
@@ -341,7 +344,7 @@ export default function JiangsuMap3D() {
       return;
     }
 
-    const city = TIER_ONE_PLUS_UNIVERSITIES.find((u) => {
+    const city = tierOnePlusUniversities.find((u) => {
       const nc = normalizeCityParam(u.city);
       return nc && (raw.includes(nc) || nc.includes(raw));
     });
@@ -356,14 +359,14 @@ export default function JiangsuMap3D() {
       }
       return;
     }
-  }, [topSearch, updateSelectionParams]);
+  }, [tierOnePlusUniversities, topSearch, updateSelectionParams]);
 
   // ── Search suggestions ──
   const suggestions = useMemo(() => {
     const raw = topSearch.trim();
     if (!raw) return [];
     const lower = raw.toLowerCase();
-    return TIER_ONE_PLUS_UNIVERSITIES
+    return tierOnePlusUniversities
       .filter((u) => {
         if (u.name.includes(raw)) return true;
         if (u.shortName?.includes(raw)) return true;
@@ -372,7 +375,7 @@ export default function JiangsuMap3D() {
         return false;
       })
       .slice(0, 5);
-  }, [topSearch]);
+  }, [tierOnePlusUniversities, topSearch]);
 
   const handleSuggestionSelect = useCallback((school: University) => {
     updateSelectionParams(school.city, school.name);
@@ -390,18 +393,20 @@ export default function JiangsuMap3D() {
 
   // ── Derived data ──
   const cityUniversities = useMemo(
-    () => getTierOnePlusUniversities(selectedName),
-    [selectedName],
+    () => selectedName
+      ? tierOnePlusUniversities.filter((university) => university.city === selectedName)
+      : tierOnePlusUniversities,
+    [selectedName, tierOnePlusUniversities],
   );
 
   const provinceTierCounts = useMemo(() => {
     const counts: Record<Tier, number> = { "985": 0, "211": 0, "dual": 0, "provincial": 0 };
-    TIER_ONE_PLUS_UNIVERSITIES.forEach((u) => { counts[u.tier]++; });
+    tierOnePlusUniversities.forEach((u) => { counts[u.tier]++; });
     return counts;
-  }, []);
+  }, [tierOnePlusUniversities]);
 
   const hotCities = useMemo(
-    () => TIER_ONE_PLUS_UNIVERSITIES
+    () => tierOnePlusUniversities
       .reduce<{ name: string; count: number }[]>((acc, u) => {
         const existing = acc.find((c) => c.name === u.city);
         if (existing) existing.count++;
@@ -409,7 +414,7 @@ export default function JiangsuMap3D() {
         return acc;
       }, [])
       .sort((a, b) => b.count - a.count),
-    [],
+    [tierOnePlusUniversities],
   );
 
   const selectedCityProfile = useMemo(() => getCityProfile(selectedName), [selectedName]);
@@ -427,10 +432,10 @@ export default function JiangsuMap3D() {
   );
 
   const popularSchools = useMemo(
-    () => TIER_ONE_PLUS_UNIVERSITIES
+    () => tierOnePlusUniversities
       .filter((u) => isTierOnePlusUniversity(u))
       .slice(0, 6),
-    [],
+    [tierOnePlusUniversities],
   );
 
   const isDetailView = urlView === "detail";
@@ -561,7 +566,7 @@ export default function JiangsuMap3D() {
           {!selectedName && !selectedSchoolName && (
             <ProvinceOverviewChip
               totalCities={13}
-              totalUniversities={TIER_ONE_PLUS_UNIVERSITIES.length}
+              totalUniversities={tierOnePlusUniversities.length}
               keyCount={provinceKeyCount}
               onClick={() => {
                 setDrawerMode("overview");
@@ -575,6 +580,7 @@ export default function JiangsuMap3D() {
 
       <Suspense fallback={<SceneFallback><span>加载 3D 地图中...</span></SceneFallback>}>
         <MapScene
+          universities={universities}
           hoveredName={hoveredName}
           selectedName={selectedName}
           selectedSchoolName={selectedSchoolName}
@@ -615,6 +621,7 @@ export default function JiangsuMap3D() {
       {selectedSchoolName && !isDetailView && !isCityDetailRoute && (
         <SchoolInfoCard
           schoolName={selectedSchoolName}
+          universities={universities}
           onClose={() => updateSelectionParams(selectedName, null)}
           onViewDetail={handleViewDetail}
         />
@@ -623,6 +630,7 @@ export default function JiangsuMap3D() {
       {isDetailView && selectedSchoolName && (
         <SchoolDetailOverlay
           schoolName={selectedSchoolName}
+          universities={universities}
           onClose={() => updateSelectionParams(selectedName, selectedSchoolName, null, true, isCityDetailRoute)}
         />
       )}
