@@ -1,7 +1,7 @@
 import styled, { css } from "styled-components";
 import bgImage from "/bg.webp";
 
-type CampusAtmosphereVariant = "notes" | "qa";
+type CampusAtmosphereVariant = "notes" | "qa" | "profile";
 
 const variantStyles = {
   notes: css`
@@ -27,6 +27,18 @@ const variantStyles = {
     --atmo-overlay-b: oklch(96.5% 0.012 98 / 0.9);
     --atmo-overlay-c: oklch(94.5% 0.016 72 / 0.32);
     --atmo-strip: oklch(100% 0.006 205 / 0.14);
+  `,
+  profile: css`
+    --atmo-base: oklch(96.2% 0.014 72);
+    --atmo-photo-opacity: 0.28;
+    --atmo-photo-opacity-mobile: 0.22;
+    --atmo-photo-blur: 2.2px;
+    --atmo-photo-saturation: 78%;
+    --atmo-photo-brightness: 1.08;
+    --atmo-overlay-a: oklch(96% 0.02 50 / 0.44);
+    --atmo-overlay-b: oklch(96.2% 0.014 72 / 0.92);
+    --atmo-overlay-c: oklch(95% 0.016 190 / 0.34);
+    --atmo-strip: oklch(100% 0.006 70 / 0.16);
   `,
 };
 

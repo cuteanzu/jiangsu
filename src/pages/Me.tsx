@@ -1,15 +1,14 @@
 import { useMemo, useState } from "react";
-import { useTransition } from "../context/useTransition";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import {
   ArrowRight,
   BookOpen,
-  Bookmark,
+  CheckCircle2,
   Compass,
-  Edit3,
   ExternalLink,
   GraduationCap,
-  Heart,
+  History,
+  ListChecks,
   LogOut,
   MapPin,
   MessageCircle,
@@ -19,8 +18,11 @@ import {
   Settings,
   Sparkles,
   User,
+  Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import CampusAtmosphere from "../components/CampusAtmosphere";
+import { useTransition } from "../context/useTransition";
 import {
   CATEGORY_META,
   EXPERIENCES,
@@ -28,487 +30,287 @@ import {
   type ExperiencePost,
   type QAEntry,
 } from "../data/mock-content";
+import { UNIVERSITIES } from "../data/jiangsu-universities";
 import {
+  AUDIENCE_ROLE_LABELS,
   AUDIENCE_ROLE_ORDER,
-  useAudienceRole,
   type AudienceRole,
+  useAudienceRole,
 } from "../hooks/useAudienceRole";
 
-interface ActionItem {
+type TabKey = "schools" | "questions" | "notes" | "history";
+
+type RouteAction = {
   label: string;
   description: string;
   path: string;
   icon: LucideIcon;
-}
+};
 
-interface FocusItem {
+type RolePlan = {
   title: string;
-  text: string;
-  tag: string;
-}
+  note: string;
+  nextStep: string;
+  primary: RouteAction;
+  secondary: RouteAction;
+  focus: string[];
+  checklist: string[];
+};
 
-interface RolePlan {
-  label: string;
-  shortLabel: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-  avatarLabel: string;
-  icon: LucideIcon;
-  stats: Array<{ value: string; label: string }>;
-  primary: ActionItem;
-  secondary: ActionItem;
-  quickActions: ActionItem[];
-  focus: FocusItem[];
-  postIds: string[];
-  qaIds: string[];
-  empty: {
-    favorites: string;
-    experiences: string;
-    answers: string;
-    history: string;
-  };
-}
+type TrackedSchool = {
+  name: string;
+  city: string;
+  tier: string;
+  status: string;
+  reason: string;
+  progress: number;
+  tags: string[];
+};
 
 const rolePlans: Record<AudienceRole, RolePlan> = {
   gaokao: {
-    label: "高考毕业生",
-    shortLabel: "高考",
-    eyebrow: "择校决策面板",
-    title: "先缩小城市和学校范围，再验证真实校园生活。",
-    description:
-      "把江苏 13 个城市、学校层次、专业方向和生活成本放在同一条线上看，减少盲选。",
-    avatarLabel: "选校",
-    icon: GraduationCap,
-    stats: [
-      { value: "13", label: "城市入口" },
-      { value: "47", label: "本科高校" },
-      { value: "4", label: "择校维度" },
-      { value: "8", label: "高频问答" },
-    ],
+    title: "把目标学校压到可以比较的范围",
+    note: "先确定城市、层次和专业方向，再用经验和问答验证真实校园生活。",
+    nextStep: "添加 3 所想比较的学校",
     primary: {
       label: "打开江苏地图",
-      description: "从城市分布、学校层次和高校卡片开始筛选。",
+      description: "按城市和学校层次筛第一轮名单。",
       path: "/jiangsu",
       icon: MapPin,
     },
     secondary: {
       label: "看择校问答",
-      description: "先看 985/211、城市选择、转专业这些高频问题。",
+      description: "先解决城市、层次、专业和转专业问题。",
       path: "/qa",
       icon: MessageCircle,
     },
-    quickActions: [
-      {
-        label: "按城市看学校",
-        description: "南京、苏州、无锡、徐州等城市先做第一轮筛选。",
-        path: "/jiangsu",
-        icon: Search,
-      },
-      {
-        label: "看学校生活",
-        description: "宿舍、食堂、城市生活先做预期管理。",
-        path: "/experiences",
-        icon: BookOpen,
-      },
-      {
-        label: "收藏待比较",
-        description: "后续接入账号后，把目标学校加入对比池。",
-        path: "/jiangsu",
-        icon: Bookmark,
-      },
-    ],
-    focus: [
-      {
-        title: "先锁定 2-3 个目标城市",
-        text: "城市决定生活成本、实习机会、交通和毕业后的第一圈资源。",
-        tag: "城市优先",
-      },
-      {
-        title: "不要只看学校层次",
-        text: "同一分数段内，专业方向、校区位置、保研和就业路径也会改变体验。",
-        tag: "综合判断",
-      },
-      {
-        title: "用真实经验校验宣传信息",
-        text: "宿舍、食堂、转专业、校区差异这些细节，通常比招生简介更影响四年生活。",
-        tag: "生活验证",
-      },
-    ],
-    postIds: ["exp-9", "exp-5", "exp-10"],
-    qaIds: ["qa-6", "qa-5", "qa-8"],
-    empty: {
-      favorites: "还没有收藏目标高校，可以先从地图里挑 3 所进入待比较。",
-      experiences: "还没有保存经验，建议先看城市生活和新生避坑内容。",
-      answers: "还没有参与问答，可以先看择校、专业、城市相关问题。",
-      history: "暂无浏览记录，从江苏地图开始会更容易建立全局感。",
-    },
+    focus: ["城市生活成本", "学校层次", "专业匹配", "就业去向"],
+    checklist: ["收藏目标学校", "查看宿舍和食堂经验", "确认转专业政策", "把城市放进对比"],
   },
   freshman: {
-    label: "准大学生",
-    shortLabel: "准大学生",
-    eyebrow: "入学生活指南",
-    title: "从被录取到开学，先把真实校园生活摸清楚。",
-    description:
-      "重点关注宿舍、食堂、交通、军训、校区和城市适应，提前降低入学不确定性。",
-    avatarLabel: "入学",
-    icon: Compass,
-    stats: [
-      { value: "4", label: "生活主题" },
-      { value: "6", label: "校园经验" },
-      { value: "3", label: "城市线索" },
-      { value: "1", label: "入学清单" },
-    ],
+    title: "把入学前的不确定感降下来",
+    note: "优先看校区、宿舍、食堂、交通和开学准备，先把第一周过顺。",
+    nextStep: "确认录取学校所在校区",
     primary: {
       label: "浏览入学经验",
-      description: "从宿舍、食堂、校区和新生避坑开始了解。",
+      description: "从宿舍、食堂、军训和新生避坑开始。",
       path: "/experiences",
       icon: BookOpen,
     },
     secondary: {
       label: "定位学校周边",
-      description: "进入地图后查看学校所在城市和生活环境。",
+      description: "看城市节奏、交通和生活成本。",
       path: "/jiangsu",
-      icon: MapPin,
+      icon: Compass,
     },
-    quickActions: [
-      {
-        label: "宿舍和食堂",
-        description: "优先看真实生活体验，提前准备开学用品。",
-        path: "/experiences",
-        icon: School,
-      },
-      {
-        label: "常见入学问题",
-        description: "生活费、转专业、校区差异先了解清楚。",
-        path: "/qa",
-        icon: MessageCircle,
-      },
-      {
-        label: "城市适应",
-        description: "了解交通、商圈、天气和生活成本。",
-        path: "/experiences",
-        icon: Compass,
-      },
-    ],
-    focus: [
-      {
-        title: "把校区确认清楚",
-        text: "同一所学校不同校区差别很大，宿舍、交通和课程安排都可能不同。",
-        tag: "校区",
-      },
-      {
-        title: "先看生活成本",
-        text: "南京、苏州、无锡、徐州的月开销和城市节奏差异很明显。",
-        tag: "预算",
-      },
-      {
-        title: "准备问题清单",
-        text: "军训、选课、社团、电脑、床品、校园卡这些问题可以集中查。",
-        tag: "开学",
-      },
-    ],
-    postIds: ["exp-3", "exp-1", "exp-2"],
-    qaIds: ["qa-1", "qa-4", "qa-3"],
-    empty: {
-      favorites: "还没有关注学校，可以先收藏你的录取学校和同城高校。",
-      experiences: "还没有保存生活经验，建议先看宿舍、食堂和新生避坑。",
-      answers: "还没有参与问答，可以先看生活费、转专业和宿舍问题。",
-      history: "暂无浏览记录，从你的学校或城市开始看会更有效。",
-    },
+    focus: ["校区差异", "宿舍条件", "生活预算", "开学清单"],
+    checklist: ["收藏录取学校", "看新生避坑", "记录交通路线", "整理开学问题"],
   },
   college: {
-    label: "在校大学生",
-    shortLabel: "大学生",
-    eyebrow: "成长与经验中心",
-    title: "围绕考研、实习、转专业和城市机会，整理下一步路径。",
-    description:
-      "把经验、问答和地图放在一起看，找到更适合当前阶段的学校资源和城市机会。",
-    avatarLabel: "成长",
-    icon: BookOpen,
-    stats: [
-      { value: "3", label: "发展路径" },
-      { value: "10", label: "经验样本" },
-      { value: "8", label: "问答线索" },
-      { value: "13", label: "城市机会" },
-    ],
+    title: "整理下一步发展路径",
+    note: "把考研、实习、转专业和城市机会放在一起看，减少信息分散。",
+    nextStep: "选择一个发展方向继续追踪",
     primary: {
       label: "看成长经验",
-      description: "考研、就业、专业学习和城市机会先建立方向。",
+      description: "优先看考研、就业、专业学习相关内容。",
       path: "/experiences",
       icon: Route,
     },
     secondary: {
-      label: "进入问答区",
-      description: "围绕转专业、考研、就业和城市选择继续追问。",
+      label: "查发展问答",
+      description: "围绕保研、实习和城市选择继续追问。",
       path: "/qa",
       icon: MessageCircle,
     },
-    quickActions: [
-      {
-        label: "考研保研",
-        description: "看学风、去向和不同学校的上岸路径。",
-        path: "/experiences",
-        icon: GraduationCap,
-      },
-      {
-        label: "就业实习",
-        description: "按城市和学校资源看毕业后的第一步。",
-        path: "/experiences",
-        icon: ExternalLink,
-      },
-      {
-        label: "贡献经验",
-        description: "后续开放投稿后，可以补充自己的真实校园记录。",
-        path: "/experiences",
-        icon: Edit3,
-      },
-    ],
-    focus: [
-      {
-        title: "先确定当前主线",
-        text: "考研、保研、实习、转专业和竞赛不要同时开太多线程。",
-        tag: "路径",
-      },
-      {
-        title: "把城市机会纳入规划",
-        text: "苏南、南京、徐州等城市的产业和实习机会差异会影响选择。",
-        tag: "机会",
-      },
-      {
-        title: "把经验沉淀下来",
-        text: "你的选课、实习、考研和校园生活经验，后续都可以反哺下一届学生。",
-        tag: "贡献",
-      },
-    ],
-    postIds: ["exp-6", "exp-7", "exp-4"],
-    qaIds: ["qa-2", "qa-7", "qa-3"],
-    empty: {
-      favorites: "还没有收藏高校，可以先关注目标院校、考研去向或同城学校。",
-      experiences: "还没有发布经验，后续可以从选课、实习或考研记录开始。",
-      answers: "还没有参与问答，可以先回答你熟悉的校园生活问题。",
-      history: "暂无浏览记录，从经验流或问答区进入更符合当前阶段。",
-    },
+    focus: ["考研保研", "实习机会", "专业转向", "城市资源"],
+    checklist: ["收藏高频经验", "比较城市机会", "整理问答线索", "记录可行动事项"],
   },
 };
 
-const personalTabs = [
-  { key: "favorites", label: "收藏", icon: Bookmark },
-  { key: "experiences", label: "经验", icon: Edit3 },
-  { key: "answers", label: "问答", icon: Heart },
-  { key: "history", label: "记录", icon: MapPin },
-] as const;
-
-const MOCK_USER = {
-  name: "访客",
-  joinDate: "2026",
-  stats: {
-    favorites: 0,
-    experiences: 0,
-    answers: 0,
-    history: 0,
+const trackedSchools: TrackedSchool[] = [
+  {
+    name: "苏州大学",
+    city: "苏州",
+    tier: "211",
+    status: "重点比较",
+    reason: "城市体验和校园生活都值得继续看",
+    progress: 78,
+    tags: ["古城校区", "城市生活", "新生体验"],
   },
-};
+  {
+    name: "南京师范大学",
+    city: "南京",
+    tier: "双一流",
+    status: "补充信息",
+    reason: "文科资源强，需要继续确认专业和校区",
+    progress: 62,
+    tags: ["专业学习", "仙林校区", "保研"],
+  },
+  {
+    name: "江南大学",
+    city: "无锡",
+    tier: "211",
+    status: "候选观察",
+    reason: "城市舒适度高，适合放进第二梯队",
+    progress: 46,
+    tags: ["无锡", "生活成本", "就业"],
+  },
+];
 
-const fadeUp = keyframes`
-  0% { opacity: 0; transform: translateY(16px); }
-  100% { opacity: 1; transform: translateY(0); }
-`;
+const tabItems: Array<{ key: TabKey; label: string; icon: LucideIcon }> = [
+  { key: "schools", label: "学校清单", icon: School },
+  { key: "questions", label: "我的问答", icon: MessageCircle },
+  { key: "notes", label: "保存经验", icon: BookOpen },
+  { key: "history", label: "最近浏览", icon: History },
+];
+
+const creatorProof = [
+  { value: String(UNIVERSITIES.length), label: "高校数据" },
+  { value: "13", label: "城市入口" },
+  { value: "4", label: "核心模块" },
+  { value: "持续", label: "维护状态" },
+];
 
 const Page = styled.div`
+  position: relative;
+  isolation: isolate;
   height: 100%;
   overflow-y: auto;
-  background:
-    radial-gradient(ellipse at 12% 0%, rgba(199, 107, 94, 0.13) 0%, transparent 42%),
-    radial-gradient(ellipse at 88% 18%, rgba(116, 151, 175, 0.12) 0%, transparent 36%),
-    linear-gradient(170deg, #fdf7f2 0%, #f7efe4 42%, #eee3d4 100%);
-  color: #3a2f28;
-  font-family: "Noto Serif SC", "Songti SC", "STSong", "KaiTi", serif;
   box-sizing: border-box;
-`;
+  padding: 34px 28px 58px;
+  background: oklch(96.2% 0.014 72);
+  color: oklch(24% 0.032 58);
+  font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
 
-const Shell = styled.div`
-  width: min(1120px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 38px 0 76px;
-
-  @media (max-width: 720px) {
-    width: calc(100% - 28px);
-    padding: 24px 0 48px;
+  @media (max-width: 760px) {
+    padding: 20px 14px 42px;
   }
 `;
 
-const Hero = styled.section`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 316px;
-  gap: 24px;
-  align-items: stretch;
-  animation: ${fadeUp} 0.5s ease-out both;
+const Shell = styled.div`
+  position: relative;
+  z-index: 1;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+`;
 
-  @media (max-width: 880px) {
+const TopGrid = styled.section`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 18px;
+  align-items: stretch;
+
+  @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const HeroMain = styled.div`
-  position: relative;
-  overflow: hidden;
-  padding: clamp(28px, 5vw, 46px);
-  border: 1px solid rgba(180, 150, 120, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 252, 247, 0.62);
-  box-shadow: 0 18px 48px rgba(132, 96, 70, 0.09);
-  backdrop-filter: blur(14px);
-`;
-
-const HeroTop = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 22px;
-
-  @media (max-width: 560px) {
-    align-items: flex-start;
-  }
-`;
-
-const Avatar = styled.div`
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #e8d5c4, #d4b896);
-  border: 1px solid rgba(180, 140, 100, 0.22);
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: #8b6f5a;
-`;
-
-const IdentityText = styled.div`
-  min-width: 0;
-`;
-
-const Eyebrow = styled.div`
-  margin-bottom: 7px;
-  color: #b96b5f;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 12px;
-  font-weight: 850;
-`;
-
-const Title = styled.h1`
-  max-width: 18ch;
-  margin: 0;
-  color: #2f261f;
-  font-size: clamp(28px, 4.2vw, 48px);
-  line-height: 1.12;
-  font-weight: 900;
-`;
-
-const Description = styled.p`
-  max-width: 62ch;
-  margin: 18px 0 0;
-  color: #6b5d4f;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 15px;
-  line-height: 1.8;
-`;
-
-const HeroActions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 28px;
-`;
-
-const CommandButton = styled.button<{ $primary?: boolean }>`
-  min-height: 42px;
-  padding: 0 16px;
+const Panel = styled.section`
+  border: 1px solid oklch(82% 0.035 70 / 0.54);
   border-radius: 8px;
-  border: 1px solid ${(p) => p.$primary ? "rgba(199, 107, 94, 0.34)" : "rgba(180, 150, 120, 0.22)"};
-  background: ${(p) => p.$primary ? "linear-gradient(135deg, #c76b5e, #b75a4d)" : "rgba(255, 252, 247, 0.7)"};
-  color: ${(p) => p.$primary ? "#fffdf8" : "#6b5d4f"};
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  background: oklch(98.5% 0.01 78 / 0.82);
+  box-shadow: 0 20px 56px oklch(42% 0.04 55 / 0.1);
+`;
 
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: ${(p) => p.$primary ? "0 10px 22px rgba(199, 107, 94, 0.18)" : "0 8px 18px rgba(132, 96, 70, 0.08)"};
-  }
+const Workbench = styled(Panel)`
+  display: grid;
+  grid-template-columns: minmax(220px, 0.78fr) minmax(0, 1.22fr);
+  overflow: hidden;
 
-  svg {
-    width: 16px;
-    height: 16px;
+  @media (max-width: 820px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const IdentityPanel = styled.aside`
-  padding: 22px;
-  border: 1px solid rgba(180, 150, 120, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 252, 247, 0.58);
-  box-shadow: 0 18px 48px rgba(132, 96, 70, 0.08);
-  backdrop-filter: blur(12px);
+const IdentityPane = styled.div`
+  padding: 24px;
+  border-right: 1px solid oklch(84% 0.026 74 / 0.54);
+  background: oklch(97% 0.016 72 / 0.64);
+
+  @media (max-width: 820px) {
+    border-right: 0;
+    border-bottom: 1px solid oklch(84% 0.026 74 / 0.54);
+  }
+
+  @media (max-width: 760px) {
+    padding: 18px;
+  }
 `;
 
 const UserRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: 14px;
 `;
 
-const UserMark = styled.div`
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+const Avatar = styled.div`
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
-  background: rgba(199, 107, 94, 0.09);
-  color: #c76b5e;
+  color: oklch(42% 0.09 42);
+  background: oklch(91% 0.035 72 / 0.86);
+  border: 1px solid oklch(76% 0.052 66 / 0.52);
+
+  @media (max-width: 760px) {
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+  }
 `;
 
-const UserName = styled.div`
-  color: #2f261f;
-  font-size: 17px;
-  font-weight: 900;
+const UserName = styled.h1`
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 850;
+  color: oklch(23% 0.035 58);
+
+  @media (max-width: 760px) {
+    font-size: 21px;
+  }
 `;
 
-const UserMeta = styled.div`
-  margin-top: 2px;
-  color: #8b7b6a;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 12px;
+const UserMeta = styled.p`
+  margin: 4px 0 0;
+  color: oklch(50% 0.028 62);
+  font-size: 13px;
 `;
 
 const RoleSwitch = styled.div`
   display: grid;
   gap: 8px;
+  margin-top: 22px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 16px;
+  }
 `;
 
 const RoleButton = styled.button<{ $active: boolean }>`
-  width: 100%;
   min-height: 42px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid ${(p) => p.$active ? "rgba(199, 107, 94, 0.34)" : "rgba(180, 150, 120, 0.16)"};
-  background: ${(p) => p.$active ? "rgba(199, 107, 94, 0.09)" : "rgba(255, 252, 247, 0.42)"};
-  color: ${(p) => p.$active ? "#9a4f45" : "#6b5d4f"};
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  border: 1px solid ${({ $active }) => ($active ? "oklch(68% 0.095 42 / 0.72)" : "oklch(84% 0.026 74 / 0.58)")};
+  border-radius: 8px;
+  background: ${({ $active }) => ($active ? "oklch(95% 0.025 45 / 0.72)" : "oklch(99% 0.008 78 / 0.66)")};
+  color: ${({ $active }) => ($active ? "oklch(43% 0.11 40)" : "oklch(35% 0.03 58)")};
+  padding: 0 12px;
+  cursor: pointer;
+  font: inherit;
   font-size: 13px;
   font-weight: 800;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+
+  &:hover {
+    border-color: oklch(70% 0.08 48 / 0.72);
+    background: oklch(96.5% 0.02 54 / 0.7);
+  }
 
   span {
     display: inline-flex;
@@ -517,43 +319,55 @@ const RoleButton = styled.button<{ $active: boolean }>`
   }
 
   svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
   }
 
-  &:hover {
-    border-color: rgba(199, 107, 94, 0.3);
-    color: #9a4f45;
+  @media (max-width: 760px) {
+    min-height: 38px;
+    justify-content: center;
+    padding: 0 8px;
+    font-size: 12px;
+
+    > svg {
+      display: none;
+    }
+
+    span {
+      gap: 5px;
+    }
   }
 `;
 
-const PanelActions = styled.div`
-  display: flex;
+const AccountActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 18px;
+
+  @media (max-width: 760px) {
+    margin-top: 12px;
+  }
 `;
 
 const SmallButton = styled.button`
-  flex: 1;
-  min-height: 36px;
-  border: 1px solid rgba(180, 150, 120, 0.16);
-  border-radius: 8px;
-  background: rgba(255, 252, 247, 0.54);
-  color: #8b7b6a;
-  cursor: pointer;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  gap: 7px;
+  border: 1px solid oklch(84% 0.026 74 / 0.58);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.58);
+  color: oklch(43% 0.036 56);
+  cursor: pointer;
+  font: inherit;
   font-size: 12px;
-  font-weight: 700;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  font-weight: 760;
 
   &:hover {
-    color: #c76b5e;
-    border-color: rgba(199, 107, 94, 0.24);
-    background: rgba(199, 107, 94, 0.05);
+    color: oklch(42% 0.1 42);
+    border-color: oklch(74% 0.06 45 / 0.7);
   }
 
   svg {
@@ -562,337 +376,574 @@ const SmallButton = styled.button`
   }
 `;
 
-const StatsGrid = styled.div`
+const ProgressPane = styled.div`
+  padding: 26px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-top: 20px;
+  align-content: space-between;
+  gap: 24px;
 
-  @media (max-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
+  @media (max-width: 760px) {
+    padding: 20px 18px;
+    gap: 18px;
   }
 `;
 
-const StatCell = styled.div`
-  padding: 16px;
-  border: 1px solid rgba(180, 150, 120, 0.13);
-  border-radius: 10px;
-  background: rgba(255, 252, 247, 0.46);
-`;
-
-const StatValue = styled.div`
-  color: #c76b5e;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 25px;
-  font-weight: 900;
-  line-height: 1;
-`;
-
-const StatLabel = styled.div`
-  margin-top: 8px;
-  color: #8b7b6a;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+const Kicker = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: oklch(46% 0.11 42);
   font-size: 12px;
-`;
-
-const Section = styled.section`
-  margin-top: 28px;
-  animation: ${fadeUp} 0.5s ease-out both;
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-`;
-
-const SectionTitle = styled.h2`
-  margin: 0;
-  color: #2f261f;
-  font-size: 22px;
-  line-height: 1.2;
   font-weight: 900;
 `;
 
-const SectionNote = styled.p`
-  margin: 6px 0 0;
-  color: #8b7b6a;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 13px;
-  line-height: 1.55;
-`;
+const Title = styled.h2`
+  max-width: 18ch;
+  margin: 12px 0 0;
+  color: oklch(21% 0.035 56);
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 38px;
+  line-height: 1.1;
+  font-weight: 950;
 
-const ActionGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-
-  @media (max-width: 780px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 760px) {
+    font-size: 30px;
   }
 `;
 
-const ActionCard = styled.button`
-  min-height: 136px;
-  padding: 18px;
-  border: 1px solid rgba(180, 150, 120, 0.15);
-  border-radius: 10px;
-  background: rgba(255, 252, 247, 0.5);
-  color: #3a2f28;
-  cursor: pointer;
-  text-align: left;
+const Lead = styled.p`
+  max-width: 60ch;
+  margin: 14px 0 0;
+  color: oklch(44% 0.03 62);
+  font-size: 14px;
+  line-height: 1.9;
+`;
+
+const ActionRow = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+const PrimaryButton = styled.button`
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid oklch(58% 0.13 42 / 0.72);
+  border-radius: 8px;
+  background: oklch(58% 0.13 42);
+  color: oklch(98% 0.008 70);
+  padding: 0 14px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
 
   &:hover {
-    transform: translateY(-2px);
-    border-color: rgba(199, 107, 94, 0.26);
-    background: rgba(255, 252, 247, 0.72);
-    box-shadow: 0 12px 26px rgba(132, 96, 70, 0.08);
+    background: oklch(53% 0.13 42);
   }
-`;
-
-const ActionIcon = styled.span`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  background: rgba(199, 107, 94, 0.09);
-  color: #c76b5e;
 
   svg {
-    width: 17px;
-    height: 17px;
+    width: 16px;
+    height: 16px;
   }
 `;
 
-const ActionTitle = styled.strong`
-  display: block;
-  margin-top: 12px;
-  color: #2f261f;
-  font-size: 15px;
+const SecondaryButton = styled(PrimaryButton)`
+  background: oklch(99% 0.008 78 / 0.72);
+  color: oklch(33% 0.035 58);
+  border-color: oklch(82% 0.03 74 / 0.7);
+
+  &:hover {
+    color: oklch(42% 0.1 42);
+    background: oklch(97% 0.018 58 / 0.78);
+  }
 `;
 
-const ActionText = styled.span`
-  display: block;
-  margin-top: 6px;
-  color: #7a6b5d;
-  font-size: 12.5px;
-  line-height: 1.55;
-`;
-
-const ContentGrid = styled.div`
+const MetricGrid = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 
-  @media (max-width: 880px) {
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+const Metric = styled.div`
+  min-width: 0;
+  border: 1px solid oklch(84% 0.026 74 / 0.58);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.62);
+  padding: 12px;
+
+  strong {
+    display: block;
+    color: oklch(46% 0.115 42);
+    font-size: 25px;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  span {
+    display: block;
+    margin-top: 7px;
+    color: oklch(45% 0.03 60);
+    font-size: 12px;
+    font-weight: 760;
+  }
+`;
+
+const NextPanel = styled(Panel)`
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+`;
+
+const PanelTitle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h3 {
+    margin: 0;
+    color: oklch(21% 0.035 56);
+    font-size: 18px;
+    font-weight: 900;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: oklch(46% 0.11 42);
+  }
+`;
+
+const NextStep = styled.div`
+  border: 1px solid oklch(78% 0.054 68 / 0.62);
+  border-radius: 8px;
+  background: oklch(97% 0.018 62 / 0.72);
+  padding: 14px;
+
+  strong {
+    display: block;
+    color: oklch(24% 0.035 56);
+    font-size: 17px;
+    line-height: 1.35;
+  }
+
+  span {
+    display: block;
+    margin-top: 7px;
+    color: oklch(47% 0.03 62);
+    font-size: 13px;
+    line-height: 1.65;
+  }
+`;
+
+const Checklist = styled.div`
+  display: grid;
+  gap: 9px;
+`;
+
+const CheckItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: oklch(34% 0.032 58);
+  font-size: 13px;
+  line-height: 1.5;
+
+  svg {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    color: oklch(52% 0.1 148);
+  }
+`;
+
+const MainGrid = styled.main`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+
+  @media (max-width: 1020px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const FocusList = styled.div`
+const Stack = styled.div`
+  display: grid;
+  gap: 18px;
+`;
+
+const SectionPanel = styled(Panel)`
+  padding: 22px;
+`;
+
+const SectionHead = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+    color: oklch(21% 0.035 56);
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  p {
+    max-width: 56ch;
+    margin: 5px 0 0;
+    color: oklch(48% 0.028 62);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+`;
+
+const TextButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: oklch(44% 0.11 42);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  padding: 3px 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const SchoolList = styled.div`
   display: grid;
   gap: 10px;
 `;
 
-const FocusItemRow = styled.div`
-  padding: 17px 18px;
-  border: 1px solid rgba(180, 150, 120, 0.14);
-  border-radius: 10px;
-  background: rgba(255, 252, 247, 0.48);
+const SchoolRow = styled.button`
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid oklch(84% 0.026 74 / 0.58);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.58);
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: oklch(73% 0.06 48 / 0.72);
+    background: oklch(99% 0.009 74 / 0.84);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
-const FocusTag = styled.span`
+const SchoolName = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  strong {
+    color: oklch(24% 0.035 56);
+    font-size: 17px;
+  }
+`;
+
+const Tag = styled.span`
   display: inline-flex;
   min-height: 22px;
-  padding: 0 9px;
-  border-radius: 999px;
   align-items: center;
-  color: #b96b5f;
-  background: rgba(199, 107, 94, 0.08);
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  border-radius: 999px;
+  background: oklch(94% 0.028 55 / 0.74);
+  color: oklch(45% 0.1 42);
+  padding: 0 8px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 820;
 `;
 
-const FocusTitle = styled.h3`
-  margin: 10px 0 6px;
-  color: #2f261f;
-  font-size: 16px;
-  line-height: 1.35;
-`;
-
-const FocusText = styled.p`
-  margin: 0;
-  color: #6b5d4f;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+const Muted = styled.p`
+  margin: 8px 0 0;
+  color: oklch(47% 0.028 62);
   font-size: 13px;
   line-height: 1.7;
 `;
 
-const RecommendationList = styled.div`
-  display: grid;
-  gap: 10px;
+const TagLine = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
 `;
 
-const PostRow = styled.button`
-  width: 100%;
-  padding: 16px 18px;
-  border: 1px solid rgba(180, 150, 120, 0.14);
-  border-radius: 10px;
-  background: rgba(255, 252, 247, 0.48);
-  cursor: pointer;
-  text-align: left;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+const MiniTag = styled.span`
+  color: oklch(44% 0.032 62);
+  border: 1px solid oklch(84% 0.026 74 / 0.58);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 760;
+`;
 
-  &:hover {
-    transform: translateY(-1px);
-    border-color: rgba(199, 107, 94, 0.25);
-    background: rgba(255, 252, 247, 0.72);
+const ProgressBox = styled.div`
+  display: grid;
+  gap: 8px;
+
+  span {
+    color: oklch(45% 0.03 62);
+    font-size: 12px;
+    font-weight: 780;
   }
 `;
 
-const PostMeta = styled.div`
+const ProgressTrack = styled.div`
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: oklch(90% 0.018 70 / 0.82);
+`;
+
+const ProgressFill = styled.div<{ $value: number }>`
+  width: ${(p) => p.$value}%;
+  height: 100%;
+  border-radius: inherit;
+  background: oklch(58% 0.12 42);
+`;
+
+const AssetTabs = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
-  color: #9a8878;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 11px;
-  font-weight: 700;
+  margin-bottom: 14px;
 `;
 
-const CategoryPill = styled.span<{ $color: string }>`
-  color: ${(p) => p.$color};
-  background: ${(p) => p.$color}14;
-  border-radius: 999px;
-  padding: 3px 8px;
-`;
-
-const PostTitle = styled.h3`
-  margin: 9px 0 6px;
-  color: #2f261f;
-  font-size: 15px;
-  line-height: 1.45;
-`;
-
-const PostExcerpt = styled.p`
-  margin: 0;
-  color: #6b5d4f;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 12.5px;
-  line-height: 1.65;
-`;
-
-const PersonalPanel = styled.div`
-  border: 1px solid rgba(180, 150, 120, 0.14);
-  border-radius: 12px;
-  background: rgba(255, 252, 247, 0.5);
-  overflow: hidden;
-`;
-
-const Tabs = styled.div`
-  display: flex;
-  border-bottom: 1px solid rgba(180, 150, 120, 0.13);
-
-  @media (max-width: 560px) {
-    overflow-x: auto;
-  }
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  min-height: 48px;
-  padding: 0 18px;
-  border: 0;
-  background: ${(p) => p.$active ? "rgba(199, 107, 94, 0.08)" : "transparent"};
-  color: ${(p) => p.$active ? "#9a4f45" : "#7a6b5d"};
-  cursor: pointer;
+const TabButton = styled.button<{ $active: boolean }>`
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  white-space: nowrap;
-  transition: background 0.18s ease, color 0.18s ease;
+  gap: 8px;
+  border: 1px solid ${({ $active }) => ($active ? "oklch(67% 0.095 42 / 0.72)" : "oklch(84% 0.026 74 / 0.58)")};
+  border-radius: 8px;
+  background: ${({ $active }) => ($active ? "oklch(95% 0.025 45 / 0.72)" : "oklch(99% 0.008 78 / 0.58)")};
+  color: ${({ $active }) => ($active ? "oklch(43% 0.11 40)" : "oklch(38% 0.032 58)")};
+  padding: 0 11px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 840;
 
   svg {
     width: 15px;
     height: 15px;
   }
+`;
+
+const FeedList = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+const FeedRow = styled.button`
+  width: 100%;
+  border: 1px solid oklch(84% 0.026 74 / 0.58);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.58);
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 
   &:hover {
-    color: #9a4f45;
+    transform: translateY(-1px);
+    border-color: oklch(73% 0.06 48 / 0.72);
+    background: oklch(99% 0.009 74 / 0.84);
   }
 `;
 
-const EmptyState = styled.div`
-  padding: 34px 22px;
+const FeedMeta = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 18px;
-
-  @media (max-width: 560px) {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+  gap: 8px;
+  color: oklch(50% 0.026 62);
+  font-size: 12px;
 `;
 
-const EmptyIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: #c76b5e;
-  background: rgba(199, 107, 94, 0.08);
-`;
-
-const EmptyText = styled.p`
-  margin: 0;
-  color: #6b5d4f;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
-  font-size: 13px;
-  line-height: 1.7;
-`;
-
-const EmptyAction = styled.button`
-  margin-top: 12px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: #c76b5e;
-  cursor: pointer;
+const CategoryPill = styled.span<{ $color: string }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+  min-height: 22px;
+  border-radius: 999px;
+  background: ${(p) => p.$color}16;
+  color: ${(p) => p.$color};
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 840;
+`;
+
+const FeedTitle = styled.h4`
+  margin: 9px 0 0;
+  color: oklch(23% 0.035 56);
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 900;
+`;
+
+const FeedText = styled.p`
+  margin: 7px 0 0;
+  color: oklch(47% 0.028 62);
+  font-size: 13px;
+  line-height: 1.75;
+`;
+
+const CreatorPanel = styled(Panel)`
+  overflow: hidden;
+`;
+
+const CreatorHeader = styled.div`
+  padding: 22px;
+  background:
+    linear-gradient(145deg, oklch(95% 0.026 48 / 0.78), oklch(98% 0.011 78 / 0.76));
+  border-bottom: 1px solid oklch(84% 0.026 74 / 0.58);
+`;
+
+const CreatorBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: oklch(43% 0.11 42);
+  font-size: 12px;
+  font-weight: 900;
+`;
+
+const CreatorName = styled.h3`
+  margin: 12px 0 0;
+  color: oklch(22% 0.035 56);
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 28px;
+  line-height: 1.16;
+  font-weight: 950;
+`;
+
+const CreatorCopy = styled.p`
+  margin: 12px 0 0;
+  color: oklch(42% 0.03 62);
+  font-size: 13px;
+  line-height: 1.85;
+`;
+
+const CreatorBody = styled.div`
+  padding: 18px 22px 22px;
+  display: grid;
+  gap: 16px;
+`;
+
+const ProofGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+`;
+
+const Proof = styled.div`
+  border: 1px solid oklch(84% 0.026 74 / 0.58);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.56);
+  padding: 10px;
+
+  strong {
+    display: block;
+    color: oklch(43% 0.105 42);
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  span {
+    display: block;
+    margin-top: 7px;
+    color: oklch(49% 0.028 62);
+    font-size: 12px;
+    font-weight: 760;
+  }
+`;
+
+const CreatorActions = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+const CreatorLink = styled.a`
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid oklch(82% 0.03 74 / 0.7);
+  border-radius: 8px;
+  background: oklch(99% 0.008 78 / 0.66);
+  color: oklch(30% 0.035 58);
+  padding: 0 12px;
+  text-decoration: none;
   font-size: 13px;
   font-weight: 850;
 
+  &:hover {
+    color: oklch(43% 0.11 42);
+    border-color: oklch(72% 0.06 48 / 0.72);
+  }
+
   svg {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
   }
 `;
 
-const PageFooter = styled.footer`
-  margin-top: 52px;
-  padding-top: 22px;
-  border-top: 1px solid rgba(180, 150, 120, 0.12);
+const FocusPanel = styled(Panel)`
+  padding: 20px;
+`;
+
+const FocusList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+`;
+
+const FocusPill = styled.span`
+  border: 1px solid oklch(82% 0.03 74 / 0.62);
+  border-radius: 999px;
+  background: oklch(99% 0.008 78 / 0.58);
+  color: oklch(40% 0.036 58);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 820;
+`;
+
+const Footer = styled.footer`
+  margin-top: 28px;
+  color: oklch(58% 0.022 62);
   text-align: center;
-  color: #b5a592;
-  font-family: "Noto Sans SC", "PingFang SC", sans-serif;
   font-size: 12px;
 `;
 
@@ -908,235 +959,352 @@ function pickQuestions(ids: string[]): QAEntry[] {
     .filter((entry): entry is QAEntry => Boolean(entry));
 }
 
+function clip(text: string, max = 86) {
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
 export default function Me() {
   const { navigateWithTransition } = useTransition();
-  const { role, setRole } = useAudienceRole();
-  const [tab, setTab] = useState<(typeof personalTabs)[number]["key"]>("favorites");
-
+  const { role, roleLabel, setRole } = useAudienceRole();
+  const [tab, setTab] = useState<TabKey>("schools");
   const plan = rolePlans[role];
-  const RoleIcon = plan.icon;
-  const activeTab = personalTabs.find((item) => item.key === tab) ?? personalTabs[0];
-  const ActiveTabIcon = activeTab.icon;
+  const PrimaryIcon = plan.primary.icon;
+  const SecondaryIcon = plan.secondary.icon;
 
-  const recommendedPosts = useMemo(() => pickPosts(plan.postIds), [plan.postIds]);
-  const recommendedQuestions = useMemo(() => pickQuestions(plan.qaIds), [plan.qaIds]);
+  const savedPosts = useMemo(() => pickPosts(["exp-3", "exp-5", "exp-6"]), []);
+  const savedQuestions = useMemo(() => pickQuestions(["qa-6", "qa-5", "qa-8"]), []);
+  const recentPosts = useMemo(() => [...EXPERIENCES].sort((a, b) => b.likes - a.likes).slice(0, 3), []);
 
   const go = (path: string) => navigateWithTransition(path);
 
-  const handleRoleChange = (nextRole: AudienceRole) => {
-    setRole(nextRole);
-  };
+  const metrics = [
+    { value: trackedSchools.length, label: "收藏学校" },
+    { value: 2, label: "对比清单" },
+    { value: savedQuestions.length, label: "关注问答" },
+    { value: savedPosts.length, label: "保存经验" },
+  ];
 
-  const handleLogout = () => {
-    navigateWithTransition("/login");
+  const renderFeed = () => {
+    if (tab === "schools") {
+      return (
+        <SchoolList>
+          {trackedSchools.map((school) => (
+            <SchoolRow key={school.name} type="button" onClick={() => go("/jiangsu")}>
+              <div>
+                <SchoolName>
+                  <strong>{school.name}</strong>
+                  <Tag>{school.tier}</Tag>
+                  <MiniTag>{school.city}</MiniTag>
+                </SchoolName>
+                <Muted>{school.reason}</Muted>
+                <TagLine>
+                  {school.tags.map((tag) => (
+                    <MiniTag key={tag}>{tag}</MiniTag>
+                  ))}
+                </TagLine>
+              </div>
+              <ProgressBox>
+                <span>{school.status}</span>
+                <ProgressTrack>
+                  <ProgressFill $value={school.progress} />
+                </ProgressTrack>
+                <span>{school.progress}% 信息已看</span>
+              </ProgressBox>
+            </SchoolRow>
+          ))}
+        </SchoolList>
+      );
+    }
+
+    if (tab === "questions") {
+      return (
+        <FeedList>
+          {savedQuestions.map((entry) => (
+            <FeedRow key={entry.id} type="button" onClick={() => go("/qa")}>
+              <FeedMeta>
+                <CategoryPill $color="#4a8eb5">问答</CategoryPill>
+                {entry.schoolName && <span>{entry.schoolName}</span>}
+                <span>{entry.likes} 收藏</span>
+              </FeedMeta>
+              <FeedTitle>{entry.question}</FeedTitle>
+              <FeedText>{clip(entry.answer)}</FeedText>
+            </FeedRow>
+          ))}
+        </FeedList>
+      );
+    }
+
+    if (tab === "notes") {
+      return (
+        <FeedList>
+          {savedPosts.map((post) => {
+            const meta = CATEGORY_META[post.category];
+            return (
+              <FeedRow key={post.id} type="button" onClick={() => go("/experiences")}>
+                <FeedMeta>
+                  <CategoryPill $color={meta.color}>{meta.label}</CategoryPill>
+                  <span>{post.schoolName}</span>
+                  <span>{post.likes} 喜欢</span>
+                </FeedMeta>
+                <FeedTitle>{post.title}</FeedTitle>
+                <FeedText>{post.excerpt}</FeedText>
+              </FeedRow>
+            );
+          })}
+        </FeedList>
+      );
+    }
+
+    return (
+      <FeedList>
+        {recentPosts.map((post) => {
+          const meta = CATEGORY_META[post.category];
+          return (
+            <FeedRow key={post.id} type="button" onClick={() => go("/experiences")}>
+              <FeedMeta>
+                <CategoryPill $color={meta.color}>最近看过</CategoryPill>
+                <span>{post.schoolName}</span>
+                <span>{post.city}</span>
+              </FeedMeta>
+              <FeedTitle>{post.title}</FeedTitle>
+              <FeedText>{post.excerpt}</FeedText>
+            </FeedRow>
+          );
+        })}
+      </FeedList>
+    );
   };
 
   return (
     <Page>
+      <CampusAtmosphere variant="profile" />
       <Shell>
-        <Hero>
-          <HeroMain>
-            <HeroTop>
-              <Avatar>
-                <RoleIcon size={34} />
-              </Avatar>
-              <IdentityText>
-                <Eyebrow>{plan.eyebrow}</Eyebrow>
-                <Title>{plan.title}</Title>
-              </IdentityText>
-            </HeroTop>
-            <Description>{plan.description}</Description>
-            <HeroActions>
-              <CommandButton $primary onClick={() => go(plan.primary.path)}>
-                <plan.primary.icon />
-                {plan.primary.label}
-                <ArrowRight />
-              </CommandButton>
-              <CommandButton onClick={() => go(plan.secondary.path)}>
-                <plan.secondary.icon />
-                {plan.secondary.label}
-              </CommandButton>
-            </HeroActions>
-            <StatsGrid>
-              {plan.stats.map((stat) => (
-                <StatCell key={stat.label}>
-                  <StatValue>{stat.value}</StatValue>
-                  <StatLabel>{stat.label}</StatLabel>
-                </StatCell>
-              ))}
-            </StatsGrid>
-          </HeroMain>
-
-          <IdentityPanel>
-            <UserRow>
-              <UserMark>
-                <User size={21} />
-              </UserMark>
-              <div>
-                <UserName>{MOCK_USER.name}</UserName>
-                <UserMeta>加入于 {MOCK_USER.joinDate} · {plan.label}</UserMeta>
-              </div>
-            </UserRow>
-            <RoleSwitch>
-              {AUDIENCE_ROLE_ORDER.map((item) => {
-                const option = rolePlans[item];
-                const OptionIcon = option.icon;
-                const active = role === item;
-                return (
-                  <RoleButton
-                    key={item}
-                    type="button"
-                    $active={active}
-                    aria-pressed={active}
-                    onClick={() => handleRoleChange(item)}
-                  >
-                    <span>
-                      <OptionIcon />
-                      {option.label}
-                    </span>
-                    {active && <Sparkles size={14} />}
-                  </RoleButton>
-                );
-              })}
-            </RoleSwitch>
-            <PanelActions>
-              <SmallButton type="button">
-                <Settings />
-                设置
-              </SmallButton>
-              <SmallButton type="button" onClick={handleLogout}>
-                <LogOut />
-                退出
-              </SmallButton>
-            </PanelActions>
-          </IdentityPanel>
-        </Hero>
-
-        <Section>
-          <SectionHeader>
-            <div>
-              <SectionTitle>{plan.avatarLabel}行动入口</SectionTitle>
-              <SectionNote>根据当前身份默认排序，其他内容仍然可以自由浏览。</SectionNote>
-            </div>
-          </SectionHeader>
-          <ActionGrid>
-            {plan.quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <ActionCard key={action.label} type="button" onClick={() => go(action.path)}>
-                  <div>
-                    <ActionIcon>
-                      <Icon />
-                    </ActionIcon>
-                    <ActionTitle>{action.label}</ActionTitle>
-                    <ActionText>{action.description}</ActionText>
-                  </div>
-                  <ArrowRight size={16} color="#c76b5e" />
-                </ActionCard>
-              );
-            })}
-          </ActionGrid>
-        </Section>
-
-        <Section>
-          <ContentGrid>
-            <div>
-              <SectionHeader>
+        <TopGrid>
+          <Workbench>
+            <IdentityPane>
+              <UserRow>
+                <Avatar>
+                  <User size={26} />
+                </Avatar>
                 <div>
-                  <SectionTitle>当前重点</SectionTitle>
-                  <SectionNote>先把这一阶段最重要的判断点放在前面。</SectionNote>
+                  <UserName>访客用户</UserName>
+                  <UserMeta>当前身份：{roleLabel}</UserMeta>
                 </div>
-              </SectionHeader>
-              <FocusList>
-                {plan.focus.map((item) => (
-                  <FocusItemRow key={item.title}>
-                    <FocusTag>{item.tag}</FocusTag>
-                    <FocusTitle>{item.title}</FocusTitle>
-                    <FocusText>{item.text}</FocusText>
-                  </FocusItemRow>
-                ))}
-              </FocusList>
-            </div>
+              </UserRow>
 
-            <div>
-              <SectionHeader>
-                <div>
-                  <SectionTitle>推荐内容</SectionTitle>
-                  <SectionNote>经验和问答会随身份切换改变默认排序。</SectionNote>
-                </div>
-              </SectionHeader>
-              <RecommendationList>
-                {recommendedPosts.map((post) => {
-                  const meta = CATEGORY_META[post.category];
+              <RoleSwitch>
+                {AUDIENCE_ROLE_ORDER.map((item) => {
+                  const active = role === item;
                   return (
-                    <PostRow key={post.id} type="button" onClick={() => go("/experiences")}>
-                      <PostMeta>
-                        <CategoryPill $color={meta.color}>{meta.label}</CategoryPill>
-                        <span>{post.schoolName}</span>
-                        <span>{post.likes} 喜欢</span>
-                      </PostMeta>
-                      <PostTitle>{post.title}</PostTitle>
-                      <PostExcerpt>{post.excerpt}</PostExcerpt>
-                    </PostRow>
+                    <RoleButton
+                      key={item}
+                      type="button"
+                      $active={active}
+                      aria-pressed={active}
+                      onClick={() => setRole(item)}
+                    >
+                      <span>
+                        <GraduationCap />
+                        {AUDIENCE_ROLE_LABELS[item]}
+                      </span>
+                      {active && <Sparkles />}
+                    </RoleButton>
                   );
                 })}
-                {recommendedQuestions.map((entry) => (
-                  <PostRow key={entry.id} type="button" onClick={() => go("/qa")}>
-                    <PostMeta>
-                      <CategoryPill $color="#4a8eb5">问答</CategoryPill>
-                      {entry.schoolName && <span>{entry.schoolName}</span>}
-                      <span>{entry.likes} 收藏</span>
-                    </PostMeta>
-                    <PostTitle>{entry.question}</PostTitle>
-                    <PostExcerpt>{entry.answer}</PostExcerpt>
-                  </PostRow>
-                ))}
-              </RecommendationList>
-            </div>
-          </ContentGrid>
-        </Section>
+              </RoleSwitch>
 
-        <Section>
-          <SectionHeader>
-            <div>
-              <SectionTitle>个人记录</SectionTitle>
-              <SectionNote>后续接入账号后，这里会承接收藏、投稿、回答和浏览历史。</SectionNote>
-            </div>
-          </SectionHeader>
-          <PersonalPanel>
-            <Tabs>
-              {personalTabs.map((item) => {
-                const Icon = item.icon;
-                const active = tab === item.key;
-                return (
-                  <Tab
-                    key={item.key}
-                    type="button"
-                    $active={active}
-                    onClick={() => setTab(item.key)}
-                  >
-                    <Icon />
-                    {item.label}
-                  </Tab>
-                );
-              })}
-            </Tabs>
-            <EmptyState>
-              <EmptyIcon>
-                <ActiveTabIcon size={24} />
-              </EmptyIcon>
+              <AccountActions>
+                <SmallButton type="button">
+                  <Settings />
+                  设置
+                </SmallButton>
+                <SmallButton type="button" onClick={() => go("/login")}>
+                  <LogOut />
+                  退出
+                </SmallButton>
+              </AccountActions>
+            </IdentityPane>
+
+            <ProgressPane>
               <div>
-                <EmptyText>{plan.empty[tab]}</EmptyText>
-                <EmptyAction type="button" onClick={() => go(tab === "answers" ? "/qa" : tab === "experiences" ? "/experiences" : "/jiangsu")}>
-                  {tab === "answers" ? "进入问答" : tab === "experiences" ? "浏览经验" : "去地图看看"}
-                  <ArrowRight />
-                </EmptyAction>
+                <Kicker>
+                  <ListChecks size={15} />
+                  我的择校工作台
+                </Kicker>
+                <Title>{plan.title}</Title>
+                <Lead>{plan.note}</Lead>
               </div>
-            </EmptyState>
-          </PersonalPanel>
-        </Section>
 
-        <PageFooter>江苏高校地图 · 为高考毕业生、准大学生和在校大学生整理真实校园线索</PageFooter>
+              <ActionRow>
+                <PrimaryButton type="button" onClick={() => go(plan.primary.path)}>
+                  <PrimaryIcon />
+                  {plan.primary.label}
+                  <ArrowRight />
+                </PrimaryButton>
+                <SecondaryButton type="button" onClick={() => go(plan.secondary.path)}>
+                  <SecondaryIcon />
+                  {plan.secondary.label}
+                </SecondaryButton>
+              </ActionRow>
+
+              <MetricGrid>
+                {metrics.map((metric) => (
+                  <Metric key={metric.label}>
+                    <strong>{metric.value}</strong>
+                    <span>{metric.label}</span>
+                  </Metric>
+                ))}
+              </MetricGrid>
+            </ProgressPane>
+          </Workbench>
+
+          <NextPanel>
+            <PanelTitle>
+              <h3>下一步</h3>
+              <CheckCircle2 />
+            </PanelTitle>
+            <NextStep>
+              <strong>{plan.nextStep}</strong>
+              <span>{plan.primary.description}</span>
+            </NextStep>
+            <Checklist>
+              {plan.checklist.map((item) => (
+                <CheckItem key={item}>
+                  <CheckCircle2 />
+                  {item}
+                </CheckItem>
+              ))}
+            </Checklist>
+          </NextPanel>
+        </TopGrid>
+
+        <MainGrid>
+          <Stack>
+            <SectionPanel>
+              <SectionHead>
+                <div>
+                  <h3>我的学校清单</h3>
+                  <p>把想看的学校固定下来，再围绕城市、专业、生活体验和问答逐步补证据。</p>
+                </div>
+                <TextButton type="button" onClick={() => go("/jiangsu")}>
+                  去地图补充
+                  <ArrowRight />
+                </TextButton>
+              </SectionHead>
+              <SchoolList>
+                {trackedSchools.map((school) => (
+                  <SchoolRow key={school.name} type="button" onClick={() => go("/jiangsu")}>
+                    <div>
+                      <SchoolName>
+                        <strong>{school.name}</strong>
+                        <Tag>{school.status}</Tag>
+                        <MiniTag>{school.city}</MiniTag>
+                        <MiniTag>{school.tier}</MiniTag>
+                      </SchoolName>
+                      <Muted>{school.reason}</Muted>
+                      <TagLine>
+                        {school.tags.map((tag) => (
+                          <MiniTag key={tag}>{tag}</MiniTag>
+                        ))}
+                      </TagLine>
+                    </div>
+                    <ProgressBox>
+                      <span>资料完整度</span>
+                      <ProgressTrack>
+                        <ProgressFill $value={school.progress} />
+                      </ProgressTrack>
+                      <span>{school.progress}%</span>
+                    </ProgressBox>
+                  </SchoolRow>
+                ))}
+              </SchoolList>
+            </SectionPanel>
+
+            <SectionPanel>
+              <SectionHead>
+                <div>
+                  <h3>个人资产</h3>
+                  <p>收藏、问答、经验和浏览记录放在一个地方，下一次回来不用重新找。</p>
+                </div>
+              </SectionHead>
+              <AssetTabs>
+                {tabItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = tab === item.key;
+                  return (
+                    <TabButton
+                      key={item.key}
+                      type="button"
+                      $active={active}
+                      onClick={() => setTab(item.key)}
+                    >
+                      <Icon />
+                      {item.label}
+                    </TabButton>
+                  );
+                })}
+              </AssetTabs>
+              {renderFeed()}
+            </SectionPanel>
+          </Stack>
+
+          <Stack>
+            <FocusPanel>
+              <PanelTitle>
+                <h3>当前关注</h3>
+                <Search />
+              </PanelTitle>
+              <FocusList>
+                {plan.focus.map((item) => (
+                  <FocusPill key={item}>{item}</FocusPill>
+                ))}
+              </FocusList>
+            </FocusPanel>
+
+            <CreatorPanel>
+              <CreatorHeader>
+                <CreatorBadge>
+                  <Wrench size={15} />
+                  网站缔造者
+                </CreatorBadge>
+                <CreatorName>cuteanzu 在搭建这张江苏高校地图</CreatorName>
+                <CreatorCopy>
+                  这个站不是随手拼出来的页面。数据整理、地图交互、经验内容、问答结构、后端接口和上线流程都在持续打磨，目标是把零散的高校信息变成真正可用的择校工具。
+                </CreatorCopy>
+              </CreatorHeader>
+              <CreatorBody>
+                <ProofGrid>
+                  {creatorProof.map((item) => (
+                    <Proof key={item.label}>
+                      <strong>{item.value}</strong>
+                      <span>{item.label}</span>
+                    </Proof>
+                  ))}
+                </ProofGrid>
+                <CreatorActions>
+                  <CreatorLink
+                    href="https://github.com/cuteanzu/jiangsu"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    查看项目仓库
+                    <ExternalLink />
+                  </CreatorLink>
+                  <CreatorLink
+                    href="https://github.com/orgs/cuteanzu/repositories"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    了解更多作品
+                    <ExternalLink />
+                  </CreatorLink>
+                </CreatorActions>
+              </CreatorBody>
+            </CreatorPanel>
+          </Stack>
+        </MainGrid>
+
+        <Footer>江苏高校地图，给高考毕业生、准大学生和在校大学生的校园信息工作台。</Footer>
       </Shell>
     </Page>
   );
