@@ -7,11 +7,12 @@ import SchoolDetailOverlay from "../components/map3d/SchoolDetailOverlay";
 import MapDrawer from "../components/map3d/MapDrawer";
 import CityDetailPage from "../components/map3d/CityDetailPage";
 import ProvinceOverviewChip from "../components/map3d/ProvinceOverviewChip";
+import MapDataPanel from "../components/map3d/MapDataPanel";
 import {
   isTierOnePlusUniversity,
 } from "../data/jiangsu-universities";
 import type { Tier, University } from "../data/jiangsu-universities";
-import { useUniversitiesData } from "../services/universities";
+import { useMapInsightsData, useUniversitiesData } from "../services/universities";
 import { normalizeCityParam } from "../utils/jiangsuPresentation";
 import { getCityProfile } from "../data/city-profiles";
 import {
@@ -233,6 +234,13 @@ export default function JiangsuMap3D() {
   const location = useLocation();
   const { citySlug } = useParams<{ citySlug?: string }>();
   const { universities } = useUniversitiesData();
+  const {
+    schools: backendSchools,
+    hotSchools: backendHotSchools,
+    cityProfiles: backendCityProfiles,
+    loading: backendInsightsLoading,
+    error: backendInsightsError,
+  } = useMapInsightsData();
   const tierOnePlusUniversities = useMemo(
     () => universities.filter(isTierOnePlusUniversity),
     [universities],
@@ -254,6 +262,10 @@ export default function JiangsuMap3D() {
 
   const selectedName = routeCity ?? normalizeCityParam(urlCity) ?? restoredSchool?.city ?? null;
   const selectedSchoolName = restoredSchool?.name ?? null;
+  const selectedSchoolRecord = useMemo(
+    () => (selectedSchoolName ? backendSchools.find((school) => school.name === selectedSchoolName) ?? null : null),
+    [backendSchools, selectedSchoolName],
+  );
 
   // ── Lifted state ──
   const [hoveredName, setHoveredName] = useState<string | null>(null);
@@ -479,6 +491,29 @@ export default function JiangsuMap3D() {
     updateSelectionParams(city, null, null, false, true);
   }, [updateSelectionParams]);
 
+  const handleInsightCitySelect = useCallback((city: string) => {
+    setSettledCity(null);
+    updateSelectionParams(city, null);
+    setDrawerMode("city");
+    setShowAllPins(false);
+    if (shouldOpenPanelByDefault()) {
+      setDrawerOpen(true);
+      setDrawerPinned(true);
+    }
+  }, [updateSelectionParams]);
+
+  const handleInsightSchoolSelect = useCallback((schoolName: string) => {
+    const school = backendSchools.find((item) => item.name === schoolName) ?? null;
+    setSettledCity(null);
+    updateSelectionParams(school?.cityName ?? selectedName, schoolName);
+    setDrawerMode("city");
+    setShowAllPins(false);
+    if (shouldOpenPanelByDefault()) {
+      setDrawerOpen(true);
+      setDrawerPinned(true);
+    }
+  }, [backendSchools, selectedName, updateSelectionParams]);
+
   return (
       <Page>
 {/* Mode toggle (hand-drawn map disabled) */}
@@ -575,6 +610,18 @@ export default function JiangsuMap3D() {
               }}
             />
           )}
+
+          <MapDataPanel
+            selectedCityName={selectedName}
+            selectedSchoolName={selectedSchoolName}
+            schools={backendSchools}
+            hotSchools={backendHotSchools}
+            cityProfiles={backendCityProfiles}
+            loading={backendInsightsLoading}
+            error={backendInsightsError}
+            onSelectCity={handleInsightCitySelect}
+            onSelectSchool={handleInsightSchoolSelect}
+          />
         </>
       )}
 
@@ -622,6 +669,7 @@ export default function JiangsuMap3D() {
         <SchoolInfoCard
           schoolName={selectedSchoolName}
           universities={universities}
+          schoolRecord={selectedSchoolRecord}
           onClose={() => updateSelectionParams(selectedName, null)}
           onViewDetail={handleViewDetail}
         />

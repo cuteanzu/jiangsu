@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { UNIVERSITIES, type Tier, type University } from "../data/jiangsu-universities";
-import { schoolsApi } from "./api";
-import type { UniversityDTO } from "./types";
+import { citiesApi, schoolsApi } from "./api";
+import type { CityProfileDTO, SchoolDTO, UniversityDTO } from "./types";
 
 const VALID_TIERS = new Set<Tier>(["985", "211", "dual", "provincial"]);
 
@@ -66,4 +66,58 @@ export function useUniversitiesData() {
   }, []);
 
   return { universities, source, loading, error };
+}
+
+interface MapInsightsState {
+  schools: SchoolDTO[];
+  hotSchools: SchoolDTO[];
+  cityProfiles: CityProfileDTO[];
+  loading: boolean;
+  error: string | null;
+}
+
+export function useMapInsightsData() {
+  const [state, setState] = useState<MapInsightsState>({
+    schools: [],
+    hotSchools: [],
+    cityProfiles: [],
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([
+      schoolsApi.search({ size: 200 }),
+      schoolsApi.hot(8),
+      citiesApi.list(),
+    ])
+      .then(([schools, hotSchools, cityProfiles]) => {
+        if (cancelled) return;
+        setState({
+          schools,
+          hotSchools,
+          cityProfiles,
+          loading: false,
+          error: null,
+        });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setState({
+          schools: [],
+          hotSchools: [],
+          cityProfiles: [],
+          loading: false,
+          error: err instanceof Error ? err.message : "后端数据加载失败",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
 }

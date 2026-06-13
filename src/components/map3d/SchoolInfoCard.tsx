@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import styled, { keyframes } from "styled-components";
-import { MapPin, Clock, BookOpen, MessageCircle, HelpCircle, X } from "lucide-react";
+import { MapPin, Clock, BookOpen, MessageCircle, HelpCircle, X, ExternalLink, Flame, Heart } from "lucide-react";
 import { UNIVERSITIES, TIER_LABEL, isTierOnePlusUniversity, universityBandLabel } from "../../data/jiangsu-universities";
 import type { University, Tier } from "../../data/jiangsu-universities";
+import type { SchoolDTO } from "../../services/types";
 import { SCHOOL_REC } from "./schoolRecommendations";
 
 const SCHOOL_TAGS: Record<string, string[]> = {
@@ -131,6 +132,47 @@ const Tag = styled.span`
   font-weight: 500;
 `;
 
+const BackendDataGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0 0 14px;
+`;
+
+const BackendDataItem = styled.div`
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(200, 170, 150, 0.22);
+  border-radius: 9px;
+  background: rgba(255, 250, 245, 0.62);
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #9a7660;
+    font-size: 9.5px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  strong {
+    display: block;
+    overflow: hidden;
+    margin-top: 3px;
+    color: #3a2f28;
+    font-size: 12px;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  svg {
+    width: 11px;
+    height: 11px;
+  }
+`;
+
 const ActionRow = styled.div`
   display: flex;
   gap: 8px;
@@ -158,16 +200,47 @@ const ActionBtn = styled.button<{ $primary?: boolean }>`
   svg { width: 14px; height: 14px; }
 `;
 
+const ActionLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(130, 155, 180, 0.28);
+  background: rgba(245, 250, 252, 0.72);
+  color: #455e73;
+  cursor: pointer;
+  font-family: "Noto Sans SC","PingFang SC",sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(225, 238, 245, 0.86);
+    border-color: rgba(100, 140, 170, 0.42);
+  }
+
+  svg { width: 14px; height: 14px; }
+`;
+
 // ── Component ──
 
 interface SchoolInfoCardProps {
   schoolName: string;
   universities?: University[];
+  schoolRecord?: SchoolDTO | null;
   onClose: () => void;
   onViewDetail: (school: University) => void;
 }
 
-export default function SchoolInfoCard({ schoolName, universities = UNIVERSITIES, onClose, onViewDetail }: SchoolInfoCardProps) {
+export default function SchoolInfoCard({
+  schoolName,
+  universities = UNIVERSITIES,
+  schoolRecord = null,
+  onClose,
+  onViewDetail,
+}: SchoolInfoCardProps) {
   const school = useMemo(
     () => universities.find((u) => u.name === schoolName) ?? null,
     [schoolName, universities],
@@ -176,6 +249,8 @@ export default function SchoolInfoCard({ schoolName, universities = UNIVERSITIES
   if (!school) return null;
 
   const isKey = isTierOnePlusUniversity(school);
+  const website = schoolRecord?.website ?? school.website ?? null;
+  const summary = schoolRecord?.brief || getRec(school);
 
   return (
     <CardWrapper>
@@ -194,7 +269,24 @@ export default function SchoolInfoCard({ schoolName, universities = UNIVERSITIES
         )}
       </MetaLine>
 
-      <RecLine>{getRec(school)}</RecLine>
+      {schoolRecord && (
+        <BackendDataGrid>
+          <BackendDataItem>
+            <span><Flame size={11} /> 热度</span>
+            <strong>{schoolRecord.hotScore}</strong>
+          </BackendDataItem>
+          <BackendDataItem>
+            <span><Heart size={11} /> 收藏</span>
+            <strong>{schoolRecord.favoriteCount}</strong>
+          </BackendDataItem>
+          <BackendDataItem>
+            <span><BookOpen size={11} /> 层次</span>
+            <strong>{schoolRecord.level || schoolRecord.type}</strong>
+          </BackendDataItem>
+        </BackendDataGrid>
+      )}
+
+      <RecLine>{summary}</RecLine>
 
       <TagRow>
         {getTags(school).map((t) => (
@@ -206,6 +298,12 @@ export default function SchoolInfoCard({ schoolName, universities = UNIVERSITIES
         <ActionBtn $primary onClick={() => onViewDetail(school)}>
           <BookOpen size={14} /> 查看校园详情
         </ActionBtn>
+        {website && (
+          <ActionLink href={website} target="_blank" rel="noreferrer">
+            官网
+            <ExternalLink size={14} />
+          </ActionLink>
+        )}
         {isKey && (
           <ActionBtn>
             <MessageCircle size={14} /> 查看相关经验

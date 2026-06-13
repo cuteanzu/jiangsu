@@ -55,15 +55,15 @@ export interface SchoolDTO {
   cityName: string;
   type: string;
   level: string;
-  logoUrl?: string;
-  coverUrl?: string;
-  website?: string;
-  address?: string;
-  brief?: string;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
+  website?: string | null;
+  address?: string | null;
+  brief?: string | null;
   hotScore: number;
   favoriteCount: number;
-  mapX?: number;
-  mapY?: number;
+  mapX?: number | null;
+  mapY?: number | null;
   isFavorited?: boolean;
 }
 
