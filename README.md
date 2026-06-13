@@ -1,73 +1,61 @@
-# React + TypeScript + Vite
+# Scholarium | 江苏高校生活指北
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个面向高考毕业生、准大学生和在校大学生的江苏高校探索网站。项目用 3D 江苏地图、校园经验、问答和个人中心，把“学校在哪里、生活怎么样、适不适合我”变成可浏览、可筛选、可扩展的产品体验。
 
-Currently, two official plugins are available:
+## 技术栈
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19 + TypeScript
+- Vite 8
+- styled-components
+- Three.js / React Three Fiber / drei
+- react-router-dom
+- lucide-react
 
-## React Compiler
+## 本地运行
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+前端默认运行在 `http://localhost:5173`。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 连接后端
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+后端默认是 Spring Boot 服务，端口 `9090`。开发时前端请求 `/api`，由 Vite 代理到后端。
+后端需要 JDK 17；如果 `java -version` 显示 `1.8`，先安装或切换 JDK。
+
+```bash
+cp .env.example .env.local
+npm run dev
+```
+
+`.env.local` 可配置：
+
+```bash
+VITE_API_BASE_URL=/api
+VITE_API_PROXY_TARGET=http://localhost:9090
+```
+
+详细接口说明见 [docs/backend-integration.md](docs/backend-integration.md)。
+
+## 当前页面
+
+- `/`、`/home`：首页
+- `/jiangsu`、`/map`：江苏 3D 高校地图
+- `/jiangsu/:citySlug`、`/map/:citySlug`：城市视角
+- `/experiences`：校园经验
+- `/qa`：问答
+- `/me`：个人中心
+- `/login`：登录页
+
+## 数据策略
+
+目前地图和内容页保留了静态数据，适合作为后端未启动时的展示兜底。正式上线时，CSV 数据应导入后端数据库，再通过 `/api/schools`、`/api/experiences`、`/api/qa` 等接口提供给前端。
+
+## 构建
+
+```bash
+npm run lint
+npm run build
 ```
