@@ -3,6 +3,7 @@ import styled, { css, keyframes } from "styled-components";
 import {
   AlertCircle,
   Briefcase,
+  Compass,
   Database,
   ExternalLink,
   Flame,
@@ -416,20 +417,20 @@ export default function MapDataPanel({
   );
 
   return (
-    <Panel aria-label="后端数据面板" data-testid="map-data-panel">
+    <Panel aria-label="高校雷达面板" data-testid="map-data-panel">
       <Header>
         <Eyebrow>
-          <Database size={13} />
-          BACKEND DATA
+          <Compass size={13} />
+          CAMPUS RADAR
         </Eyebrow>
-        <Title>{activeCityName ? `${activeCityName} 数据画像` : "江苏高校数据层"}</Title>
+        <Title>{activeCityName ? `${activeCityName} 城市档案` : "江苏高校雷达"}</Title>
       </Header>
 
       <Body>
         <CompactStats>
           <Stat>
             <strong>{loading ? "..." : schools.length}</strong>
-            <span>后端高校</span>
+            <span>已入档高校</span>
           </Stat>
           <Stat>
             <strong>{loading ? "..." : cityProfiles.length}</strong>
@@ -437,7 +438,7 @@ export default function MapDataPanel({
           </Stat>
           <Stat>
             <strong>{loading ? "..." : hotSchools.length}</strong>
-            <span>热度样本</span>
+            <span>热度线索</span>
           </Stat>
         </CompactStats>
 
@@ -445,7 +446,7 @@ export default function MapDataPanel({
           <Notice>
             <Database size={14} />
             <div>
-              正在读取后端学校、城市画像和热度榜。
+              正在校准学校、城市画像和热度线索。
               <Skeleton style={{ width: "86%", marginTop: 8 }} />
               <Skeleton style={{ width: "62%" }} />
             </div>
@@ -455,14 +456,14 @@ export default function MapDataPanel({
         {!loading && error && (
           <Notice $error>
             <AlertCircle size={14} />
-            <div>后端数据暂时不可用，地图仍会使用本地坐标兜底。错误信息：{error}</div>
+            <div>高校雷达暂时无法同步，地图仍会使用本地坐标兜底。错误信息：{error}</div>
           </Notice>
         )}
 
         {!loading && !error && schools.length === 0 && (
           <Notice>
             <Database size={14} />
-            <div>接口已连通，但暂时没有学校数据。导入数据后这里会自动出现城市与学校列表。</div>
+            <div>接口已连通，但档案库暂时为空。导入数据后这里会自动出现城市与学校线索。</div>
           </Notice>
         )}
 
@@ -541,7 +542,7 @@ export default function MapDataPanel({
           <Section>
             <SectionTitle>
               <MapPin size={14} />
-              数据最多的城市
+              档案最密集的城市
             </SectionTitle>
             <SchoolList>
               {topCities.map((city) => (
@@ -563,7 +564,7 @@ export default function MapDataPanel({
           <Section>
             <SectionTitle>
               <Flame size={14} />
-              {activeCityName ? "本城热度学校" : "全省热度学校"}
+              {activeCityName ? "本城关注学校" : "全省关注学校"}
             </SectionTitle>
             <SchoolList>
               {rankedSchools.map((school) => (
