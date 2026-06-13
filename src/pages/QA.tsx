@@ -26,6 +26,7 @@ import {
   type AudienceRole,
   useAudienceRole,
 } from "../hooks/useAudienceRole";
+import CampusAtmosphere from "../components/CampusAtmosphere";
 
 const lift = keyframes`
   from { opacity: 0; transform: translateY(14px); }
@@ -33,14 +34,13 @@ const lift = keyframes`
 `;
 
 const Page = styled.div`
+  position: relative;
+  isolation: isolate;
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;
   padding: 38px 30px 72px;
-  background:
-    radial-gradient(circle at 12% 8%, oklch(78% 0.08 188 / 0.18), transparent 30%),
-    radial-gradient(circle at 88% 14%, oklch(74% 0.08 42 / 0.14), transparent 28%),
-    linear-gradient(140deg, oklch(96% 0.014 197) 0%, oklch(96.8% 0.012 90) 48%, oklch(94.2% 0.015 72) 100%);
+  background: oklch(96% 0.014 197);
   color: oklch(23% 0.035 58);
   font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
 
@@ -50,6 +50,8 @@ const Page = styled.div`
 `;
 
 const Shell = styled.div`
+  position: relative;
+  z-index: 1;
   width: min(1200px, 100%);
   margin: 0 auto;
 `;
@@ -798,6 +800,7 @@ export default function QA() {
 
   return (
     <Page>
+      <CampusAtmosphere variant="qa" />
       <Shell>
         <Hero>
           <div>

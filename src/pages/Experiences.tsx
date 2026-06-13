@@ -25,6 +25,7 @@ import {
   type AudienceRole,
   useAudienceRole,
 } from "../hooks/useAudienceRole";
+import CampusAtmosphere from "../components/CampusAtmosphere";
 
 const reveal = keyframes`
   from { opacity: 0; transform: translateY(14px); }
@@ -32,14 +33,13 @@ const reveal = keyframes`
 `;
 
 const Page = styled.div`
+  position: relative;
+  isolation: isolate;
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;
   padding: 38px 30px 72px;
-  background:
-    linear-gradient(90deg, oklch(96.5% 0.018 82) 0%, oklch(96% 0.018 74) 54%, oklch(94.5% 0.016 210) 100%),
-    radial-gradient(circle at 88% 12%, oklch(76% 0.09 190 / 0.16), transparent 34%),
-    radial-gradient(circle at 8% 18%, oklch(72% 0.12 42 / 0.16), transparent 28%);
+  background: oklch(96.5% 0.018 82);
   color: oklch(25% 0.035 55);
   font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
 
@@ -49,6 +49,8 @@ const Page = styled.div`
 `;
 
 const Shell = styled.div`
+  position: relative;
+  z-index: 1;
   width: min(1200px, 100%);
   margin: 0 auto;
 `;
@@ -789,6 +791,7 @@ export default function Experiences() {
 
   return (
     <Page>
+      <CampusAtmosphere variant="notes" />
       <Shell>
         <Hero>
           <div>
