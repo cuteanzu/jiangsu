@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { MapPin, Clock, BookOpen, MessageCircle, HelpCircle, X, ExternalLink, Flame, Heart } from "lucide-react";
-import { UNIVERSITIES, TIER_LABEL, isTierOnePlusUniversity, universityBandLabel } from "../../data/jiangsu-universities";
+import { UNIVERSITIES, TIER_LABEL, universityBandLabel } from "../../data/jiangsu-universities";
 import type { University, Tier } from "../../data/jiangsu-universities";
 import { useTransition } from "../../context/useTransition";
 import { useAuth } from "../../hooks/useAuth";
@@ -279,9 +279,19 @@ export default function SchoolInfoCard({
 
   if (!school) return null;
 
-  const isKey = isTierOnePlusUniversity(school);
   const website = schoolRecord?.website ?? school.website ?? null;
   const summary = schoolRecord?.brief || getRec(school);
+  const schoolParam = encodeURIComponent(schoolRecord?.name ?? school.name);
+  const contributionPath = `/me?tab=submissions&type=QUESTION&school=${schoolParam}`;
+  const loginPath = `/login?next=${encodeURIComponent(contributionPath)}`;
+
+  const handleOpenExperiences = () => {
+    navigateWithTransition(`/experiences?school=${schoolParam}`);
+  };
+
+  const handleAskQuestion = () => {
+    navigateWithTransition(authenticated ? contributionPath : loginPath);
+  };
 
   const handleToggleFavorite = async () => {
     if (!schoolRecord) {
@@ -373,12 +383,10 @@ export default function SchoolInfoCard({
             <ExternalLink size={14} />
           </ActionLink>
         )}
-        {isKey && (
-          <ActionBtn>
-            <MessageCircle size={14} /> 查看相关经验
-          </ActionBtn>
-        )}
-        <ActionBtn>
+        <ActionBtn onClick={handleOpenExperiences}>
+          <MessageCircle size={14} /> 查看相关经验
+        </ActionBtn>
+        <ActionBtn onClick={handleAskQuestion}>
           <HelpCircle size={14} /> 我要提问
         </ActionBtn>
       </ActionRow>

@@ -52,7 +52,9 @@ function RouteFallback() {
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  return hasAuthToken() ? <>{children}</> : <Navigate to="/login" replace />;
+  const location = useLocation();
+  const next = `${location.pathname}${location.search}`;
+  return hasAuthToken() ? <>{children}</> : <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
 }
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {

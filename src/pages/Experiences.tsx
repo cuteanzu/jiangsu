@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import {
   ArrowRight,
@@ -774,11 +775,13 @@ function searchInExperiences(list: ExperiencePost[], term: string) {
 }
 
 export default function Experiences() {
+  const [searchParams] = useSearchParams();
+  const requestedSchool = searchParams.get("school")?.trim() || null;
   const { role, setRole } = useAudienceRole();
   const [activeCat, setActiveCat] = useState<PostCategory | "all">("all");
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+  const [schoolFilter, setSchoolFilter] = useState<string | null>(() => requestedSchool);
   const [remotePosts, setRemotePosts] = useState<ExperiencePost[] | null>(null);
   const [contentLoading, setContentLoading] = useState(true);
   const [contentNotice, setContentNotice] = useState("");
@@ -822,6 +825,12 @@ export default function Experiences() {
       window.clearTimeout(timer);
     };
   }, []);
+
+  useEffect(() => {
+    const nextSchool = searchParams.get("school")?.trim() || null;
+    setSchoolFilter(nextSchool);
+    setExpandedId(null);
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     let list = activeCat === "all" ? sortForRole(posts, role) : posts.filter((item) => item.category === activeCat);

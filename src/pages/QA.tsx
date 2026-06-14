@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import {
   BookOpen,
@@ -751,11 +752,13 @@ function shortAnswer(answer: string) {
 }
 
 export default function QA() {
+  const [searchParams] = useSearchParams();
+  const requestedSchool = searchParams.get("school")?.trim() || null;
   const { role, setRole } = useAudienceRole();
   const [activeCat, setActiveCat] = useState<PostCategory | "all">("all");
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+  const [schoolFilter, setSchoolFilter] = useState<string | null>(() => requestedSchool);
   const [remoteQuestions, setRemoteQuestions] = useState<QAEntry[] | null>(null);
   const [contentLoading, setContentLoading] = useState(true);
   const [contentNotice, setContentNotice] = useState("");
@@ -799,6 +802,12 @@ export default function QA() {
       window.clearTimeout(timer);
     };
   }, []);
+
+  useEffect(() => {
+    const nextSchool = searchParams.get("school")?.trim() || null;
+    setSchoolFilter(nextSchool);
+    setExpandedId(null);
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     let list = activeCat === "all" ? sortForRole(questions, role) : questions.filter((item) => item.category === activeCat);

@@ -4,6 +4,7 @@ import { BookOpen, Compass, Eye, EyeOff, GraduationCap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { createSeasonalFX } from "seasonalfx";
 import type { ISeasonalFX } from "seasonalfx";
+import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../settings-context";
 import { useTransition } from "../context/useTransition";
 import {
@@ -771,10 +772,16 @@ class StageErrorBoundary extends Component<{ children: React.ReactNode }, { erro
   }
 }
 
+function safeNextPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/me";
+  return value;
+}
+
 // ── Main ──
 
 export default function Login() {
   const { navigateWithTransition } = useTransition();
+  const [searchParams] = useSearchParams();
   const { s } = useSettings();
 
   // Scene
@@ -1025,7 +1032,7 @@ export default function Login() {
         setError("密码已重置，请用新密码登录");
         return;
       }
-      navigateWithTransition("/me");
+      navigateWithTransition(safeNextPath(searchParams.get("next")));
     } catch (err) {
       setError(normalizeError(err));
       setShaking(true);

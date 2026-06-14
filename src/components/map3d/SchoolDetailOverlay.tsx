@@ -5,6 +5,8 @@ import { UNIVERSITIES, universityBandLabel, universityBandReason } from "../../d
 import type { Tier, University } from "../../data/jiangsu-universities";
 import { SCHOOL_REC } from "./schoolRecommendations";
 import { cityLifeNote } from "../../data/city-profiles";
+import { useTransition } from "../../context/useTransition";
+import { useAuth } from "../../hooks/useAuth";
 
 const fadeIn = keyframes`from{opacity:0}to{opacity:1}`;
 const fadeUp = keyframes`
@@ -179,6 +181,8 @@ interface Props {
 }
 
 export default function SchoolDetailOverlay({ schoolName, universities = UNIVERSITIES, onClose }: Props) {
+  const { navigateWithTransition } = useTransition();
+  const { authenticated } = useAuth();
   const school = useMemo(() => universities.find((u) => u.name === schoolName) ?? null, [schoolName, universities]);
 
   if (!school) return null;
@@ -191,6 +195,17 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
     : universityBandReason(school);
 
   const recText = SCHOOL_REC[school.name] ?? `位于${school.city}的一所优秀本科院校。`;
+  const schoolParam = encodeURIComponent(school.name);
+  const contributionPath = `/me?tab=submissions&type=QUESTION&school=${schoolParam}`;
+  const loginPath = `/login?next=${encodeURIComponent(contributionPath)}`;
+
+  const handleOpenExperiences = () => {
+    navigateWithTransition(`/experiences?school=${schoolParam}`);
+  };
+
+  const handleAskQuestion = () => {
+    navigateWithTransition(authenticated ? contributionPath : loginPath);
+  };
 
   return (
     <DetailOverlay onClick={onClose}>
@@ -346,13 +361,13 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
         </MagazineSection>
 
         <ActionBar>
-          <MgzBtn $primary onClick={onClose}>
+          <MgzBtn $primary type="button" onClick={onClose}>
             <ArrowLeft size={15} /> 返回地图
           </MgzBtn>
-          <MgzBtn>
+          <MgzBtn type="button" onClick={handleOpenExperiences}>
             <MessageCircle size={15} /> 查看相关经验
           </MgzBtn>
-          <MgzBtn>
+          <MgzBtn type="button" onClick={handleAskQuestion}>
             <HelpCircle size={15} /> 我要提问
           </MgzBtn>
         </ActionBar>

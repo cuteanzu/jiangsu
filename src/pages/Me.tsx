@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import styled from "styled-components";
 import {
   AlertCircle,
@@ -45,6 +46,13 @@ import type { SchoolDTO, SubmissionDTO } from "../services/types";
 
 type TabKey = "schools" | "submissions" | "next";
 type SubmissionType = "EXPERIENCE" | "QUESTION" | "CORRECTION" | "SUGGESTION";
+
+const SUBMISSION_TYPE_VALUES: SubmissionType[] = ["EXPERIENCE", "QUESTION", "CORRECTION", "SUGGESTION"];
+
+function readSubmissionTypeParam(value: string | null): SubmissionType | null {
+  const normalized = value?.trim().toUpperCase();
+  return SUBMISSION_TYPE_VALUES.includes(normalized as SubmissionType) ? (normalized as SubmissionType) : null;
+}
 
 type RouteAction = {
   label: string;
@@ -1136,6 +1144,7 @@ function pickRecommendedPosts(role: AudienceRole): ExperiencePost[] {
 
 export default function Me() {
   const { navigateWithTransition } = useTransition();
+  const [searchParams] = useSearchParams();
   const { authenticated, error: authError, loading: authLoading, logout, refreshUser, user } = useAuth();
   const { role, roleLabel, setRole } = useAudienceRole();
   const [tab, setTab] = useState<TabKey>("schools");
@@ -1169,6 +1178,22 @@ export default function Me() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [user?.nickname, user?.username]);
+
+  useEffect(() => {
+    const nextTab = searchParams.get("tab");
+    const nextSchool = searchParams.get("school")?.trim();
+    const nextType = readSubmissionTypeParam(searchParams.get("type"));
+
+    if (nextTab === "submissions" || nextSchool || nextType) {
+      setTab("submissions");
+    }
+    if (nextSchool) {
+      setSubmitSchoolName(nextSchool);
+    }
+    if (nextType) {
+      setSubmitType(nextType);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!authenticated) return;
