@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const NAV_ITEMS = [
   { path: "/", label: "首页" },
+  { path: "/schools", label: "高校库" },
   { path: "/jiangsu", label: "探索地图" },
   { path: "/experiences", label: "校园经验" },
   { path: "/qa", label: "问答" },

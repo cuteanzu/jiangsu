@@ -12,6 +12,7 @@ import "./styles/interactions.css";
 const Home = lazy(() => import("./pages/home/Home"));
 const Login = lazy(() => import("./pages/Login"));
 const Me = lazy(() => import("./pages/Me"));
+const Schools = lazy(() => import("./pages/Schools"));
 const JiangsuMap3D = lazy(() => import("./pages/JiangsuMap3D"));
 const Experiences = lazy(() => import("./pages/Experiences"));
 const ExperienceDetail = lazy(() => import("./pages/ExperienceDetail"));
@@ -107,6 +108,7 @@ export default function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/me" element={<ProtectedRoute><Me /></ProtectedRoute>} />
                   <Route path="/home" element={<Home />} />
+                  <Route path="/schools" element={<Schools />} />
                   <Route path="/jiangsu" element={<JiangsuMap3D />} />
                   <Route path="/jiangsu/:citySlug" element={<JiangsuMap3D />} />
                   <Route path="/map" element={<JiangsuMap3D />} />
