@@ -69,6 +69,24 @@ export interface CreateSubmissionPayload {
   contact?: string;
 }
 
+export interface CommentDTO {
+  id: number;
+  schoolId: number;
+  userId: number;
+  username: string;
+  content: string;
+  category?: string | null;
+  isAnonymous?: boolean;
+  likeCount: number;
+  createdAt?: string;
+}
+
+export interface CreateCommentPayload {
+  content: string;
+  category?: string;
+  isAnonymous?: boolean;
+}
+
 export interface CityProfileDTO {
   id: number;
   name: string;

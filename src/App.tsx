@@ -14,6 +14,7 @@ const Login = lazy(() => import("./pages/Login"));
 const Me = lazy(() => import("./pages/Me"));
 const JiangsuMap3D = lazy(() => import("./pages/JiangsuMap3D"));
 const Experiences = lazy(() => import("./pages/Experiences"));
+const ExperienceDetail = lazy(() => import("./pages/ExperienceDetail"));
 const QA = lazy(() => import("./pages/QA"));
 
 const PageShell = styled.main`
@@ -110,6 +111,7 @@ export default function App() {
                   <Route path="/map" element={<JiangsuMap3D />} />
                   <Route path="/map/:citySlug" element={<JiangsuMap3D />} />
                   <Route path="/experiences" element={<Experiences />} />
+                  <Route path="/experiences/:experienceId" element={<ExperienceDetail />} />
                   <Route path="/qa" element={<QA />} />
                 </Routes>
               </Suspense>

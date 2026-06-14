@@ -27,6 +27,7 @@ import {
 } from "../hooks/useAudienceRole";
 import CampusAtmosphere from "../components/CampusAtmosphere";
 import { contentApi } from "../services/api";
+import { useTransition } from "../context/useTransition";
 import type { ExperienceDTO } from "../services/types";
 
 const reveal = keyframes`
@@ -456,15 +457,19 @@ const NoteStream = styled.div`
   gap: 10px;
 `;
 
-const NoteItem = styled.div<{ $expanded: boolean }>`
+const NoteItem = styled.button`
+  width: 100%;
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);
   gap: 14px;
   padding: 16px;
-  border: 1px solid ${({ $expanded }) => ($expanded ? "oklch(70% 0.09 42 / 0.52)" : "oklch(84% 0.026 72 / 0.62)")};
+  border: 1px solid oklch(84% 0.026 72 / 0.62);
   border-radius: 8px;
-  background: ${({ $expanded }) => ($expanded ? "oklch(98% 0.013 78 / 0.82)" : "oklch(99% 0.008 82 / 0.56)")};
+  background: oklch(99% 0.008 82 / 0.56);
+  color: inherit;
   cursor: pointer;
+  text-align: left;
+  font: inherit;
   animation: ${reveal} 0.34s ease-out both;
   transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 
@@ -514,16 +519,6 @@ const VerdictPill = styled.span`
   align-items: center;
   font-size: 11px;
   font-weight: 850;
-`;
-
-const FullBody = styled.div`
-  margin: 15px 0 12px;
-  padding-top: 14px;
-  border-top: 1px solid oklch(84% 0.026 72 / 0.68);
-  color: oklch(32% 0.032 56);
-  font-size: 14px;
-  line-height: 1.95;
-  white-space: pre-wrap;
 `;
 
 const ReadMore = styled.span`
@@ -777,10 +772,10 @@ function searchInExperiences(list: ExperiencePost[], term: string) {
 export default function Experiences() {
   const [searchParams] = useSearchParams();
   const requestedSchool = searchParams.get("school")?.trim() || null;
+  const { navigateWithTransition } = useTransition();
   const { role, setRole } = useAudienceRole();
   const [activeCat, setActiveCat] = useState<PostCategory | "all">("all");
   const [query, setQuery] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [schoolFilter, setSchoolFilter] = useState<string | null>(() => requestedSchool);
   const [remotePosts, setRemotePosts] = useState<ExperiencePost[] | null>(null);
   const [contentLoading, setContentLoading] = useState(true);
@@ -829,7 +824,6 @@ export default function Experiences() {
   useEffect(() => {
     const nextSchool = searchParams.get("school")?.trim() || null;
     setSchoolFilter(nextSchool);
-    setExpandedId(null);
   }, [searchParams]);
 
   const filtered = useMemo(() => {
@@ -861,31 +855,26 @@ export default function Experiences() {
     setActiveCat("all");
     setQuery("");
     setSchoolFilter(null);
-    setExpandedId(null);
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
+  const openPost = (id: string) => {
+    navigateWithTransition(`/experiences/${encodeURIComponent(id)}`);
   };
 
-  const handleItemKeyDown = (event: KeyboardEvent<HTMLDivElement>, id: string) => {
+  const handleItemKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    toggleExpand(id);
+    openPost(id);
   };
 
   const handleRoleSelect = (nextRole: AudienceRole) => {
     setRole(nextRole);
     setActiveCat("all");
     setSchoolFilter(null);
-    setExpandedId(null);
   };
 
   const openPostFromSidebar = (item: ExperiencePost) => {
-    setActiveCat("all");
-    setQuery("");
-    setSchoolFilter(null);
-    setExpandedId(item.id);
+    openPost(item.id);
   };
 
   const renderMeta = (item: ExperiencePost) => (
@@ -951,7 +940,6 @@ export default function Experiences() {
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
-                setExpandedId(null);
               }}
             />
           </SearchBox>
@@ -986,7 +974,6 @@ export default function Experiences() {
                     $accent={meta.color}
                     onClick={() => {
                       setActiveCat(category);
-                      setExpandedId(null);
                     }}
                   >
                     {meta.label}
@@ -1020,7 +1007,7 @@ export default function Experiences() {
             </SectionHeader>
 
             {leadNote ? (
-              <LeadNote type="button" onClick={() => toggleExpand(leadNote.id)}>
+              <LeadNote type="button" onClick={() => openPost(leadNote.id)}>
                 <div>
                   <NoteCode>FIELD NOTE 01</NoteCode>
                   <Tag $color={getCategoryMeta(leadNote.category).color}>
@@ -1038,25 +1025,20 @@ export default function Experiences() {
             {filtered.length > 0 && (
               <NoteStream>
                 {filtered.map((item, index) => {
-                  const expanded = expandedId === item.id;
                   const meta = getCategoryMeta(item.category);
                   return (
                     <NoteItem
                       key={item.id}
-                      $expanded={expanded}
-                      role="button"
-                      tabIndex={0}
-                      aria-expanded={expanded}
+                      type="button"
                       style={{ animationDelay: `${0.03 * (index % 8)}s` }}
-                      onClick={() => toggleExpand(item.id)}
+                      onClick={() => openPost(item.id)}
                       onKeyDown={(event) => handleItemKeyDown(event, item.id)}
                     >
                       <NoteIndex>#{String(index + 1).padStart(2, "0")}</NoteIndex>
                       <div>
                         <Tag $color={meta.color}>{meta.label}</Tag>
                         <NoteTitle>{item.title}</NoteTitle>
-                        {!expanded && <Excerpt>{item.excerpt}</Excerpt>}
-                        {expanded && <FullBody>{item.body}</FullBody>}
+                        <Excerpt>{item.excerpt}</Excerpt>
                         <Verdict>
                           <VerdictPill>{getCategoryVerdict(item.category)}</VerdictPill>
                           {item.tags.slice(0, 3).map((tag) => (
@@ -1065,7 +1047,7 @@ export default function Experiences() {
                         </Verdict>
                         {renderMeta(item)}
                         <ReadMore>
-                          {expanded ? "收起档案" : "展开现场记录"}
+                          进入阅读页
                           <ArrowRight />
                         </ReadMore>
                       </div>
@@ -1105,7 +1087,6 @@ export default function Experiences() {
                     $active={schoolFilter === school}
                     onClick={() => {
                       setSchoolFilter(school);
-                      setExpandedId(null);
                     }}
                   >
                     <span>{school}</span>

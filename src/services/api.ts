@@ -1,6 +1,8 @@
 import type {
   AuthResponse,
   CityProfileDTO,
+  CommentDTO,
+  CreateCommentPayload,
   CreateSubmissionPayload,
   ExperienceDTO,
   LoginPayload,
@@ -250,8 +252,26 @@ export const contentApi = {
   experiences(query: QueryParams = {}) {
     return apiClient.get<ExperienceDTO[]>("/experiences", query);
   },
+  experience(id: string) {
+    return apiClient.get<ExperienceDTO>(`/experiences/${encodeURIComponent(id)}`);
+  },
   qa(query: QueryParams = {}) {
     return apiClient.get<QADTO[]>("/qa", query);
+  },
+};
+
+export const commentsApi = {
+  bySchool(schoolId: number, page = 0, size = 20) {
+    return apiClient.get<CommentDTO[]>(`/schools/${schoolId}/comments`, { page, size });
+  },
+  createForSchool(schoolId: number, payload: CreateCommentPayload) {
+    return apiClient.post<CommentDTO>(`/schools/${schoolId}/comments`, payload);
+  },
+  like(commentId: number) {
+    return apiClient.post<void>(`/comments/${commentId}/like`);
+  },
+  unlike(commentId: number) {
+    return apiClient.remove<void>(`/comments/${commentId}/like`);
   },
 };
 
