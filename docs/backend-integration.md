@@ -77,8 +77,9 @@ VITE_API_PROXY_TARGET=http://localhost:9090
 ## 后续数据工作
 
 1. 把 `jiangsu_universities.csv` 的学校与生活字段导入后端数据库。
-2. 把初始校园经验和问答内容导入 `experience`、`qa_entry` 等表。
-3. 管理后台审核投稿，通过后再进入公开经验和问答。
-4. 后续可以把经验、问答详情页做成独立路由，方便搜索引擎收录。
+2. 通过 `POST /api/admin/import/life-survey` 导入生活调查 CSV 后，`GET /api/schools/{id}` 会返回 `lifeSurvey` 字段，前端高校库和学校详情会展示调查样本、覆盖维度和关键摘要。
+3. 把初始校园经验和问答内容导入 `experience`、`qa_entry` 等表。
+4. 管理后台审核投稿，通过后再进入公开经验和问答。
+5. 后续可以把经验、问答详情页做成独立路由，方便搜索引擎收录。
 
 部署服务器时参考 [deployment.md](deployment.md)。

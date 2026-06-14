@@ -143,9 +143,39 @@ export interface LifeInfoDTO {
   sourceType?: string;
 }
 
+export interface LifeSurveyDTO {
+  schoolName?: string;
+  sourceUrl?: string;
+  responseCount?: number;
+  dormSummary?: string;
+  acSummary?: string;
+  privateBathSummary?: string;
+  studyRuleSummary?: string;
+  runningSummary?: string;
+  vacationSummary?: string;
+  deliverySummary?: string;
+  transportSummary?: string;
+  laundrySummary?: string;
+  networkSummary?: string;
+  powerNetworkSummary?: string;
+  canteenSummary?: string;
+  hotWaterSummary?: string;
+  scooterSummary?: string;
+  powerLimitSummary?: string;
+  overnightStudySummary?: string;
+  computerSummary?: string;
+  paymentSummary?: string;
+  bankCardSummary?: string;
+  supermarketSummary?: string;
+  expressSummary?: string;
+  sharedBikeSummary?: string;
+  accessControlSummary?: string;
+}
+
 export interface SchoolDetailDTO {
   basic: SchoolDTO;
   lifeInfo?: LifeInfoDTO;
+  lifeSurvey?: LifeSurveyDTO;
   commentCount: number;
   isFavorited: boolean;
 }

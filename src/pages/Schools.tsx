@@ -26,7 +26,15 @@ import {
   type University,
 } from "../data/jiangsu-universities";
 import { citiesApi, contentApi, schoolsApi } from "../services/api";
-import type { CityProfileDTO, SchoolDTO } from "../services/types";
+import type { CityProfileDTO, SchoolDTO, SchoolDetailDTO } from "../services/types";
+import {
+  clipSurveySummary,
+  getLifeSurveyCoverage,
+  getLifeSurveyHighlights,
+  getLifeSurveyItems,
+  hasLifeSurvey,
+  surveyResponseLabel,
+} from "../utils/lifeSurvey";
 
 type DataSource = "api" | "static";
 type SortKey = "hot" | "favorite" | "coverage" | "city" | "name";
@@ -487,6 +495,37 @@ const Brief = styled.p`
   overflow: hidden;
 `;
 
+const SurveyPreview = styled.div`
+  display: grid;
+  gap: 7px;
+  margin-top: 11px;
+`;
+
+const SurveyFact = styled.div`
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  color: oklch(42% 0.032 62);
+  font-size: 12px;
+  line-height: 1.55;
+
+  strong {
+    color: oklch(36% 0.075 145);
+    font-size: 11.5px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
 const SignalStack = styled.div`
   display: grid;
   gap: 9px;
@@ -719,6 +758,7 @@ export default function Schools() {
   const [level, setLevel] = useState("all");
   const [type, setType] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("hot");
+  const [detailMap, setDetailMap] = useState<Record<number, SchoolDetailDTO | null>>({});
 
   useEffect(() => {
     let active = true;
@@ -810,6 +850,32 @@ export default function Schools() {
     });
   }, [city, level, query, sortKey, state.schools, type]);
 
+  useEffect(() => {
+    if (state.source !== "api" || state.loading) return;
+    const ids = filteredSchools
+      .slice(0, 60)
+      .map((school) => school.id)
+      .filter((id) => detailMap[id] === undefined);
+    if (ids.length === 0) return;
+
+    let active = true;
+    Promise.allSettled(ids.map((id) => schoolsApi.detail(id))).then((results) => {
+      if (!active) return;
+      setDetailMap((current) => {
+        const next = { ...current };
+        ids.forEach((id, index) => {
+          const result = results[index];
+          next[id] = result.status === "fulfilled" ? result.value : null;
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [detailMap, filteredSchools, state.loading, state.source]);
+
   const cityStats = useMemo(() => {
     const counts = new Map<string, number>();
     state.schools.forEach((school) => {
@@ -828,6 +894,20 @@ export default function Schools() {
   }, [state.schools]);
 
   const contentSchools = useMemo(() => new Set([...experienceNames, ...qaNames].filter(Boolean)).size, [experienceNames, qaNames]);
+  const surveyStats = useMemo(() => {
+    const surveys = Object.values(detailMap)
+      .map((detail) => detail?.lifeSurvey ?? null)
+      .filter(hasLifeSurvey);
+    const totalResponses = surveys.reduce((sum, survey) => sum + (survey?.responseCount ?? 0), 0);
+    const averageSurveyCoverage = surveys.length > 0
+      ? Math.round(surveys.reduce((sum, survey) => sum + getLifeSurveyCoverage(survey), 0) / surveys.length)
+      : 0;
+    return {
+      surveySchoolCount: surveys.length,
+      totalResponses,
+      averageSurveyCoverage,
+    };
+  }, [detailMap]);
 
   const clearFilters = () => {
     setQuery("");
@@ -885,6 +965,7 @@ export default function Schools() {
             <StatusLine><span>学校记录</span><strong>{state.schools.length} 所</strong></StatusLine>
             <StatusLine><span>覆盖城市</span><strong>{cityOptions.length} 个</strong></StatusLine>
             <StatusLine><span>有内容线索</span><strong>{contentSchools} 所</strong></StatusLine>
+            <StatusLine><span>生活调查</span><strong>{surveyStats.surveySchoolCount > 0 ? `${surveyStats.surveySchoolCount} 所` : "同步中"}</strong></StatusLine>
             {state.cities.length > 0 && <StatusLine><span>城市画像</span><strong>{state.cities.length} 份</strong></StatusLine>}
           </StatusPanel>
         </Header>
@@ -981,8 +1062,12 @@ export default function Schools() {
                 const coverage = coverageOf(school);
                 const expCount = experienceCountMap.get(school.name) ?? 0;
                 const questionCount = qaCountMap.get(school.name) ?? 0;
-                const contentScore = Math.min(100, (expCount + questionCount) * 18);
                 const hotScore = Math.min(100, Math.max(0, school.hotScore ?? 0));
+                const detail = detailMap[school.id];
+                const survey = detail?.lifeSurvey;
+                const surveyItems = getLifeSurveyItems(survey);
+                const surveyCoverage = getLifeSurveyCoverage(survey);
+                const surveyHighlights = getLifeSurveyHighlights(survey, 2);
                 return (
                   <SchoolRow key={`${school.id}-${school.name}`}>
                     <div>
@@ -993,13 +1078,24 @@ export default function Schools() {
                         <MetaPill $tone="green">{typeName}</MetaPill>
                       </MetaRow>
                       <Brief>{compactBrief(school)}</Brief>
+                      {surveyHighlights.length > 0 && (
+                        <SurveyPreview>
+                          {surveyHighlights.map((item) => (
+                            <SurveyFact key={item.key}>
+                              <strong>{item.label}</strong>
+                              <span>{clipSurveySummary(item.summary, 36)}</span>
+                            </SurveyFact>
+                          ))}
+                        </SurveyPreview>
+                      )}
                     </div>
 
                     <SignalStack>
                       <SignalLine><span>热度</span><Meter><MeterFill $value={hotScore} /></Meter><span>{hotScore}</span></SignalLine>
                       <SignalLine><span>资料</span><Meter><MeterFill $value={coverage} $tone="blue" /></Meter><span>{coverage}%</span></SignalLine>
-                      <SignalLine><span>内容</span><Meter><MeterFill $value={contentScore} $tone="green" /></Meter><span>{expCount + questionCount}</span></SignalLine>
+                      <SignalLine><span>生活</span><Meter><MeterFill $value={surveyCoverage} $tone="green" /></Meter><span>{surveyItems.length || "待"}</span></SignalLine>
                       <MetaRow>
+                        <MetaPill $tone={surveyItems.length > 0 ? "green" : "warm"}><Database />{surveyResponseLabel(survey)}</MetaPill>
                         <MetaPill><BookOpen />{expCount} 经验</MetaPill>
                         <MetaPill><MessageCircle />{questionCount} 问答</MetaPill>
                       </MetaRow>
@@ -1042,12 +1138,14 @@ export default function Schools() {
               <PanelTitle><span>数据完整度</span><Database /></PanelTitle>
               <SignalStack>
                 <SignalLine><span>平均资料</span><Meter><MeterFill $value={averageCoverage} $tone="blue" /></Meter><span>{averageCoverage}%</span></SignalLine>
+                <SignalLine><span>生活调查</span><Meter><MeterFill $value={surveyStats.averageSurveyCoverage} $tone="green" /></Meter><span>{surveyStats.surveySchoolCount}</span></SignalLine>
+                <SignalLine><span>调查样本</span><Meter><MeterFill $value={Math.min(100, surveyStats.totalResponses / 10)} /></Meter><span>{surveyStats.totalResponses}</span></SignalLine>
                 <SignalLine><span>经验覆盖</span><Meter><MeterFill $value={Math.min(100, (experienceCountMap.size / Math.max(1, state.schools.length)) * 100)} $tone="green" /></Meter><span>{experienceCountMap.size}</span></SignalLine>
                 <SignalLine><span>问答覆盖</span><Meter><MeterFill $value={Math.min(100, (qaCountMap.size / Math.max(1, state.schools.length)) * 100)} /></Meter><span>{qaCountMap.size}</span></SignalLine>
               </SignalStack>
               <Notice>
                 <AlertCircle />
-                <span>CSV 里的宿舍、空调、门禁、外卖、交通等字段导入后，可以继续在这里扩展成生活雷达和横向比较。</span>
+                <span>生活调查来自后端 lifeSurvey。列表展示摘要，进入学校地图档案可以查看更多维度。</span>
               </Notice>
             </InsightPanel>
           </InsightRail>

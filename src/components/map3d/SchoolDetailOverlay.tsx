@@ -7,6 +7,7 @@ import {
   Building2,
   CheckCircle2,
   Clock,
+  Database,
   ExternalLink,
   Heart,
   HelpCircle,
@@ -30,6 +31,14 @@ import { useTransition } from "../../context/useTransition";
 import { useAuth } from "../../hooks/useAuth";
 import { commentsApi, contentApi, schoolsApi, userApi } from "../../services/api";
 import type { CommentDTO, ExperienceDTO, QADTO, SchoolDTO, SchoolDetailDTO } from "../../services/types";
+import {
+  clipSurveySummary,
+  getLifeSurveyCoverage,
+  getLifeSurveyHighlights,
+  getLifeSurveyItems,
+  groupLifeSurveyItems,
+  surveyResponseLabel,
+} from "../../utils/lifeSurvey";
 
 const fadeIn = keyframes`
   from { opacity: 0; }
@@ -327,6 +336,105 @@ const ScorePill = styled.span`
   font-weight: 900;
 `;
 
+const SurveyOverview = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SurveyStat = styled.div`
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid oklch(84% 0.026 72 / 0.66);
+  border-radius: 8px;
+  background: oklch(99% 0.008 82 / 0.68);
+
+  span {
+    display: block;
+    color: oklch(52% 0.03 62);
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  strong {
+    display: block;
+    margin-top: 6px;
+    color: oklch(27% 0.035 55);
+    font-size: 18px;
+    line-height: 1.18;
+    font-weight: 950;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const SurveyGroupRail = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 14px;
+`;
+
+const SurveyGroupPill = styled.span`
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: oklch(94% 0.026 145 / 0.7);
+  color: oklch(36% 0.08 145);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 900;
+`;
+
+const SurveyGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SurveyItem = styled.div`
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid oklch(84% 0.026 72 / 0.66);
+  border-radius: 8px;
+  background: oklch(99% 0.008 82 / 0.68);
+
+  strong {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: oklch(28% 0.035 55);
+    font-size: 13px;
+    font-weight: 950;
+  }
+
+  em {
+    color: oklch(45% 0.085 145);
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 900;
+  }
+
+  p {
+    margin: 8px 0 0;
+    color: oklch(43% 0.032 62);
+    font-size: 12.5px;
+    line-height: 1.68;
+  }
+`;
+
 const List = styled.div`
   display: grid;
   gap: 8px;
@@ -593,6 +701,11 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
 
   const basic = detail?.basic ?? schoolRecord;
   const lifeInfo = detail?.lifeInfo;
+  const lifeSurvey = detail?.lifeSurvey;
+  const surveyItems = getLifeSurveyItems(lifeSurvey);
+  const surveyHighlights = getLifeSurveyHighlights(lifeSurvey, 8);
+  const groupedSurvey = groupLifeSurveyItems(surveyItems);
+  const surveyCoverage = getLifeSurveyCoverage(lifeSurvey);
   const tierLabel = basic?.level || universityBandLabel(school);
   const tierDesc = basic?.type || universityBandReason(school);
   const recText = basic?.brief || SCHOOL_REC[school.name] || `位于${school.city}的高校档案正在补全中。`;
@@ -704,6 +817,68 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
                 <Notice $error={Boolean(error)} style={{ marginTop: 14 }}>
                   {error ? <AlertCircle /> : <Search />}
                   <div>{error || "正在同步后端学校详情。"}</div>
+                </Notice>
+              )}
+            </Section>
+
+            <Section>
+              <SectionHead>
+                <div>
+                  <h2>生活调查样本</h2>
+                  <p>来自 CSV 导入的真实问卷摘要，适合快速判断宿舍、外卖、门禁、交通和校园基础设施。</p>
+                </div>
+                <Database />
+              </SectionHead>
+              {surveyItems.length > 0 ? (
+                <>
+                  <SurveyOverview>
+                    <SurveyStat>
+                      <span>答卷样本</span>
+                      <strong>{surveyResponseLabel(lifeSurvey)}</strong>
+                    </SurveyStat>
+                    <SurveyStat>
+                      <span>覆盖维度</span>
+                      <strong>{surveyItems.length}/23</strong>
+                    </SurveyStat>
+                    <SurveyStat>
+                      <span>资料完整度</span>
+                      <strong>{surveyCoverage}%</strong>
+                    </SurveyStat>
+                  </SurveyOverview>
+
+                  <SurveyGroupRail>
+                    {Object.entries(groupedSurvey)
+                      .filter(([, items]) => items.length > 0)
+                      .map(([group, items]) => (
+                        <SurveyGroupPill key={group}>{group} {items.length}</SurveyGroupPill>
+                      ))}
+                  </SurveyGroupRail>
+
+                  <SurveyGrid>
+                    {surveyHighlights.map((item) => (
+                      <SurveyItem key={item.key}>
+                        <strong>
+                          {item.label}
+                          <em>{item.group}</em>
+                        </strong>
+                        <p>{clipSurveySummary(item.summary, 92)}</p>
+                      </SurveyItem>
+                    ))}
+                  </SurveyGrid>
+
+                  {lifeSurvey?.sourceUrl && (
+                    <ActionStack>
+                      <ActionButton type="button" onClick={() => window.open(lifeSurvey.sourceUrl, "_blank", "noopener,noreferrer")}>
+                        查看调查来源
+                        <ExternalLink />
+                      </ActionButton>
+                    </ActionStack>
+                  )}
+                </>
+              ) : (
+                <Notice>
+                  <AlertCircle />
+                  <div>这所学校还没有匹配到生活调查摘要。导入 CSV 并完成学校名匹配后，宿舍、空调、独卫、门禁等维度会显示在这里。</div>
                 </Notice>
               )}
             </Section>
