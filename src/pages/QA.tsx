@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import styled, { keyframes } from "styled-components";
 import {
   BookOpen,
@@ -15,7 +15,6 @@ import {
 import {
   CATEGORY_META,
   QA_ENTRIES,
-  searchQA,
   type PostCategory,
   type QAEntry,
 } from "../data/mock-content";
@@ -27,6 +26,8 @@ import {
   useAudienceRole,
 } from "../hooks/useAudienceRole";
 import CampusAtmosphere from "../components/CampusAtmosphere";
+import { contentApi } from "../services/api";
+import type { QADTO } from "../services/types";
 
 const lift = keyframes`
   from { opacity: 0; transform: translateY(14px); }
@@ -659,6 +660,17 @@ const Empty = styled.div`
   font-size: 14px;
 `;
 
+const SyncNotice = styled.div<{ $error?: boolean }>`
+  margin: 18px 0 0;
+  border: 1px solid ${({ $error }) => ($error ? "oklch(72% 0.09 32 / 0.54)" : "oklch(75% 0.042 195 / 0.54)")};
+  border-radius: 8px;
+  background: ${({ $error }) => ($error ? "oklch(96% 0.026 36 / 0.58)" : "oklch(97% 0.015 195 / 0.58)")};
+  color: ${({ $error }) => ($error ? "oklch(42% 0.12 32)" : "oklch(36% 0.062 205)")};
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+`;
+
 const CATEGORY_KEYS: (PostCategory | "all")[] = [
   "all",
   "freshman",
@@ -696,6 +708,27 @@ function getCategoryMeta(category: string | "all") {
   return CATEGORY_META[category as PostCategory] ?? { label: "问答", color: "#347895" };
 }
 
+function toQAEntry(item: QADTO, index: number): QAEntry {
+  return {
+    id: item.id || `remote-qa-${index}`,
+    question: item.question || "未命名问题",
+    answer: item.answer || "这条问答暂时只有标题，后续可以在后台继续补充回答。",
+    schoolId: item.schoolId || undefined,
+    schoolName: item.schoolName || undefined,
+    category: item.category || "freshman",
+    likes: item.likes ?? 0,
+  };
+}
+
+function searchInQA(list: QAEntry[], term: string) {
+  const keyword = term.trim().toLowerCase();
+  if (!keyword) return list;
+  return list.filter((item) => [item.question, item.answer, item.schoolName ?? "", item.schoolId ?? "", item.category]
+    .join(" ")
+    .toLowerCase()
+    .includes(keyword));
+}
+
 function getQACity(schoolName?: string) {
   if (!schoolName) return null;
   return UNIVERSITIES.find((university) => university.name === schoolName)?.city ?? null;
@@ -723,33 +756,75 @@ export default function QA() {
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+  const [remoteQuestions, setRemoteQuestions] = useState<QAEntry[] | null>(null);
+  const [contentLoading, setContentLoading] = useState(true);
+  const [contentNotice, setContentNotice] = useState("");
+  const [contentNoticeIsError, setContentNoticeIsError] = useState(false);
   const roleGuide = ROLE_QA_GUIDES[role];
+  const questions = remoteQuestions ?? QA_ENTRIES;
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setContentLoading(true);
+      setContentNotice("");
+      setContentNoticeIsError(false);
+      contentApi.qa()
+        .then((data) => {
+          if (!active) return;
+          const normalized = Array.isArray(data) ? data.map(toQAEntry) : [];
+          if (normalized.length > 0) {
+            setRemoteQuestions(normalized);
+            setContentNotice(`已同步后端问答库：${normalized.length} 条`);
+            setContentNoticeIsError(false);
+          } else {
+            setRemoteQuestions(null);
+            setContentNotice("后端问答库暂时为空，当前展示本地精选内容。");
+            setContentNoticeIsError(false);
+          }
+        })
+        .catch(() => {
+          if (!active) return;
+          setRemoteQuestions(null);
+          setContentNotice("后端问答接口暂时不可用，当前展示本地精选内容。");
+          setContentNoticeIsError(true);
+        })
+        .finally(() => {
+          if (active) setContentLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const filtered = useMemo(() => {
-    let list = activeCat === "all" ? sortForRole(QA_ENTRIES, role) : QA_ENTRIES.filter((item) => item.category === activeCat);
-    if (query.trim()) list = searchQA(query).filter((item) => list.includes(item));
+    let list = activeCat === "all" ? sortForRole(questions, role) : questions.filter((item) => item.category === activeCat);
+    if (query.trim()) list = searchInQA(list, query);
     if (schoolFilter) list = list.filter((item) => item.schoolName === schoolFilter);
     return list;
-  }, [activeCat, query, role, schoolFilter]);
+  }, [activeCat, query, questions, role, schoolFilter]);
 
   const priorityQuestions = filtered.slice(0, 4);
   const hasManualFilter = activeCat !== "all" || Boolean(query.trim()) || Boolean(schoolFilter);
 
   const hotQuestions = useMemo(
-    () => [...QA_ENTRIES].sort((a, b) => b.likes - a.likes).slice(0, 5),
-    [],
+    () => [...questions].sort((a, b) => b.likes - a.likes).slice(0, 5),
+    [questions],
   );
 
   const schoolStats = useMemo(() => {
     const map = new Map<string, number>();
-    QA_ENTRIES.forEach((item) => {
+    questions.forEach((item) => {
       if (!item.schoolName) return;
       map.set(item.schoolName, (map.get(item.schoolName) ?? 0) + 1);
     });
     return [...map.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-Hans-CN"))
       .slice(0, 6);
-  }, []);
+  }, [questions]);
 
   const clearFilters = () => {
     setActiveCat("all");
@@ -783,7 +858,7 @@ export default function QA() {
   };
 
   const relatedQuestions = (item: QAEntry) =>
-    QA_ENTRIES
+    questions
       .filter((candidate) => candidate.id !== item.id && candidate.category === item.category)
       .slice(0, 3);
 
@@ -812,6 +887,11 @@ export default function QA() {
             <Subtitle>
               把择校、入学、专业、城市和发展问题先分诊，再给出一句话结论和完整解释。少翻列表，先找到你真正卡住的地方。
             </Subtitle>
+            {(contentLoading || contentNotice) && (
+              <SyncNotice $error={contentNoticeIsError}>
+                {contentLoading ? "正在同步后端问答库..." : contentNotice}
+              </SyncNotice>
+            )}
           </div>
 
           <IntakePanel>

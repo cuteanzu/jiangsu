@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import styled, { keyframes } from "styled-components";
 import {
   ArrowRight,
@@ -15,7 +15,6 @@ import {
 import {
   CATEGORY_META,
   EXPERIENCES,
-  searchExperiences,
   type ExperiencePost,
   type PostCategory,
 } from "../data/mock-content";
@@ -26,6 +25,8 @@ import {
   useAudienceRole,
 } from "../hooks/useAudienceRole";
 import CampusAtmosphere from "../components/CampusAtmosphere";
+import { contentApi } from "../services/api";
+import type { ExperienceDTO } from "../services/types";
 
 const reveal = keyframes`
   from { opacity: 0; transform: translateY(14px); }
@@ -655,6 +656,17 @@ const Empty = styled.div`
   font-size: 14px;
 `;
 
+const SyncNotice = styled.div<{ $error?: boolean }>`
+  margin: 18px 0 0;
+  border: 1px solid ${({ $error }) => ($error ? "oklch(72% 0.09 32 / 0.54)" : "oklch(78% 0.045 66 / 0.58)")};
+  border-radius: 8px;
+  background: ${({ $error }) => ($error ? "oklch(96% 0.026 36 / 0.58)" : "oklch(97% 0.018 62 / 0.62)")};
+  color: ${({ $error }) => ($error ? "oklch(42% 0.12 32)" : "oklch(42% 0.035 58)")};
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+`;
+
 const ALL_CATEGORIES: (PostCategory | "all")[] = [
   "all",
   "freshman",
@@ -698,8 +710,16 @@ const CATEGORY_VERDICTS: Record<PostCategory, string> = {
   career: "就业去向",
 };
 
+function isPostCategory(value: unknown): value is PostCategory {
+  return typeof value === "string" && value in CATEGORY_META;
+}
+
 function getCategoryMeta(category: PostCategory | "all") {
-  return category === "all" ? { label: "推荐", color: "#9a5a3b" } : CATEGORY_META[category];
+  return category === "all" ? { label: "推荐", color: "#9a5a3b" } : CATEGORY_META[category] ?? { label: "校园经验", color: "#9a5a3b" };
+}
+
+function getCategoryVerdict(category: PostCategory) {
+  return CATEGORY_VERDICTS[category] ?? "校园线索";
 }
 
 function sortForRole(list: ExperiencePost[], role: AudienceRole) {
@@ -716,38 +736,117 @@ function heatOf(item: ExperiencePost) {
   return item.likes + item.comments;
 }
 
+function normalizeTags(tags: unknown): string[] {
+  return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0) : [];
+}
+
+function fallbackExcerpt(body: string, excerpt?: string | null) {
+  if (excerpt?.trim()) return excerpt;
+  const firstLine = body.split(/\n+/)[0]?.trim() ?? body;
+  return firstLine.length > 86 ? `${firstLine.slice(0, 86)}...` : firstLine;
+}
+
+function toExperiencePost(item: ExperienceDTO, index: number): ExperiencePost {
+  const category = isPostCategory(item.category) ? item.category : "freshman";
+  const body = item.body?.trim() || item.excerpt?.trim() || "这条校园经验暂时只有简要信息，后续可以在后台继续补充正文。";
+  return {
+    id: item.id || `remote-exp-${index}`,
+    category,
+    schoolId: item.schoolId || "",
+    schoolName: item.schoolName || "未关联学校",
+    city: item.city || "江苏",
+    title: item.title || "未命名校园经验",
+    excerpt: fallbackExcerpt(body, item.excerpt),
+    body,
+    likes: item.likes ?? 0,
+    comments: item.comments ?? 0,
+    tags: normalizeTags(item.tags),
+  };
+}
+
+function searchInExperiences(list: ExperiencePost[], term: string) {
+  const keyword = term.trim().toLowerCase();
+  if (!keyword) return list;
+  return list.filter((item) => [item.title, item.excerpt, item.body, item.schoolName, item.city, ...item.tags]
+    .join(" ")
+    .toLowerCase()
+    .includes(keyword));
+}
+
 export default function Experiences() {
   const { role, setRole } = useAudienceRole();
   const [activeCat, setActiveCat] = useState<PostCategory | "all">("all");
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+  const [remotePosts, setRemotePosts] = useState<ExperiencePost[] | null>(null);
+  const [contentLoading, setContentLoading] = useState(true);
+  const [contentNotice, setContentNotice] = useState("");
+  const [contentNoticeIsError, setContentNoticeIsError] = useState(false);
   const roleGuide = ROLE_EXPERIENCE_GUIDES[role];
+  const posts = remotePosts ?? EXPERIENCES;
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setContentLoading(true);
+      setContentNotice("");
+      setContentNoticeIsError(false);
+      contentApi.experiences()
+        .then((data) => {
+          if (!active) return;
+          const normalized = Array.isArray(data) ? data.map(toExperiencePost) : [];
+          if (normalized.length > 0) {
+            setRemotePosts(normalized);
+            setContentNotice(`已同步后端经验库：${normalized.length} 条`);
+            setContentNoticeIsError(false);
+          } else {
+            setRemotePosts(null);
+            setContentNotice("后端经验库暂时为空，当前展示本地精选内容。");
+            setContentNoticeIsError(false);
+          }
+        })
+        .catch(() => {
+          if (!active) return;
+          setRemotePosts(null);
+          setContentNotice("后端经验接口暂时不可用，当前展示本地精选内容。");
+          setContentNoticeIsError(true);
+        })
+        .finally(() => {
+          if (active) setContentLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const filtered = useMemo(() => {
-    let list = activeCat === "all" ? sortForRole(EXPERIENCES, role) : EXPERIENCES.filter((item) => item.category === activeCat);
-    if (query.trim()) list = searchExperiences(query).filter((item) => list.includes(item));
+    let list = activeCat === "all" ? sortForRole(posts, role) : posts.filter((item) => item.category === activeCat);
+    if (query.trim()) list = searchInExperiences(list, query);
     if (schoolFilter) list = list.filter((item) => item.schoolName === schoolFilter);
     return list;
-  }, [activeCat, query, role, schoolFilter]);
+  }, [activeCat, posts, query, role, schoolFilter]);
 
   const leadNote = filtered[0] ?? null;
   const hasManualFilter = activeCat !== "all" || Boolean(query.trim()) || Boolean(schoolFilter);
 
   const hotPosts = useMemo(
-    () => [...EXPERIENCES].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 5),
-    [],
+    () => [...posts].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 5),
+    [posts],
   );
 
   const schoolStats = useMemo(() => {
     const map = new Map<string, number>();
-    EXPERIENCES.forEach((item) => {
+    posts.forEach((item) => {
       map.set(item.schoolName, (map.get(item.schoolName) ?? 0) + 1);
     });
     return [...map.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-Hans-CN"))
       .slice(0, 6);
-  }, []);
+  }, [posts]);
 
   const clearFilters = () => {
     setActiveCat("all");
@@ -803,6 +902,11 @@ export default function Experiences() {
             <Subtitle>
               把宿舍、食堂、专业、城市和升学就业拆成一张张现场切片。先看真实体感，再决定要不要把这所学校放进你的志愿清单。
             </Subtitle>
+            {(contentLoading || contentNotice) && (
+              <SyncNotice $error={contentNoticeIsError}>
+                {contentLoading ? "正在同步后端经验库..." : contentNotice}
+              </SyncNotice>
+            )}
           </div>
 
           <Briefing>
@@ -910,8 +1014,8 @@ export default function Experiences() {
               <LeadNote type="button" onClick={() => toggleExpand(leadNote.id)}>
                 <div>
                   <NoteCode>FIELD NOTE 01</NoteCode>
-                  <Tag $color={CATEGORY_META[leadNote.category].color}>
-                    {CATEGORY_META[leadNote.category].label}
+                  <Tag $color={getCategoryMeta(leadNote.category).color}>
+                    {getCategoryMeta(leadNote.category).label}
                   </Tag>
                   <LeadTitle>{leadNote.title}</LeadTitle>
                   <Excerpt>{leadNote.excerpt}</Excerpt>
@@ -926,7 +1030,7 @@ export default function Experiences() {
               <NoteStream>
                 {filtered.map((item, index) => {
                   const expanded = expandedId === item.id;
-                  const meta = CATEGORY_META[item.category];
+                  const meta = getCategoryMeta(item.category);
                   return (
                     <NoteItem
                       key={item.id}
@@ -945,7 +1049,7 @@ export default function Experiences() {
                         {!expanded && <Excerpt>{item.excerpt}</Excerpt>}
                         {expanded && <FullBody>{item.body}</FullBody>}
                         <Verdict>
-                          <VerdictPill>{CATEGORY_VERDICTS[item.category]}</VerdictPill>
+                          <VerdictPill>{getCategoryVerdict(item.category)}</VerdictPill>
                           {item.tags.slice(0, 3).map((tag) => (
                             <VerdictPill key={tag}>{tag}</VerdictPill>
                           ))}
