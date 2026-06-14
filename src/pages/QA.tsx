@@ -26,6 +26,7 @@ import {
   type AudienceRole,
   useAudienceRole,
 } from "../hooks/useAudienceRole";
+import { useTransition } from "../context/useTransition";
 import CampusAtmosphere from "../components/CampusAtmosphere";
 import { contentApi } from "../services/api";
 import type { QADTO } from "../services/types";
@@ -753,6 +754,7 @@ function shortAnswer(answer: string) {
 
 export default function QA() {
   const [searchParams] = useSearchParams();
+  const { navigateWithTransition } = useTransition();
   const requestedSchool = searchParams.get("school")?.trim() || null;
   const { role, setRole } = useAudienceRole();
   const [activeCat, setActiveCat] = useState<PostCategory | "all">("all");
@@ -842,8 +844,12 @@ export default function QA() {
     setExpandedId(null);
   };
 
+  const openQuestion = (id: string) => {
+    navigateWithTransition(`/qa/${encodeURIComponent(id)}`);
+  };
+
   const toggleExpand = (id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
+    openQuestion(id);
   };
 
   const handleRoleSelect = (nextRole: AudienceRole) => {
@@ -863,7 +869,7 @@ export default function QA() {
     setActiveCat("all");
     setQuery("");
     setSchoolFilter(null);
-    setExpandedId(item.id);
+    openQuestion(item.id);
   };
 
   const relatedQuestions = (item: QAEntry) =>

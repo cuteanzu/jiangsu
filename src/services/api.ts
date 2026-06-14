@@ -258,6 +258,9 @@ export const contentApi = {
   qa(query: QueryParams = {}) {
     return apiClient.get<QADTO[]>("/qa", query);
   },
+  question(id: string) {
+    return apiClient.get<QADTO>(`/qa/${encodeURIComponent(id)}`);
+  },
 };
 
 export const commentsApi = {

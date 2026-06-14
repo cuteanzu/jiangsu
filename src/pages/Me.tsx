@@ -1183,8 +1183,10 @@ export default function Me() {
     const nextTab = searchParams.get("tab");
     const nextSchool = searchParams.get("school")?.trim();
     const nextType = readSubmissionTypeParam(searchParams.get("type"));
+    const nextTitle = searchParams.get("title")?.trim();
+    const nextContent = searchParams.get("content")?.trim();
 
-    if (nextTab === "submissions" || nextSchool || nextType) {
+    if (nextTab === "submissions" || nextSchool || nextType || nextTitle || nextContent) {
       setTab("submissions");
     }
     if (nextSchool) {
@@ -1192,6 +1194,12 @@ export default function Me() {
     }
     if (nextType) {
       setSubmitType(nextType);
+    }
+    if (nextTitle) {
+      setSubmitTitle(nextTitle);
+    }
+    if (nextContent) {
+      setSubmitContent(nextContent);
     }
   }, [searchParams]);
 
