@@ -146,8 +146,8 @@ const submissionTypes: Array<{ value: SubmissionType; label: string; hint: strin
 
 const creatorProof = [
   { value: String(UNIVERSITIES.length), label: "高校基础数据" },
-  { value: "前后端", label: "完整工程链路" },
-  { value: "邮箱", label: "注册与找回" },
+  { value: "地图", label: "城市探索体验" },
+  { value: "账号", label: "收藏投稿闭环" },
   { value: "持续", label: "内容维护" },
 ];
 
@@ -1709,7 +1709,7 @@ export default function Me() {
                 </CreatorBadge>
                 <CreatorName>cuteanzu 正在搭建这张江苏高校地图</CreatorName>
                 <CreatorCopy>
-                  这个站点背后有数据整理、地图交互、内容结构、问答入口、后端接口、账号体系和上线流程。你的个人页会放用户资产，右侧保留创建者信息，让访问者知道这不是临时拼出来的页面。
+                  这个站点背后有高校资料整理、地图交互、内容结构、问答入口、账号体系和上线维护。右侧保留创建者信息，方便补充线索、纠错和合作联系。
                 </CreatorCopy>
               </CreatorHeader>
               <CreatorBody>
@@ -1722,12 +1722,12 @@ export default function Me() {
                   ))}
                 </ProofGrid>
                 <CreatorActions>
-                  <CreatorLink href="https://github.com/cuteanzu/jiangsu" target="_blank" rel="noreferrer">
-                    查看前端仓库
+                  <CreatorLink href="mailto:chenxiang1601@qq.com">
+                    chenxiang1601@qq.com
                     <ExternalLink />
                   </CreatorLink>
-                  <CreatorLink href="https://github.com/orgs/cuteanzu/repositories" target="_blank" rel="noreferrer">
-                    了解更多作品
+                  <CreatorLink href="mailto:chenxiang1601@qq.com?subject=江苏校园指北补充与纠错">
+                    补充信息或纠错
                     <ExternalLink />
                   </CreatorLink>
                 </CreatorActions>

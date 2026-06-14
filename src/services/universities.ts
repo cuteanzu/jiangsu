@@ -43,7 +43,7 @@ export function useUniversitiesData() {
         if (next.length === 0) {
           setUniversities(UNIVERSITIES);
           setSource("static");
-          setError("高校接口返回为空，已使用本地兜底数据");
+          setError("高校资料暂时未完整载入，已展示基础资料");
           return;
         }
         setUniversities(next);
@@ -54,7 +54,7 @@ export function useUniversitiesData() {
         if (cancelled) return;
         setUniversities(UNIVERSITIES);
         setSource("static");
-        setError(err instanceof Error ? err.message : "高校接口加载失败，已使用本地兜底数据");
+        setError(err instanceof Error ? err.message : "高校资料加载失败，已展示基础资料");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -110,7 +110,7 @@ export function useMapInsightsData() {
           hotSchools: [],
           cityProfiles: [],
           loading: false,
-          error: err instanceof Error ? err.message : "后端数据加载失败",
+          error: err instanceof Error ? err.message : "地图资料暂时不可用",
         });
       });
 

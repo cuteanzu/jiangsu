@@ -37,7 +37,7 @@ import {
   getLifeSurveyHighlights,
   getLifeSurveyItems,
   groupLifeSurveyItems,
-  surveyResponseLabel,
+  surveySignalLabel,
 } from "../../utils/lifeSurvey";
 
 const fadeIn = keyframes`
@@ -403,12 +403,29 @@ const SurveyGrid = styled.div`
   }
 `;
 
-const SurveyItem = styled.div`
+const SurveyItem = styled.button<{ $active?: boolean }>`
+  width: 100%;
   min-width: 0;
   padding: 13px;
-  border: 1px solid oklch(84% 0.026 72 / 0.66);
+  border: 1px solid ${({ $active }) => ($active ? "oklch(62% 0.095 145 / 0.68)" : "oklch(84% 0.026 72 / 0.66)")};
   border-radius: 8px;
-  background: oklch(99% 0.008 82 / 0.68);
+  background: ${({ $active }) => ($active ? "oklch(94% 0.026 145 / 0.72)" : "oklch(99% 0.008 82 / 0.68)")};
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: oklch(68% 0.07 145 / 0.72);
+    background: oklch(96.5% 0.018 145 / 0.68);
+  }
+
+  &:focus-visible {
+    outline: 3px solid oklch(72% 0.085 145 / 0.24);
+    outline-offset: 2px;
+  }
 
   strong {
     display: flex;
@@ -432,6 +449,36 @@ const SurveyItem = styled.div`
     color: oklch(43% 0.032 62);
     font-size: 12.5px;
     line-height: 1.68;
+  }
+`;
+
+const SurveyFocus = styled.div`
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px solid oklch(78% 0.054 68 / 0.62);
+  border-radius: 8px;
+  background: oklch(97% 0.018 62 / 0.72);
+  display: grid;
+  gap: 7px;
+
+  span {
+    color: oklch(45% 0.085 145);
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  strong {
+    color: oklch(24% 0.035 56);
+    font-size: 16px;
+    line-height: 1.35;
+    font-weight: 950;
+  }
+
+  p {
+    margin: 0;
+    color: oklch(42% 0.032 62);
+    font-size: 13px;
+    line-height: 1.75;
   }
 `;
 
@@ -634,6 +681,7 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const [favoriteError, setFavoriteError] = useState(false);
+  const [selectedSurveyKey, setSelectedSurveyKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!school) return;
@@ -706,6 +754,7 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
   const surveyHighlights = getLifeSurveyHighlights(lifeSurvey, 8);
   const groupedSurvey = groupLifeSurveyItems(surveyItems);
   const surveyCoverage = getLifeSurveyCoverage(lifeSurvey);
+  const selectedSurveyItem = surveyItems.find((item) => item.key === selectedSurveyKey) ?? surveyHighlights[0] ?? surveyItems[0] ?? null;
   const tierLabel = basic?.level || universityBandLabel(school);
   const tierDesc = basic?.type || universityBandReason(school);
   const recText = basic?.brief || SCHOOL_REC[school.name] || `位于${school.city}的高校档案正在补全中。`;
@@ -816,7 +865,7 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
               {(loading || error) && (
                 <Notice $error={Boolean(error)} style={{ marginTop: 14 }}>
                   {error ? <AlertCircle /> : <Search />}
-                  <div>{error || "正在同步后端学校详情。"}</div>
+                  <div>{error || "正在整理学校详情。"}</div>
                 </Notice>
               )}
             </Section>
@@ -824,8 +873,8 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
             <Section>
               <SectionHead>
                 <div>
-                  <h2>生活调查样本</h2>
-                  <p>来自 CSV 导入的真实问卷摘要，适合快速判断宿舍、外卖、门禁、交通和校园基础设施。</p>
+                  <h2>校园生活画像</h2>
+                  <p>把住宿、学习、生活和出行拆成可点击维度，先看整体强度，再点开细节判断。</p>
                 </div>
                 <Database />
               </SectionHead>
@@ -833,8 +882,8 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
                 <>
                   <SurveyOverview>
                     <SurveyStat>
-                      <span>答卷样本</span>
-                      <strong>{surveyResponseLabel(lifeSurvey)}</strong>
+                      <span>画像强度</span>
+                      <strong>{surveySignalLabel(lifeSurvey)}</strong>
                     </SurveyStat>
                     <SurveyStat>
                       <span>覆盖维度</span>
@@ -856,7 +905,12 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
 
                   <SurveyGrid>
                     {surveyHighlights.map((item) => (
-                      <SurveyItem key={item.key}>
+                      <SurveyItem
+                        key={item.key}
+                        type="button"
+                        $active={selectedSurveyItem?.key === item.key}
+                        onClick={() => setSelectedSurveyKey(item.key)}
+                      >
                         <strong>
                           {item.label}
                           <em>{item.group}</em>
@@ -866,19 +920,18 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
                     ))}
                   </SurveyGrid>
 
-                  {lifeSurvey?.sourceUrl && (
-                    <ActionStack>
-                      <ActionButton type="button" onClick={() => window.open(lifeSurvey.sourceUrl, "_blank", "noopener,noreferrer")}>
-                        查看调查来源
-                        <ExternalLink />
-                      </ActionButton>
-                    </ActionStack>
+                  {selectedSurveyItem && (
+                    <SurveyFocus>
+                      <span>{selectedSurveyItem.group}维度 · 点击上方维度可切换</span>
+                      <strong>{selectedSurveyItem.label}</strong>
+                      <p>{selectedSurveyItem.summary}</p>
+                    </SurveyFocus>
                   )}
                 </>
               ) : (
                 <Notice>
                   <AlertCircle />
-                  <div>这所学校还没有匹配到生活调查摘要。导入 CSV 并完成学校名匹配后，宿舍、空调、独卫、门禁等维度会显示在这里。</div>
+                  <div>这所学校的生活画像还在补全。你可以先看城市画像，或提交宿舍、空调、独卫、门禁等线索。</div>
                 </Notice>
               )}
             </Section>
@@ -887,7 +940,7 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
               <SectionHead>
                 <div>
                   <h2>校园生活</h2>
-                  <p>这里优先展示后端 lifeInfo。没有数据时，用城市生活画像兜底，并引导用户补全。</p>
+                  <p>用已整理的生活评分和城市画像补足判断，不把学校理解成一串冷冰冰的字段。</p>
                 </div>
                 <Home />
               </SectionHead>
@@ -928,7 +981,7 @@ export default function SchoolDetailOverlay({ schoolName, universities = UNIVERS
               {!lifeInfo && (
                 <Notice style={{ marginTop: 14 }}>
                   <AlertCircle />
-                  <div>这所学校的生活评分还没有进入后端档案。你可以提交宿舍、食堂、学习氛围和周边信息，审核后会补进这里。</div>
+                  <div>这所学校的生活评分还在补全。你可以提交宿舍、食堂、学习氛围和周边信息，审核后会补进这里。</div>
                 </Notice>
               )}
             </Section>

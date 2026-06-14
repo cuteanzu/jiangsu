@@ -796,18 +796,18 @@ export default function Experiences() {
           const normalized = Array.isArray(data) ? data.map(toExperiencePost) : [];
           if (normalized.length > 0) {
             setRemotePosts(normalized);
-            setContentNotice(`已同步后端经验库：${normalized.length} 条`);
+            setContentNotice(`已整理校园经验：${normalized.length} 条`);
             setContentNoticeIsError(false);
           } else {
             setRemotePosts(null);
-            setContentNotice("后端经验库暂时为空，当前展示本地精选内容。");
+            setContentNotice("校园经验暂时不多，当前展示精选样本。");
             setContentNoticeIsError(false);
           }
         })
         .catch(() => {
           if (!active) return;
           setRemotePosts(null);
-          setContentNotice("后端经验接口暂时不可用，当前展示本地精选内容。");
+          setContentNotice("校园经验暂时不可用，当前展示精选样本。");
           setContentNoticeIsError(true);
         })
         .finally(() => {
@@ -902,7 +902,7 @@ export default function Experiences() {
             </Subtitle>
             {(contentLoading || contentNotice) && (
               <SyncNotice $error={contentNoticeIsError}>
-                {contentLoading ? "正在同步后端经验库..." : contentNotice}
+                {contentLoading ? "正在整理校园经验..." : contentNotice}
               </SyncNotice>
             )}
           </div>

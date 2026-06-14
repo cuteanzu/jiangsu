@@ -674,7 +674,7 @@ export default function ExperienceDetail() {
       return;
     }
     if (!schoolRecord?.id) {
-      setSubmitError("这条经验还没有匹配到后端学校档案，暂时不能评论。");
+      setSubmitError("这条经验还没有匹配到学校档案，暂时不能评论。");
       setSubmitMessage("");
       return;
     }

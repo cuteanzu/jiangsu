@@ -296,7 +296,7 @@ export default function SchoolInfoCard({
   const handleToggleFavorite = async () => {
     if (!schoolRecord) {
       setFavoriteError(true);
-      setFavoriteMessage("后端档案同步后就可以收藏这所学校。");
+      setFavoriteMessage("学校档案完善后就可以收藏这所学校。");
       return;
     }
 

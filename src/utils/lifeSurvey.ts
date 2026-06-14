@@ -89,8 +89,24 @@ export function clipSurveySummary(value: string, max = 52) {
 }
 
 export function surveyResponseLabel(survey?: LifeSurveyDTO | null) {
-  const count = survey?.responseCount ?? 0;
-  return count > 0 ? `${count} 份答卷` : "样本待补";
+  return surveySignalLabel(survey);
+}
+
+export function surveySignalValue(survey?: LifeSurveyDTO | null) {
+  const coverage = getLifeSurveyCoverage(survey);
+  if (coverage <= 0) return 0;
+
+  const count = Math.max(0, survey?.responseCount ?? 0);
+  const responseBoost = Math.min(35, Math.round(Math.log10(count + 1) * 23));
+  return Math.min(100, Math.round(coverage * 0.65 + responseBoost));
+}
+
+export function surveySignalLabel(survey?: LifeSurveyDTO | null) {
+  const signal = surveySignalValue(survey);
+  if (signal >= 82) return "高热画像";
+  if (signal >= 62) return "稳定画像";
+  if (signal > 0) return "轻量画像";
+  return "画像待补";
 }
 
 export function groupLifeSurveyItems(items: LifeSurveyItem[]) {

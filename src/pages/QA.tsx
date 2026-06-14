@@ -780,18 +780,18 @@ export default function QA() {
           const normalized = Array.isArray(data) ? data.map(toQAEntry) : [];
           if (normalized.length > 0) {
             setRemoteQuestions(normalized);
-            setContentNotice(`已同步后端问答库：${normalized.length} 条`);
+            setContentNotice(`已整理问答线索：${normalized.length} 条`);
             setContentNoticeIsError(false);
           } else {
             setRemoteQuestions(null);
-            setContentNotice("后端问答库暂时为空，当前展示本地精选内容。");
+            setContentNotice("问答线索暂时不多，当前展示精选样本。");
             setContentNoticeIsError(false);
           }
         })
         .catch(() => {
           if (!active) return;
           setRemoteQuestions(null);
-          setContentNotice("后端问答接口暂时不可用，当前展示本地精选内容。");
+          setContentNotice("问答线索暂时不可用，当前展示精选样本。");
           setContentNoticeIsError(true);
         })
         .finally(() => {
@@ -904,7 +904,7 @@ export default function QA() {
             </Subtitle>
             {(contentLoading || contentNotice) && (
               <SyncNotice $error={contentNoticeIsError}>
-                {contentLoading ? "正在同步后端问答库..." : contentNotice}
+                {contentLoading ? "正在整理问答线索..." : contentNotice}
               </SyncNotice>
             )}
           </div>

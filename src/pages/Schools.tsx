@@ -33,7 +33,8 @@ import {
   getLifeSurveyHighlights,
   getLifeSurveyItems,
   hasLifeSurvey,
-  surveyResponseLabel,
+  surveySignalLabel,
+  surveySignalValue,
 } from "../utils/lifeSurvey";
 
 type DataSource = "api" | "static";
@@ -786,7 +787,7 @@ export default function Schools() {
           cities: nextCities,
           source: "api",
           loading: false,
-          notice: `已同步后端学校库：${nextSchools.length} 所学校。`,
+          notice: `已整理 ${nextSchools.length} 所学校档案。`,
           error: "",
         });
         return;
@@ -797,8 +798,8 @@ export default function Schools() {
         cities: nextCities,
         source: "static",
         loading: false,
-        notice: "后端学校库暂时为空，当前使用本地高校数据兜底。",
-        error: schoolsResult.status === "rejected" ? "学校接口暂时不可用。" : "",
+        notice: "学校档案暂时未完整载入，当前展示基础高校资料。",
+        error: schoolsResult.status === "rejected" ? "学校资料暂时不可用。" : "",
       });
     });
 
@@ -898,14 +899,16 @@ export default function Schools() {
     const surveys = Object.values(detailMap)
       .map((detail) => detail?.lifeSurvey ?? null)
       .filter(hasLifeSurvey);
-    const totalResponses = surveys.reduce((sum, survey) => sum + (survey?.responseCount ?? 0), 0);
     const averageSurveyCoverage = surveys.length > 0
       ? Math.round(surveys.reduce((sum, survey) => sum + getLifeSurveyCoverage(survey), 0) / surveys.length)
       : 0;
+    const averageSurveySignal = surveys.length > 0
+      ? Math.round(surveys.reduce((sum, survey) => sum + surveySignalValue(survey), 0) / surveys.length)
+      : 0;
     return {
       surveySchoolCount: surveys.length,
-      totalResponses,
       averageSurveyCoverage,
+      averageSurveySignal,
     };
   }, [detailMap]);
 
@@ -961,11 +964,10 @@ export default function Schools() {
           </div>
 
           <StatusPanel>
-            <StatusLine><span>数据源</span><strong>{state.source === "api" ? "后端数据库" : "本地兜底"}</strong></StatusLine>
-            <StatusLine><span>学校记录</span><strong>{state.schools.length} 所</strong></StatusLine>
+            <StatusLine><span>学校档案</span><strong>{state.schools.length} 所</strong></StatusLine>
             <StatusLine><span>覆盖城市</span><strong>{cityOptions.length} 个</strong></StatusLine>
-            <StatusLine><span>有内容线索</span><strong>{contentSchools} 所</strong></StatusLine>
-            <StatusLine><span>生活调查</span><strong>{surveyStats.surveySchoolCount > 0 ? `${surveyStats.surveySchoolCount} 所` : "同步中"}</strong></StatusLine>
+            <StatusLine><span>内容线索</span><strong>{contentSchools} 所</strong></StatusLine>
+            <StatusLine><span>生活画像</span><strong>{surveyStats.surveySchoolCount > 0 ? `${surveyStats.surveySchoolCount} 所` : "整理中"}</strong></StatusLine>
             {state.cities.length > 0 && <StatusLine><span>城市画像</span><strong>{state.cities.length} 份</strong></StatusLine>}
           </StatusPanel>
         </Header>
@@ -1093,9 +1095,9 @@ export default function Schools() {
                     <SignalStack>
                       <SignalLine><span>热度</span><Meter><MeterFill $value={hotScore} /></Meter><span>{hotScore}</span></SignalLine>
                       <SignalLine><span>资料</span><Meter><MeterFill $value={coverage} $tone="blue" /></Meter><span>{coverage}%</span></SignalLine>
-                      <SignalLine><span>生活</span><Meter><MeterFill $value={surveyCoverage} $tone="green" /></Meter><span>{surveyItems.length || "待"}</span></SignalLine>
+                      <SignalLine><span>生活</span><Meter><MeterFill $value={surveyCoverage} $tone="green" /></Meter><span>{surveyCoverage > 0 ? `${surveyCoverage}%` : "待"}</span></SignalLine>
                       <MetaRow>
-                        <MetaPill $tone={surveyItems.length > 0 ? "green" : "warm"}><Database />{surveyResponseLabel(survey)}</MetaPill>
+                        <MetaPill $tone={surveyItems.length > 0 ? "green" : "warm"}><Database />{surveySignalLabel(survey)}</MetaPill>
                         <MetaPill><BookOpen />{expCount} 经验</MetaPill>
                         <MetaPill><MessageCircle />{questionCount} 问答</MetaPill>
                       </MetaRow>
@@ -1135,17 +1137,17 @@ export default function Schools() {
             </InsightPanel>
 
             <InsightPanel>
-              <PanelTitle><span>数据完整度</span><Database /></PanelTitle>
+              <PanelTitle><span>资料画像</span><Database /></PanelTitle>
               <SignalStack>
                 <SignalLine><span>平均资料</span><Meter><MeterFill $value={averageCoverage} $tone="blue" /></Meter><span>{averageCoverage}%</span></SignalLine>
-                <SignalLine><span>生活调查</span><Meter><MeterFill $value={surveyStats.averageSurveyCoverage} $tone="green" /></Meter><span>{surveyStats.surveySchoolCount}</span></SignalLine>
-                <SignalLine><span>调查样本</span><Meter><MeterFill $value={Math.min(100, surveyStats.totalResponses / 10)} /></Meter><span>{surveyStats.totalResponses}</span></SignalLine>
+                <SignalLine><span>生活画像</span><Meter><MeterFill $value={surveyStats.averageSurveyCoverage} $tone="green" /></Meter><span>{surveyStats.surveySchoolCount}所</span></SignalLine>
+                <SignalLine><span>画像强度</span><Meter><MeterFill $value={surveyStats.averageSurveySignal} /></Meter><span>{surveyStats.averageSurveySignal}%</span></SignalLine>
                 <SignalLine><span>经验覆盖</span><Meter><MeterFill $value={Math.min(100, (experienceCountMap.size / Math.max(1, state.schools.length)) * 100)} $tone="green" /></Meter><span>{experienceCountMap.size}</span></SignalLine>
                 <SignalLine><span>问答覆盖</span><Meter><MeterFill $value={Math.min(100, (qaCountMap.size / Math.max(1, state.schools.length)) * 100)} /></Meter><span>{qaCountMap.size}</span></SignalLine>
               </SignalStack>
               <Notice>
                 <AlertCircle />
-                <span>生活调查来自后端 lifeSurvey。列表展示摘要，进入学校地图档案可以查看更多维度。</span>
+                <span>生活画像把宿舍、外卖、门禁、交通等维度拆开，进入学校地图档案后可以继续点击查看。</span>
               </Notice>
             </InsightPanel>
           </InsightRail>
