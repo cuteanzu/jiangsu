@@ -221,6 +221,139 @@ const CommandBar = styled.section`
   }
 `;
 
+const ControlDeck = styled.section`
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 14px;
+  animation: ${lift} 0.34s ease-out 0.06s both;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FilterPassport = styled(Surface)`
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+`;
+
+const PassportHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  strong {
+    color: oklch(23% 0.035 55);
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  span {
+    color: oklch(48% 0.03 62);
+    font-size: 12px;
+    font-weight: 850;
+  }
+`;
+
+const PassportGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 700px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+const PassportCell = styled.div<{ $tone?: "blue" | "green" | "warm" }>`
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid ${(p) => {
+    if (p.$tone === "blue") return "oklch(74% 0.06 205 / 0.38)";
+    if (p.$tone === "green") return "oklch(74% 0.07 145 / 0.38)";
+    return "oklch(82% 0.03 72 / 0.68)";
+  }};
+  border-radius: 8px;
+  background: ${(p) => {
+    if (p.$tone === "blue") return "oklch(96% 0.018 205 / 0.52)";
+    if (p.$tone === "green") return "oklch(96% 0.02 145 / 0.48)";
+    return "oklch(99% 0.008 82 / 0.58)";
+  }};
+
+  span {
+    display: block;
+    color: oklch(50% 0.03 62);
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  strong {
+    display: block;
+    margin-top: 6px;
+    color: oklch(25% 0.035 55);
+    font-size: 17px;
+    line-height: 1.15;
+    font-weight: 950;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const CompareDock = styled(Surface)`
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+`;
+
+const CompareSlots = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+`;
+
+const CompareSlot = styled.button<{ $empty?: boolean }>`
+  min-width: 0;
+  min-height: 72px;
+  border: 1px dashed ${(p) => (p.$empty ? "oklch(78% 0.035 72 / 0.72)" : "oklch(68% 0.07 48 / 0.58)")};
+  border-radius: 8px;
+  background: ${(p) => (p.$empty ? "oklch(99% 0.008 82 / 0.42)" : "oklch(95% 0.028 48 / 0.68)")};
+  color: ${(p) => (p.$empty ? "oklch(52% 0.03 62)" : "oklch(33% 0.065 45)")};
+  cursor: ${(p) => (p.$empty ? "default" : "pointer")};
+  padding: 9px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  text-align: left;
+  font: inherit;
+
+  strong {
+    min-width: 0;
+    color: inherit;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 950;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: oklch(46% 0.035 58);
+    font-size: 11px;
+    font-weight: 800;
+  }
+`;
+
+const CompareHint = styled.div`
+  color: oklch(48% 0.03 62);
+  font-size: 12px;
+  line-height: 1.6;
+`;
+
 const SearchBox = styled.label`
   position: relative;
   display: block;
@@ -421,12 +554,13 @@ const SchoolList = styled.div`
   display: grid;
 `;
 
-const SchoolRow = styled.article`
+const SchoolRow = styled.article<{ $selected?: boolean }>`
   display: grid;
-  grid-template-columns: minmax(230px, 1.05fr) minmax(210px, 0.85fr) 132px;
+  grid-template-columns: 54px minmax(230px, 1.05fr) minmax(210px, 0.85fr) 132px;
   gap: 16px;
   padding: 17px 18px;
   border-bottom: 1px solid oklch(88% 0.02 72 / 0.58);
+  background: ${(p) => (p.$selected ? "oklch(96% 0.026 48 / 0.58)" : "transparent")};
   align-items: center;
 
   &:last-child {
@@ -439,6 +573,23 @@ const SchoolRow = styled.article`
 
   @media (max-width: 1040px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+const SchoolRank = styled.div`
+  width: 42px;
+  height: 42px;
+  border: 1px solid oklch(82% 0.03 72 / 0.68);
+  border-radius: 8px;
+  background: oklch(99% 0.008 82 / 0.62);
+  color: oklch(44% 0.075 48);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 950;
+
+  @media (max-width: 1040px) {
+    display: none;
   }
 `;
 
@@ -566,13 +717,13 @@ const ActionColumn = styled.div`
   gap: 8px;
 `;
 
-const ActionButton = styled.button<{ $primary?: boolean }>`
+const ActionButton = styled.button<{ $primary?: boolean; $active?: boolean }>`
   min-height: 36px;
   padding: 0 11px;
-  border: 1px solid ${(p) => (p.$primary ? "oklch(64% 0.11 43 / 0.58)" : "oklch(82% 0.028 72 / 0.72)")};
+  border: 1px solid ${(p) => (p.$active ? "oklch(58% 0.09 145 / 0.58)" : p.$primary ? "oklch(64% 0.11 43 / 0.58)" : "oklch(82% 0.028 72 / 0.72)")};
   border-radius: 8px;
-  background: ${(p) => (p.$primary ? "oklch(94.5% 0.035 45 / 0.84)" : "oklch(99% 0.008 82 / 0.66)")};
-  color: ${(p) => (p.$primary ? "oklch(42% 0.1 42)" : "oklch(39% 0.04 58)")};
+  background: ${(p) => (p.$active ? "oklch(94% 0.026 145 / 0.72)" : p.$primary ? "oklch(94.5% 0.035 45 / 0.84)" : "oklch(99% 0.008 82 / 0.66)")};
+  color: ${(p) => (p.$active ? "oklch(35% 0.085 145)" : p.$primary ? "oklch(42% 0.1 42)" : "oklch(39% 0.04 58)")};
   cursor: pointer;
   display: inline-flex;
   justify-content: space-between;
@@ -760,6 +911,7 @@ export default function Schools() {
   const [type, setType] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("hot");
   const [detailMap, setDetailMap] = useState<Record<number, SchoolDetailDTO | null>>({});
+  const [compareIds, setCompareIds] = useState<number[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -852,6 +1004,11 @@ export default function Schools() {
   }, [city, level, query, sortKey, state.schools, type]);
 
   useEffect(() => {
+    const available = new Set(state.schools.map((school) => school.id));
+    setCompareIds((current) => current.filter((id) => available.has(id)));
+  }, [state.schools]);
+
+  useEffect(() => {
     if (state.source !== "api" || state.loading) return;
     const ids = filteredSchools
       .slice(0, 60)
@@ -920,6 +1077,28 @@ export default function Schools() {
     setSortKey("hot");
   };
 
+  const compareSchools = useMemo(
+    () => compareIds
+      .map((id) => state.schools.find((school) => school.id === id))
+      .filter((school): school is SchoolDTO => Boolean(school)),
+    [compareIds, state.schools],
+  );
+
+  const filterPassport = useMemo(() => {
+    const cityText = city === "all" ? "全省" : city;
+    const levelText = level === "all" ? "全部层次" : level;
+    const typeText = type === "all" ? "全部类型" : type;
+    const keywordText = query.trim() || "未输入";
+    return { cityText, levelText, typeText, keywordText };
+  }, [city, level, query, type]);
+
+  const toggleCompare = (school: SchoolDTO) => {
+    setCompareIds((current) => {
+      if (current.includes(school.id)) return current.filter((id) => id !== school.id);
+      return [...current.slice(-2), school.id];
+    });
+  };
+
   const openMap = (school: SchoolDTO) => {
     const local = localUniversityFor(school);
     const params = new URLSearchParams();
@@ -950,16 +1129,16 @@ export default function Schools() {
       <Shell>
         <Header>
           <div>
-            <Eyebrow><Database />SCHOOL DATA DESK</Eyebrow>
-            <Title>高校库</Title>
+            <Eyebrow><Database />SCHOOL FILTER DESK</Eyebrow>
+            <Title>择校筛选台</Title>
             <Intro>
-              把学校名单、城市分布、资料完整度、校园经验和问答线索放在同一个工作台里。先筛出候选学校，再进入地图、经验和问答继续判断。
+              把学校名单、城市分布、资料完整度、生活画像、经验和问答线索放在同一个控制台里。先筛出候选学校，再加入对比，最后进入地图档案细看。
             </Intro>
             <FlowRail>
-              <FlowChip $active><Database />高校库</FlowChip>
-              <FlowChip><Compass />地图探索</FlowChip>
-              <FlowChip><BookOpen />校园经验</FlowChip>
-              <FlowChip><MessageCircle />问题分诊</FlowChip>
+              <FlowChip $active><Database />筛选台</FlowChip>
+              <FlowChip><Compass />发现台</FlowChip>
+              <FlowChip><BookOpen />现场笔记</FlowChip>
+              <FlowChip><MessageCircle />分诊台</FlowChip>
             </FlowRail>
           </div>
 
@@ -993,6 +1172,57 @@ export default function Schools() {
             重置筛选{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
           </ResetButton>
         </CommandBar>
+
+        <ControlDeck>
+          <FilterPassport>
+            <PassportHead>
+              <strong>当前筛选护照</strong>
+              <span>{filteredSchools.length} 所进入候选池</span>
+            </PassportHead>
+            <PassportGrid>
+              <PassportCell $tone="warm">
+                <span>城市范围</span>
+                <strong>{filterPassport.cityText}</strong>
+              </PassportCell>
+              <PassportCell $tone="blue">
+                <span>学校层次</span>
+                <strong>{filterPassport.levelText}</strong>
+              </PassportCell>
+              <PassportCell $tone="green">
+                <span>学校类型</span>
+                <strong>{filterPassport.typeText}</strong>
+              </PassportCell>
+              <PassportCell>
+                <span>关键词</span>
+                <strong>{filterPassport.keywordText}</strong>
+              </PassportCell>
+            </PassportGrid>
+          </FilterPassport>
+
+          <CompareDock>
+            <PassportHead>
+              <strong>候选对比</strong>
+              <span>{compareSchools.length}/3</span>
+            </PassportHead>
+            <CompareSlots>
+              {[0, 1, 2].map((slot) => {
+                const school = compareSchools[slot];
+                return school ? (
+                  <CompareSlot key={school.id} type="button" onClick={() => openMap(school)}>
+                    <strong>{school.name}</strong>
+                    <span>{displayCity(school)} · {displayLevel(school)}</span>
+                  </CompareSlot>
+                ) : (
+                  <CompareSlot key={slot} type="button" $empty>
+                    <strong>空位</strong>
+                    <span>加入学校</span>
+                  </CompareSlot>
+                );
+              })}
+            </CompareSlots>
+            <CompareHint>在学校行里点“加入对比”，先收拢 2 到 3 所，再进入地图档案细看生活画像。</CompareHint>
+          </CompareDock>
+        </ControlDeck>
 
         <Layout>
           <FilterPanel>
@@ -1039,7 +1269,7 @@ export default function Schools() {
             <ResultsHead>
               <ResultsTitle>
                 <strong>{filteredSchools.length} 所学校匹配当前条件</strong>
-                <span>每一行都可以继续进入地图、经验和问答。</span>
+                <span>每一行都可以加入对比，或继续进入地图、经验和问答。</span>
               </ResultsTitle>
               <SortSelect value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)}>
                 <option value="hot">按热度排序</option>
@@ -1057,7 +1287,7 @@ export default function Schools() {
               {!state.loading && filteredSchools.length === 0 && (
                 <Empty>没有找到匹配学校，可以换一个城市、层次或关键词。</Empty>
               )}
-              {!state.loading && filteredSchools.map((school) => {
+              {!state.loading && filteredSchools.map((school, index) => {
                 const cityName = displayCity(school);
                 const levelName = displayLevel(school);
                 const typeName = displayType(school);
@@ -1070,8 +1300,10 @@ export default function Schools() {
                 const surveyItems = getLifeSurveyItems(survey);
                 const surveyCoverage = getLifeSurveyCoverage(survey);
                 const surveyHighlights = getLifeSurveyHighlights(survey, 2);
+                const isCompared = compareIds.includes(school.id);
                 return (
-                  <SchoolRow key={`${school.id}-${school.name}`}>
+                  <SchoolRow key={`${school.id}-${school.name}`} $selected={isCompared}>
+                    <SchoolRank>{String(index + 1).padStart(2, "0")}</SchoolRank>
                     <div>
                       <SchoolName>{school.name}</SchoolName>
                       <MetaRow>
@@ -1105,6 +1337,7 @@ export default function Schools() {
 
                     <ActionColumn>
                       <ActionButton $primary type="button" onClick={() => openMap(school)}>地图档案<ArrowRight /></ActionButton>
+                      <ActionButton $active={isCompared} type="button" onClick={() => toggleCompare(school)}>{isCompared ? "移出对比" : "加入对比"}<BarChart3 /></ActionButton>
                       <ActionButton type="button" onClick={() => openExperiences(school)}>看经验<BookOpen /></ActionButton>
                       <ActionButton type="button" onClick={() => openQA(school)}>查问答<MessageCircle /></ActionButton>
                       {school.website && <ActionButton type="button" onClick={() => openWebsite(school)}>官网<ExternalLink /></ActionButton>}
