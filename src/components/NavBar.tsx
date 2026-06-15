@@ -5,11 +5,11 @@ import { useTransition } from "../context/useTransition";
 import { useAuth } from "../hooks/useAuth";
 
 const NAV_ITEMS = [
-  { path: "/", label: "首页" },
-  { path: "/schools", label: "高校库" },
-  { path: "/jiangsu", label: "探索地图" },
-  { path: "/experiences", label: "校园经验" },
-  { path: "/qa", label: "问答" },
+  { path: "/", label: "首页", role: "总览" },
+  { path: "/schools", label: "高校库", role: "筛选台" },
+  { path: "/jiangsu", label: "探索地图", role: "发现台" },
+  { path: "/experiences", label: "校园经验", role: "现场笔记" },
+  { path: "/qa", label: "问答", role: "分诊台" },
 ] as const;
 
 const Bar = styled.nav<{ $dark?: boolean; $hidden: boolean }>`
@@ -24,13 +24,13 @@ const Bar = styled.nav<{ $dark?: boolean; $hidden: boolean }>`
   justify-content: space-between;
   padding: 0 32px;
   background: ${(p) =>
-    p.$dark ? "rgba(0, 0, 0, 0.85)" : "rgba(253, 247, 242, 0.9)"};
+    p.$dark ? "oklch(9% 0.018 72 / 0.88)" : "oklch(97% 0.014 78 / 0.92)"};
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid
     ${(p) =>
-      p.$dark ? "rgba(255, 255, 255, 0.08)" : "rgba(180, 150, 130, 0.18)"};
-  font-family: "Noto Serif SC", "Songti SC", "STSong", "KaiTi", serif;
+      p.$dark ? "oklch(96% 0.008 78 / 0.1)" : "oklch(78% 0.035 70 / 0.28)"};
+  font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
   box-sizing: border-box;
   transform: translateY(${(p) => (p.$hidden ? "-100%" : "0")});
   transition: transform 0.35s ease;
@@ -46,9 +46,9 @@ const Brand = styled.button<{ $dark?: boolean }>`
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: 16px;
-  font-weight: 700;
-  color: ${(p) => (p.$dark ? "#fff" : "#3a2f28")};
+  font-size: 15px;
+  font-weight: 950;
+  color: ${(p) => (p.$dark ? "oklch(96% 0.008 78)" : "oklch(25% 0.035 55)")};
   letter-spacing: 0;
   padding: 0;
   white-space: nowrap;
@@ -61,7 +61,7 @@ const Brand = styled.button<{ $dark?: boolean }>`
 const Links = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   position: relative;
 `;
 
@@ -70,31 +70,51 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
+  min-height: 42px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  font-size: 13px;
   color: ${(p) =>
     p.$dark
       ? p.$active
-        ? "#c76b5e"
-        : "rgba(255,255,255,0.65)"
+        ? "oklch(72% 0.12 42)"
+        : "oklch(88% 0.01 78 / 0.68)"
       : p.$active
-        ? "#c76b5e"
-        : "#6b5d53"};
-  font-weight: ${(p) => (p.$active ? 700 : 500)};
-  padding: 6px 14px;
-  border-radius: 6px;
+        ? "oklch(48% 0.11 42)"
+        : "oklch(38% 0.032 58)"};
+  font-weight: ${(p) => (p.$active ? 900 : 760)};
+  padding: 5px 11px;
+  border-radius: 8px;
   position: relative;
   transition: color 0.25s ease, background 0.25s ease;
   white-space: nowrap;
 
+  span {
+    line-height: 1.05;
+  }
+
+  em {
+    color: ${(p) =>
+      p.$dark ? "oklch(82% 0.01 78 / 0.38)" : "oklch(48% 0.03 62 / 0.68)"};
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 800;
+  }
+
   &:hover {
     color: #c76b5e;
     background: ${(p) =>
-      p.$dark ? "rgba(199, 107, 94, 0.1)" : "rgba(199, 107, 94, 0.06)"};
+      p.$dark ? "oklch(72% 0.12 42 / 0.12)" : "oklch(88% 0.055 48 / 0.18)"};
   }
 
   @media (max-width: 640px) {
     font-size: 13px;
     padding: 6px 8px;
+
+    em {
+      display: none;
+    }
   }
 `;
 
@@ -102,7 +122,7 @@ const Indicator = styled.div`
   position: absolute;
   bottom: 0;
   height: 2px;
-  background: #c76b5e;
+  background: oklch(60% 0.12 42);
   border-radius: 1px;
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 `;
@@ -229,7 +249,8 @@ export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: bool
             data-active={isActive(item.path) ? "" : undefined}
             onClick={() => handleNav(item.path)}
           >
-            {item.label}
+            <span>{item.label}</span>
+            <em>{item.role}</em>
           </NavLink>
         ))}
         <Indicator style={indicatorStyle} />

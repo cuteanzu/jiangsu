@@ -7,6 +7,7 @@ import AtmosphereLayer from "./AtmosphereLayer";
 import Particles from "./Particles";
 import FirstView from "./sections/FirstView";
 import Reel3D from "./sections/Reel3D";
+import ModuleCommand from "./sections/ModuleCommand";
 import Dimensions from "./sections/Dimensions";
 import GalleryWall from "./sections/GalleryWall";
 import FeaturedUniversities from "./sections/FeaturedUniversities";
@@ -310,6 +311,10 @@ export default function Home() {
         </CursorAura>
         <Shell data-page-content>
           <FirstView />
+          <section data-reveal>
+            <ModuleCommand />
+          </section>
+
           <Reel3D />
 
           <section data-reveal>

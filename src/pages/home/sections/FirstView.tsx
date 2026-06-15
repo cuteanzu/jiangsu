@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { ArrowRight, Compass, GraduationCap, MapPin } from "lucide-react";
+import { ArrowRight, Compass, Database, GraduationCap } from "lucide-react";
 import { spin } from "../Home.styles";
 import { TIER_LABEL } from "../../../data/jiangsu-universities";
 import type { Tier } from "../../../data/jiangsu-universities";
@@ -105,7 +105,7 @@ const TitleEn = styled(TitleInner)`
 
 const TitleCn = styled(TitleInner)`
   font-family: var(--font-display, serif);
-  font-size: clamp(72px, 14vw, 176px);
+  font-size: clamp(72px, 13vw, 164px);
   line-height: 0.82;
   color: var(--color-accent, #c76b5e);
   font-weight: 950;
@@ -277,34 +277,33 @@ export default function FirstView() {
       <Content>
         <Kicker data-motion-hero="kicker">
           <GraduationCap size={14} />
-          江苏高校
+          JIANGSU CAMPUS GUIDE
         </Kicker>
         <Title>
           <TitleLine>
-            <TitleEn data-title-word>Welcome to</TitleEn>
+            <TitleEn data-title-word>江苏校园</TitleEn>
           </TitleLine>
           <TitleLine>
-            <TitleCn data-title-word>江苏</TitleCn>
+            <TitleCn data-title-word>指北</TitleCn>
           </TitleLine>
         </Title>
         <Subtitle data-motion-hero="copy">
-          覆盖江苏 13 个城市、47 所本科院校。按学校层次、所在城市、
-          专业方向多维度呈现，帮助快速了解和比较。
+          把高校库、空间地图、校园经验和问答分诊放进一条择校路线。先筛学校，再看城市和生活细节，最后把问题沉淀成可行动的清单。
         </Subtitle>
         <Actions data-motion-hero="copy">
           <ActionButton
             $primary
             className="ui-press"
-            data-mouse-target="入图"
-            onClick={() => navigateWithTransition("/jiangsu")}
+            data-mouse-target="高校库"
+            onClick={() => navigateWithTransition("/schools")}
           >
-            <MapPin size={17} />
-            查看地图
+            <Database size={17} />
+            进入高校库
             <ArrowRight size={16} />
           </ActionButton>
-          <ActionButton className="ui-press" data-mouse-target="问答" onClick={() => navigateWithTransition("/qa")}>
+          <ActionButton className="ui-press" data-mouse-target="地图" onClick={() => navigateWithTransition("/jiangsu")}>
             <Compass size={17} />
-            问答
+            探索地图
           </ActionButton>
         </Actions>
         <TierTags data-motion-hero="copy">
