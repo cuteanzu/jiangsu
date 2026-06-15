@@ -3,6 +3,9 @@ import styled, { css, keyframes } from "styled-components";
 import bgImage from "/bg.webp";
 import schoolHero from "/jiangsu/school-hero.png";
 import schoolScenery from "/jiangsu/school-scenery.png";
+import sakuraCorner from "/jiangsu-elements/sakura-corner-clean.png";
+import sakuraBranchCorner from "/jiangsu-elements/sakura-branch-corner-clean.png";
+import petalSparkles from "/jiangsu-elements/petal-sparkles-clean.png";
 
 type CampusAtmosphereVariant = "schools" | "notes" | "qa" | "profile";
 
@@ -142,43 +145,40 @@ const Layer = styled.div<{ $variant: CampusAtmosphereVariant }>`
 const BranchLayer = styled.div`
   position: fixed;
   inset: var(--nav-height, 72px) 0 auto auto;
-  width: min(520px, 46vw);
-  height: 180px;
+  width: min(620px, 54vw);
+  height: 220px;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.82;
+  opacity: 0.88;
   transform-origin: right top;
   animation: ${branchSway} 9s ease-in-out infinite;
+  background:
+    url(${sakuraBranchCorner}) right top / min(360px, 42vw) auto no-repeat,
+    url(${sakuraCorner}) right 12px top 6px / min(280px, 30vw) auto no-repeat;
+  filter: drop-shadow(0 16px 24px oklch(56% 0.08 24 / 0.16));
 
   &::before {
     content: "";
     position: absolute;
-    right: -34px;
-    top: 34px;
-    width: 112%;
-    height: 76px;
-    border-top: 11px solid oklch(34% 0.05 38 / 0.38);
-    border-radius: 56% 0 0 0;
-    transform: rotate(-10deg);
+    right: 46px;
+    top: 116px;
+    width: 180px;
+    height: 54px;
+    background: url(${petalSparkles}) center / contain no-repeat;
+    opacity: 0.5;
+    transform: rotate(-8deg);
   }
 
   &::after {
     content: "";
     position: absolute;
-    inset: 4px 0 auto auto;
-    width: 100%;
-    height: 132px;
-    background:
-      radial-gradient(closest-side, oklch(86% 0.09 18 / 0.78), transparent 66%) 4% 22% / 38px 38px,
-      radial-gradient(closest-side, oklch(93% 0.055 18 / 0.9), transparent 68%) 13% 35% / 32px 32px,
-      radial-gradient(closest-side, oklch(88% 0.085 18 / 0.78), transparent 66%) 24% 18% / 42px 42px,
-      radial-gradient(closest-side, oklch(95% 0.05 18 / 0.88), transparent 67%) 36% 34% / 34px 34px,
-      radial-gradient(closest-side, oklch(86% 0.09 18 / 0.76), transparent 66%) 49% 14% / 40px 40px,
-      radial-gradient(closest-side, oklch(95% 0.055 18 / 0.9), transparent 68%) 62% 28% / 32px 32px,
-      radial-gradient(closest-side, oklch(87% 0.09 18 / 0.78), transparent 66%) 76% 16% / 44px 44px,
-      radial-gradient(closest-side, oklch(94% 0.052 18 / 0.88), transparent 68%) 88% 30% / 34px 34px;
-    background-repeat: no-repeat;
-    filter: drop-shadow(0 8px 12px oklch(55% 0.08 20 / 0.16));
+    right: 20px;
+    top: 28px;
+    width: 210px;
+    height: 120px;
+    background: url(${petalSparkles}) center / contain no-repeat;
+    opacity: 0.38;
+    transform: rotate(10deg);
   }
 
   @media (max-width: 900px) {
@@ -193,6 +193,18 @@ const PetalField = styled.div`
   z-index: 2;
   pointer-events: none;
   overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: -4vw;
+    top: 6vh;
+    width: 42vw;
+    height: 26vh;
+    background: url(${petalSparkles}) left top / contain no-repeat;
+    opacity: 0.2;
+    transform: rotate(8deg);
+  }
 
   span {
     position: absolute;

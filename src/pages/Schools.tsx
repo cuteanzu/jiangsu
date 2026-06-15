@@ -27,6 +27,7 @@ import {
 } from "../data/jiangsu-universities";
 import { citiesApi, contentApi, schoolsApi } from "../services/api";
 import CampusAtmosphere from "../components/CampusAtmosphere";
+import jiangnanWaterline from "/jiangsu-elements/jiangnan-waterline-clean.png";
 import type { CityProfileDTO, SchoolDTO, SchoolDetailDTO } from "../services/types";
 import {
   clipSurveySummary,
@@ -252,6 +253,24 @@ const BloomStep = styled.div<{ $active?: boolean }>`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+`;
+
+const HeroWaterline = styled.div`
+  position: absolute;
+  left: clamp(26px, 5vw, 72px);
+  right: 420px;
+  bottom: 18px;
+  height: 82px;
+  z-index: 0;
+  pointer-events: none;
+  background: url(${jiangnanWaterline}) left bottom / contain no-repeat;
+  opacity: 0.42;
+  filter: saturate(1.04);
+
+  @media (max-width: 980px) {
+    right: 26px;
+    opacity: 0.28;
   }
 `;
 
@@ -1340,6 +1359,7 @@ export default function Schools() {
       <CampusAtmosphere variant="schools" />
       <Shell>
         <Header>
+          <HeroWaterline aria-hidden="true" />
           <div>
             <Eyebrow><Database />SCHOOL FILTER DESK</Eyebrow>
             <Title>择校筛选台</Title>
