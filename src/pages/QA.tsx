@@ -43,9 +43,12 @@ const Page = styled.div`
   overflow-y: auto;
   box-sizing: border-box;
   padding: 38px 30px 72px;
-  background: oklch(96% 0.014 197);
-  color: oklch(23% 0.035 58);
-  font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  background:
+    linear-gradient(154deg, oklch(98% 0.044 20 / 0.5) 0 24%, transparent 24% 100%),
+    linear-gradient(126deg, transparent 0 62%, oklch(92% 0.036 205 / 0.24) 62% 76%, transparent 76%),
+    var(--paper, oklch(97% 0.018 78));
+  color: var(--paper-ink, oklch(22% 0.035 48));
+  font-family: var(--font-ui, "Noto Sans SC", "PingFang SC", system-ui, sans-serif);
 
   @media (max-width: 720px) {
     padding: 24px 14px 44px;
@@ -78,7 +81,7 @@ const Kicker = styled.div`
   align-items: center;
   gap: 8px;
   margin-bottom: 14px;
-  color: oklch(42% 0.09 205);
+  color: var(--spring-blue, oklch(56% 0.09 205));
   font-size: 12px;
   font-weight: 950;
 `;
@@ -103,9 +106,11 @@ const Subtitle = styled.p`
 `;
 
 const IntakePanel = styled.aside`
-  border: 1px solid oklch(80% 0.035 190 / 0.48);
+  border: 1px solid oklch(80% 0.045 205 / 0.42);
   border-radius: 8px;
-  background: oklch(98.4% 0.01 100 / 0.76);
+  background:
+    linear-gradient(135deg, oklch(98% 0.042 20 / 0.7), transparent 54%),
+    oklch(98.4% 0.016 96 / 0.76);
   overflow: hidden;
   box-shadow: 0 18px 46px oklch(38% 0.04 195 / 0.12);
 `;
@@ -221,9 +226,9 @@ const SearchBox = styled.div`
 
 const FilterBoard = styled.div`
   padding: 12px;
-  border: 1px solid oklch(82% 0.026 105 / 0.62);
+  border: 1px solid oklch(82% 0.052 24 / 0.38);
   border-radius: 8px;
-  background: oklch(98.5% 0.008 98 / 0.68);
+  background: oklch(99% 0.018 76 / 0.68);
   display: grid;
   gap: 10px;
 `;
@@ -255,8 +260,8 @@ const PillButton = styled.button<{ $active: boolean; $accent?: string }>`
   padding: 0 13px;
   border: 1px solid ${({ $active, $accent }) => ($active ? $accent ?? "#4a8eb5" : "oklch(82% 0.026 105 / 0.58)")};
   border-radius: 999px;
-  background: ${({ $active, $accent }) => ($active ? `${$accent ?? "#4a8eb5"}18` : "oklch(99% 0.006 100 / 0.6)")};
-  color: ${({ $active, $accent }) => ($active ? $accent ?? "#2e6f91" : "oklch(39% 0.032 70)")};
+  background: ${({ $active, $accent }) => ($active ? `color-mix(in oklch, ${$accent ?? "var(--spring-blue, oklch(56% 0.09 205))"} 14%, transparent)` : "oklch(99% 0.018 76 / 0.6)")};
+  color: ${({ $active, $accent }) => ($active ? $accent ?? "var(--spring-blue, oklch(56% 0.09 205))" : "oklch(39% 0.036 58)")};
   cursor: pointer;
   font: inherit;
   font-size: 12.5px;
@@ -266,7 +271,7 @@ const PillButton = styled.button<{ $active: boolean; $accent?: string }>`
 
   &:hover {
     transform: translateY(-1px);
-    border-color: ${({ $accent }) => $accent ?? "#4a8eb5"};
+    border-color: ${({ $accent }) => $accent ?? "var(--spring-blue, oklch(56% 0.09 205))"};
   }
 
   &:focus-visible {
@@ -400,7 +405,7 @@ const Tag = styled.span<{ $color: string }>`
   padding: 0 9px;
   align-items: center;
   border-radius: 999px;
-  background: ${(p) => p.$color}16;
+  background: color-mix(in oklch, ${(p) => p.$color} 14%, transparent);
   color: ${(p) => p.$color};
   font-size: 11px;
   font-weight: 900;
@@ -706,8 +711,8 @@ const ROLE_QA_GUIDES: Record<AudienceRole, {
 };
 
 function getCategoryMeta(category: string | "all") {
-  if (category === "all") return { label: "推荐", color: "#347895" };
-  return CATEGORY_META[category as PostCategory] ?? { label: "问答", color: "#347895" };
+  if (category === "all") return { label: "推荐", color: "oklch(48% 0.12 24)" };
+  return CATEGORY_META[category as PostCategory] ?? { label: "问答", color: "oklch(56% 0.09 205)" };
 }
 
 function toQAEntry(item: QADTO, index: number): QAEntry {
@@ -958,7 +963,7 @@ export default function QA() {
                   key={item}
                   type="button"
                   $active={role === item}
-                  $accent="#347895"
+                  $accent="oklch(56% 0.09 205)"
                   onClick={() => handleRoleSelect(item)}
                 >
                   {AUDIENCE_ROLE_LABELS[item]}

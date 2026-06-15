@@ -25,17 +25,17 @@ const Bar = styled.nav<{ $dark?: boolean; $hidden: boolean }>`
   padding: 0 28px;
   background: ${(p) =>
     p.$dark
-      ? "linear-gradient(180deg, oklch(12% 0.018 72 / 0.94), oklch(9% 0.018 72 / 0.82))"
-      : "linear-gradient(180deg, oklch(98% 0.012 82 / 0.96), oklch(95.5% 0.018 78 / 0.9))"};
+      ? "linear-gradient(180deg, oklch(18% 0.032 24 / 0.9), oklch(13% 0.026 40 / 0.78))"
+      : "linear-gradient(180deg, oklch(99% 0.014 76 / 0.96), oklch(97% 0.024 28 / 0.88))"};
   backdrop-filter: blur(22px) saturate(1.08);
   -webkit-backdrop-filter: blur(22px) saturate(1.08);
   border-bottom: 1px solid
     ${(p) =>
-      p.$dark ? "oklch(96% 0.008 78 / 0.12)" : "oklch(75% 0.035 70 / 0.34)"};
+      p.$dark ? "oklch(96% 0.018 30 / 0.16)" : "oklch(82% 0.05 24 / 0.34)"};
   box-shadow: ${(p) =>
     p.$dark
-      ? "0 16px 44px oklch(7% 0.018 72 / 0.32)"
-      : "0 14px 34px oklch(40% 0.045 58 / 0.08)"};
+      ? "0 16px 44px oklch(14% 0.034 24 / 0.28)"
+      : "0 14px 34px oklch(52% 0.06 24 / 0.08)"};
   font-family: var(--font-ui);
   box-sizing: border-box;
   transform: translateY(${(p) => (p.$hidden ? "-100%" : "0")});
@@ -53,15 +53,15 @@ const Brand = styled.button<{ $dark?: boolean }>`
   align-items: center;
   gap: 10px;
   background: ${(p) =>
-    p.$dark ? "oklch(96% 0.008 78 / 0.04)" : "oklch(99% 0.008 82 / 0.64)"};
+    p.$dark ? "oklch(96% 0.018 30 / 0.06)" : "oklch(99% 0.018 76 / 0.72)"};
   border: 1px solid
-    ${(p) => (p.$dark ? "oklch(96% 0.008 78 / 0.11)" : "oklch(78% 0.035 70 / 0.3)")};
+    ${(p) => (p.$dark ? "oklch(96% 0.018 30 / 0.16)" : "oklch(83% 0.052 24 / 0.36)")};
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
   font-weight: 950;
-  color: ${(p) => (p.$dark ? "oklch(96% 0.008 78)" : "oklch(25% 0.035 55)")};
+  color: ${(p) => (p.$dark ? "oklch(96% 0.018 30)" : "oklch(25% 0.04 48)")};
   letter-spacing: 0;
   padding: 0 13px 0 10px;
   white-space: nowrap;
@@ -74,14 +74,14 @@ const Brand = styled.button<{ $dark?: boolean }>`
     height: 18px;
     border-radius: 5px;
     background:
-      linear-gradient(135deg, oklch(62% 0.12 43), oklch(50% 0.09 205)),
-      oklch(55% 0.1 43);
+      linear-gradient(135deg, var(--sakura, oklch(70% 0.12 18)), var(--spring-blue, oklch(56% 0.09 205))),
+      var(--sakura, oklch(70% 0.12 18));
     box-shadow: inset 0 0 0 1px oklch(98% 0.008 82 / 0.38);
   }
 
   &:hover {
     transform: translateY(-1px);
-    border-color: ${(p) => (p.$dark ? "oklch(72% 0.12 42 / 0.34)" : "oklch(65% 0.09 48 / 0.46)")};
+    border-color: ${(p) => (p.$dark ? "oklch(80% 0.1 24 / 0.42)" : "oklch(76% 0.1 24 / 0.48)")};
   }
 
   @media (max-width: 640px) {
@@ -96,7 +96,7 @@ const Links = styled.div`
   position: relative;
   min-height: 48px;
   padding: 4px;
-  border: 1px solid oklch(78% 0.028 72 / 0.28);
+  border: 1px solid oklch(84% 0.038 38 / 0.3);
   border-radius: 8px;
   background: oklch(99% 0.006 82 / 0.12);
 
@@ -121,10 +121,10 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
     p.$dark
       ? p.$active
         ? "oklch(72% 0.12 42)"
-        : "oklch(88% 0.01 78 / 0.68)"
+        : "oklch(90% 0.018 35 / 0.68)"
       : p.$active
-        ? "oklch(48% 0.11 42)"
-        : "oklch(38% 0.032 58)"};
+        ? "var(--sakura-deep, oklch(48% 0.12 24))"
+        : "oklch(38% 0.036 52)"};
   font-weight: ${(p) => (p.$active ? 900 : 760)};
   padding: 5px 12px;
   border-radius: 8px;
@@ -135,7 +135,7 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
     p.$active
       ? p.$dark
         ? "oklch(72% 0.12 42 / 0.1)"
-        : "oklch(94% 0.036 48 / 0.76)"
+        : "oklch(96% 0.045 24 / 0.78)"
       : "transparent"};
 
   span {
@@ -144,16 +144,16 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
 
   em {
     color: ${(p) =>
-      p.$dark ? "oklch(82% 0.01 78 / 0.38)" : "oklch(48% 0.03 62 / 0.68)"};
+      p.$dark ? "oklch(86% 0.018 35 / 0.42)" : "oklch(50% 0.04 48 / 0.68)"};
     font-size: 10px;
     font-style: normal;
     font-weight: 800;
   }
 
   &:hover {
-    color: oklch(55% 0.12 42);
+    color: var(--sakura-deep, oklch(48% 0.12 24));
     background: ${(p) =>
-      p.$dark ? "oklch(72% 0.12 42 / 0.12)" : "oklch(88% 0.055 48 / 0.18)"};
+      p.$dark ? "oklch(76% 0.12 24 / 0.13)" : "oklch(94% 0.05 24 / 0.22)"};
     transform: translateY(-1px);
   }
 
@@ -171,7 +171,7 @@ const Indicator = styled.div`
   position: absolute;
   bottom: 5px;
   height: 2px;
-  background: oklch(60% 0.12 42);
+  background: var(--sakura, oklch(70% 0.12 18));
   border-radius: 1px;
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 `;
@@ -180,19 +180,19 @@ const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
   border: 1px solid
     ${(p) =>
       p.$active
-        ? "oklch(64% 0.11 43 / 0.45)"
+        ? "oklch(76% 0.1 24 / 0.48)"
         : p.$dark
-          ? "oklch(72% 0.12 42 / 0.2)"
-          : "oklch(70% 0.075 48 / 0.34)"};
+          ? "oklch(78% 0.1 24 / 0.22)"
+          : "oklch(82% 0.06 24 / 0.38)"};
   border-radius: 8px;
   background: ${(p) =>
     p.$active
-      ? "oklch(94% 0.035 45 / 0.78)"
+      ? "oklch(96% 0.045 24 / 0.78)"
       : p.$dark
-        ? "oklch(96% 0.008 78 / 0.06)"
-        : "oklch(99% 0.008 82 / 0.68)"};
+        ? "oklch(96% 0.018 30 / 0.07)"
+        : "oklch(99% 0.018 76 / 0.72)"};
   color: ${(p) =>
-    p.$active ? "oklch(48% 0.11 42)" : p.$dark ? "oklch(92% 0.008 78 / 0.72)" : "oklch(38% 0.06 50)"};
+    p.$active ? "var(--sakura-deep, oklch(48% 0.12 24))" : p.$dark ? "oklch(92% 0.018 30 / 0.72)" : "oklch(38% 0.06 42)"};
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
@@ -202,12 +202,12 @@ const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
   transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    color: oklch(52% 0.12 42);
+    color: var(--sakura-deep, oklch(48% 0.12 24));
     background: ${(p) =>
       p.$dark
-        ? "oklch(96% 0.008 78 / 0.12)"
-        : "oklch(99% 0.008 82 / 0.92)"};
-    border-color: oklch(64% 0.11 43 / 0.42);
+        ? "oklch(96% 0.018 30 / 0.12)"
+        : "oklch(99% 0.018 76 / 0.92)"};
+    border-color: oklch(76% 0.1 24 / 0.42);
   }
 
   @media (max-width: 640px) {

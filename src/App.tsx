@@ -31,14 +31,19 @@ const GlobalStyle = createGlobalStyle`
     --nav-height: 72px;
     --font-ui: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
     --font-serif: "Noto Serif SC", "Songti SC", serif;
-    --paper: oklch(96% 0.014 82);
-    --paper-ink: oklch(22% 0.035 55);
-    --paper-muted: oklch(46% 0.03 62);
-    --paper-border: oklch(83% 0.028 72 / 0.7);
-    --accent-warm: oklch(50% 0.11 43);
-    --accent-blue: oklch(43% 0.09 205);
-    --accent-green: oklch(42% 0.09 145);
-    --shadow-panel: 0 18px 44px oklch(30% 0.04 58 / 0.08);
+    --paper: oklch(97% 0.018 78);
+    --paper-ink: oklch(22% 0.035 48);
+    --paper-muted: oklch(47% 0.032 58);
+    --paper-border: oklch(84% 0.032 62 / 0.72);
+    --sakura: oklch(70% 0.12 18);
+    --sakura-deep: oklch(48% 0.12 24);
+    --spring-blue: oklch(56% 0.09 205);
+    --spring-green: oklch(56% 0.1 145);
+    --apricot: oklch(78% 0.09 66);
+    --accent-warm: var(--sakura);
+    --accent-blue: var(--spring-blue);
+    --accent-green: var(--spring-green);
+    --shadow-panel: 0 18px 42px oklch(38% 0.05 40 / 0.09);
     @media (max-width: 640px) {
       --nav-height: 56px;
     }

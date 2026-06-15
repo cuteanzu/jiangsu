@@ -42,9 +42,12 @@ const Page = styled.div`
   overflow-y: auto;
   box-sizing: border-box;
   padding: 38px 30px 72px;
-  background: oklch(96.5% 0.018 82);
-  color: oklch(25% 0.035 55);
-  font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  background:
+    linear-gradient(154deg, oklch(98% 0.045 20 / 0.58) 0 24%, transparent 24% 100%),
+    linear-gradient(126deg, transparent 0 64%, oklch(92% 0.036 205 / 0.2) 64% 76%, transparent 76%),
+    var(--paper, oklch(97% 0.018 78));
+  color: var(--paper-ink, oklch(22% 0.035 48));
+  font-family: var(--font-ui, "Noto Sans SC", "PingFang SC", system-ui, sans-serif);
 
   @media (max-width: 720px) {
     padding: 24px 14px 44px;
@@ -77,7 +80,7 @@ const Kicker = styled.div`
   align-items: center;
   gap: 8px;
   margin-bottom: 14px;
-  color: oklch(47% 0.12 43);
+  color: var(--sakura-deep, oklch(48% 0.12 24));
   font-size: 12px;
   font-weight: 900;
 `;
@@ -102,10 +105,10 @@ const Subtitle = styled.p`
 `;
 
 const Briefing = styled.aside`
-  border: 1px solid oklch(82% 0.032 70 / 0.58);
+  border: 1px solid oklch(82% 0.052 24 / 0.42);
   border-radius: 8px;
-  background: oklch(98.5% 0.01 82 / 0.74);
-  box-shadow: 0 18px 46px oklch(44% 0.04 52 / 0.11);
+  background: linear-gradient(180deg, oklch(99% 0.02 76 / 0.82), oklch(97% 0.04 24 / 0.7));
+  box-shadow: 0 18px 46px oklch(58% 0.06 24 / 0.1);
   overflow: hidden;
 `;
 
@@ -115,7 +118,7 @@ const BriefingHead = styled.div`
 `;
 
 const BriefingLabel = styled.div`
-  color: oklch(47% 0.11 42);
+  color: var(--sakura-deep, oklch(48% 0.12 24));
   font-size: 11px;
   font-weight: 900;
 `;
@@ -176,9 +179,9 @@ const BriefingCopy = styled.p`
 const ControlDesk = styled.section`
   margin-top: 28px;
   padding: 14px;
-  border: 1px solid oklch(84% 0.026 72 / 0.7);
+  border: 1px solid oklch(82% 0.052 24 / 0.42);
   border-radius: 8px;
-  background: oklch(98.5% 0.01 82 / 0.72);
+  background: oklch(99% 0.02 76 / 0.72);
   display: grid;
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
   gap: 14px;
@@ -206,9 +209,9 @@ const SearchBox = styled.div`
     width: 100%;
     min-height: 44px;
     padding: 0 14px 0 40px;
-    border: 1px solid oklch(82% 0.03 72 / 0.78);
+    border: 1px solid oklch(82% 0.052 24 / 0.48);
     border-radius: 8px;
-    background: oklch(99% 0.008 82 / 0.78);
+    background: oklch(99% 0.018 76 / 0.78);
     color: oklch(25% 0.035 55);
     font: inherit;
     font-size: 14px;
@@ -216,8 +219,8 @@ const SearchBox = styled.div`
     box-sizing: border-box;
 
     &:focus {
-      border-color: oklch(62% 0.12 43 / 0.72);
-      box-shadow: 0 0 0 3px oklch(75% 0.08 48 / 0.18);
+      border-color: oklch(76% 0.1 24 / 0.72);
+      box-shadow: 0 0 0 3px oklch(82% 0.08 24 / 0.2);
     }
 
     &::placeholder {
@@ -250,7 +253,7 @@ const RailLabel = styled.span`
   svg {
     width: 14px;
     height: 14px;
-    color: oklch(50% 0.11 43);
+    color: var(--sakura-deep, oklch(48% 0.12 24));
   }
 `;
 
@@ -259,8 +262,8 @@ const PillButton = styled.button<{ $active: boolean; $accent?: string }>`
   padding: 0 13px;
   border: 1px solid ${({ $active, $accent }) => ($active ? $accent ?? "oklch(55% 0.11 43)" : "oklch(83% 0.028 72 / 0.7)")};
   border-radius: 999px;
-  background: ${({ $active, $accent }) => ($active ? `${$accent ?? "#c76b5e"}18` : "oklch(99% 0.008 82 / 0.64)")};
-  color: ${({ $active, $accent }) => ($active ? $accent ?? "#9a4f3f" : "oklch(42% 0.03 62)")};
+  background: ${({ $active, $accent }) => ($active ? `color-mix(in oklch, ${$accent ?? "var(--sakura-deep, oklch(48% 0.12 24))"} 14%, transparent)` : "oklch(99% 0.018 76 / 0.64)")};
+  color: ${({ $active, $accent }) => ($active ? $accent ?? "var(--sakura-deep, oklch(48% 0.12 24))" : "oklch(42% 0.04 52)")};
   cursor: pointer;
   font: inherit;
   font-size: 12.5px;
@@ -270,7 +273,7 @@ const PillButton = styled.button<{ $active: boolean; $accent?: string }>`
 
   &:hover {
     transform: translateY(-1px);
-    border-color: ${({ $accent }) => $accent ?? "#c76b5e"};
+    border-color: ${({ $accent }) => $accent ?? "var(--sakura-deep, oklch(48% 0.12 24))"};
   }
 
   &:focus-visible {
@@ -367,8 +370,7 @@ const LeadNote = styled.button`
   border: 1px solid oklch(80% 0.035 70 / 0.7);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, oklch(99% 0.008 82 / 0.82), oklch(96% 0.018 78 / 0.72)),
-    radial-gradient(circle at 84% 18%, oklch(68% 0.11 42 / 0.12), transparent 32%);
+    linear-gradient(135deg, oklch(99% 0.02 76 / 0.86), oklch(96% 0.048 24 / 0.7));
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -379,7 +381,7 @@ const LeadNote = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    border-color: oklch(70% 0.09 42 / 0.48);
+    border-color: oklch(76% 0.1 24 / 0.48);
   }
 
   &:focus-visible {
@@ -389,7 +391,7 @@ const LeadNote = styled.button`
 `;
 
 const NoteCode = styled.div`
-  color: oklch(46% 0.1 43);
+  color: var(--sakura-deep, oklch(48% 0.12 24));
   font-size: 11px;
   font-weight: 950;
 `;
@@ -401,7 +403,7 @@ const Tag = styled.span<{ $color: string }>`
   padding: 0 9px;
   align-items: center;
   border-radius: 999px;
-  background: ${(p) => p.$color}16;
+  background: color-mix(in oklch, ${(p) => p.$color} 14%, transparent);
   color: ${(p) => p.$color};
   font-size: 11px;
   font-weight: 900;
@@ -526,7 +528,7 @@ const ReadMore = styled.span`
   align-items: center;
   gap: 5px;
   margin-top: 12px;
-  color: oklch(47% 0.11 43);
+  color: var(--sakura-deep, oklch(48% 0.12 24));
   font-size: 12px;
   font-weight: 900;
 
@@ -571,7 +573,7 @@ const SideTitle = styled.div`
   svg {
     width: 15px;
     height: 15px;
-    color: oklch(48% 0.11 43);
+    color: var(--sakura-deep, oklch(48% 0.12 24));
   }
 `;
 
@@ -606,7 +608,7 @@ const SideItem = styled.button`
   }
 
   &:hover strong {
-    color: oklch(47% 0.11 43);
+    color: var(--sakura-deep, oklch(48% 0.12 24));
   }
 `;
 
@@ -711,7 +713,7 @@ function isPostCategory(value: unknown): value is PostCategory {
 }
 
 function getCategoryMeta(category: PostCategory | "all") {
-  return category === "all" ? { label: "推荐", color: "#9a5a3b" } : CATEGORY_META[category] ?? { label: "校园经验", color: "#9a5a3b" };
+  return category === "all" ? { label: "推荐", color: "oklch(48% 0.12 24)" } : CATEGORY_META[category] ?? { label: "校园经验", color: "oklch(48% 0.12 24)" };
 }
 
 function getCategoryVerdict(category: PostCategory) {
@@ -955,7 +957,7 @@ export default function Experiences() {
                   key={item}
                   type="button"
                   $active={role === item}
-                  $accent="#9a5a3b"
+                  $accent="oklch(48% 0.12 24)"
                   onClick={() => handleRoleSelect(item)}
                 >
                   {AUDIENCE_ROLE_LABELS[item]}
