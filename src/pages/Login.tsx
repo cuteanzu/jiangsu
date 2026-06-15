@@ -777,12 +777,18 @@ function safeNextPath(value: string | null) {
   return value;
 }
 
+function readAuthMode(value: string | null): AuthMode {
+  if (value === "register" || value === "reset") return value;
+  return "login";
+}
+
 // ── Main ──
 
 export default function Login() {
   const { navigateWithTransition } = useTransition();
   const [searchParams] = useSearchParams();
   const { s } = useSettings();
+  const modeParam = searchParams.get("mode");
 
   // Scene
   const fxRef = useRef<HTMLDivElement>(null);
@@ -790,7 +796,7 @@ export default function Login() {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
   // Form
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [authMode, setAuthMode] = useState<AuthMode>(() => readAuthMode(modeParam));
   const [account, setAccount] = useState("");
   const [username, setUsername] = useState("");
   const [nickname, setNickname] = useState("");
@@ -941,6 +947,11 @@ export default function Login() {
   const yellowPos = characterPose.yellow;
   const activeSpiritInfo = spiritGuides[activeSpirit];
   const selectedRoleInfo = audienceRoles[selectedRole];
+
+  useEffect(() => {
+    setAuthMode(readAuthMode(modeParam));
+    setError("");
+  }, [modeParam]);
 
   // Submit
   const getSubmitText = () => {

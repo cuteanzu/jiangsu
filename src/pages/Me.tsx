@@ -1169,7 +1169,8 @@ export default function Me() {
   const plan = rolePlans[role];
   const PrimaryIcon = plan.primary.icon;
   const SecondaryIcon = plan.secondary.icon;
-  const displayName = user?.nickname || user?.username || "我的账号";
+  const displayName = authenticated ? user?.nickname || user?.username || "我的账号" : "游客工作台";
+  const userMetaText = authenticated ? `${user?.username} · 当前身份：${roleLabel}` : `游客浏览 · 当前身份：${roleLabel}`;
   const recommendedPosts = useMemo(() => pickRecommendedPosts(role), [role]);
 
   useEffect(() => {
@@ -1234,9 +1235,9 @@ export default function Me() {
   const go = (path: string) => navigateWithTransition(path);
 
   const metrics = [
-    { value: favorites.length, label: "收藏学校" },
-    { value: submissions.length, label: "我的投稿" },
-    { value: submissions.filter((item) => (item.status ?? "").toUpperCase() === "PENDING").length, label: "待审核" },
+    { value: authenticated ? favorites.length : "登录后", label: "收藏学校" },
+    { value: authenticated ? submissions.length : "登录后", label: "我的投稿" },
+    { value: authenticated ? submissions.filter((item) => (item.status ?? "").toUpperCase() === "PENDING").length : "可开启", label: "待审核" },
     { value: UNIVERSITIES.length, label: "可探索高校" },
   ];
 
@@ -1246,6 +1247,11 @@ export default function Me() {
   };
 
   const handleSaveProfile = async () => {
+    if (!authenticated) {
+      go(`/login?next=${encodeURIComponent("/me")}`);
+      return;
+    }
+
     const nextName = profileName.trim();
     if (!nextName) {
       setProfileMessage("昵称不能为空");
@@ -1268,6 +1274,12 @@ export default function Me() {
 
   const handleSubmitContribution = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!authenticated) {
+      setSubmitError("游客可以浏览个人页，但提交内容需要先登录或注册。");
+      setSubmitMessage("");
+      return;
+    }
+
     const content = submitContent.trim();
     const title = submitTitle.trim();
     const schoolName = submitSchoolName.trim();
@@ -1306,6 +1318,26 @@ export default function Me() {
   };
 
   const renderSchools = () => {
+    if (!authenticated) {
+      return (
+        <EmptyState>
+          <Inbox />
+          <strong>游客清单暂不保存</strong>
+          <p>你可以继续浏览学校、地图、经验和问答。登录后，收藏学校会沉淀到这里，下一次回来还能继续比较。</p>
+          <ActionRow>
+            <SecondaryButton type="button" onClick={() => go("/jiangsu")}>
+              去地图探索
+              <ArrowRight />
+            </SecondaryButton>
+            <PrimaryButton type="button" onClick={() => go(`/login?next=${encodeURIComponent("/me")}`)}>
+              登录保存清单
+              <ShieldCheck />
+            </PrimaryButton>
+          </ActionRow>
+        </EmptyState>
+      );
+    }
+
     if (assetsLoading) {
       return (
         <Notice>
@@ -1363,6 +1395,26 @@ export default function Me() {
   };
 
   const renderSubmissions = () => {
+    if (!authenticated) {
+      return (
+        <EmptyState>
+          <PenLine />
+          <strong>登录后管理投稿</strong>
+          <p>你仍然可以查看经验和问答。注册后可以提交校园经验、问答线索和数据纠错，审核通过后进入公共内容。</p>
+          <ActionRow>
+            <PrimaryButton type="button" onClick={() => go(`/login?mode=register&next=${encodeURIComponent("/me?tab=submissions")}`)}>
+              注册后提交
+              <ArrowRight />
+            </PrimaryButton>
+            <SecondaryButton type="button" onClick={() => go("/experiences")}>
+              先看经验
+              <BookOpen />
+            </SecondaryButton>
+          </ActionRow>
+        </EmptyState>
+      );
+    }
+
     if (assetsLoading) {
       return (
         <Notice>
@@ -1421,7 +1473,7 @@ export default function Me() {
   );
 
   const renderAssetBody = () => {
-    if (assetsError) {
+    if (authenticated && assetsError) {
       return (
         <Notice $error>
           <AlertCircle />
@@ -1448,27 +1500,6 @@ export default function Me() {
     );
   }
 
-  if (!authenticated) {
-    return (
-      <Page>
-        <CampusAtmosphere variant="profile" />
-        <Shell>
-          <EmptyState>
-            <ShieldCheck />
-            <strong>登录状态已失效</strong>
-            <p>{authError || "请重新登录，再管理你的收藏、投稿和个人资料。"}</p>
-            <ActionRow>
-              <PrimaryButton type="button" onClick={() => go("/login")}>
-                去登录
-                <ArrowRight />
-              </PrimaryButton>
-            </ActionRow>
-          </EmptyState>
-        </Shell>
-      </Page>
-    );
-  }
-
   return (
     <Page>
       <CampusAtmosphere variant="profile" />
@@ -1483,7 +1514,7 @@ export default function Me() {
                 <div>
                   <UserName>{displayName}</UserName>
                   <UserMeta>
-                    {user?.username} · 当前身份：{roleLabel}
+                    {userMetaText}
                   </UserMeta>
                 </div>
               </UserRow>
@@ -1510,14 +1541,29 @@ export default function Me() {
               </RoleSwitch>
 
               <AccountActions>
-                <SmallButton type="button" onClick={() => setEditingProfile((value) => !value)}>
-                  <Settings />
-                  设置
-                </SmallButton>
-                <SmallButton type="button" onClick={handleLogout}>
-                  <LogOut />
-                  退出
-                </SmallButton>
+                {authenticated ? (
+                  <>
+                    <SmallButton type="button" onClick={() => setEditingProfile((value) => !value)}>
+                      <Settings />
+                      设置
+                    </SmallButton>
+                    <SmallButton type="button" onClick={handleLogout}>
+                      <LogOut />
+                      退出
+                    </SmallButton>
+                  </>
+                ) : (
+                  <>
+                    <SmallButton type="button" onClick={() => go(`/login?next=${encodeURIComponent("/me")}`)}>
+                      <ShieldCheck />
+                      登录
+                    </SmallButton>
+                    <SmallButton type="button" onClick={() => go(`/login?mode=register&next=${encodeURIComponent("/me")}`)}>
+                      <Sparkles />
+                      注册
+                    </SmallButton>
+                  </>
+                )}
               </AccountActions>
 
               {editingProfile && (
@@ -1540,7 +1586,7 @@ export default function Me() {
               <div>
                 <Kicker>
                   <ListChecks size={15} />
-                  我的择校工作台
+                  {authenticated ? "我的择校工作台" : "游客择校工作台"}
                 </Kicker>
                 <Title>{plan.title}</Title>
                 <Lead>{plan.note}</Lead>
@@ -1589,13 +1635,20 @@ export default function Me() {
           </NextPanel>
         </TopGrid>
 
+        {!authenticated && authError && (
+          <Notice $error style={{ marginTop: 18 }}>
+            <AlertCircle />
+            <div>账号状态已过期。你仍然可以游客浏览，登录后可继续管理收藏和投稿。</div>
+          </Notice>
+        )}
+
         <MainGrid>
           <Stack>
             <SectionPanel>
               <SectionHead>
                 <div>
-                  <h3>个人资产</h3>
-                  <p>收藏学校、投稿记录和下一步推荐都放在这里。注册账号的价值，是让你的择校线索能持续累积。</p>
+                  <h3>{authenticated ? "个人资产" : "游客工作台"}</h3>
+                  <p>{authenticated ? "收藏学校、投稿记录和下一步推荐都放在这里。注册账号的价值，是让你的择校线索能持续累积。" : "游客可以先浏览路线和推荐；登录后，收藏学校、投稿记录和个人资料会持续保存。"}</p>
                 </div>
                 <TextButton type="button" onClick={() => go("/jiangsu")}>
                   去地图补充
@@ -1621,70 +1674,88 @@ export default function Me() {
               <SectionHead>
                 <div>
                   <h3>提交内容</h3>
-                  <p>你可以把真实校园经验、想追问的问题或数据纠错提交给站点，审核后再进入公共内容。</p>
+                  <p>{authenticated ? "你可以把真实校园经验、想追问的问题或数据纠错提交给站点，审核后再进入公共内容。" : "游客可以阅读全部公开内容。想提交经验、提问或纠错时，需要先登录，避免垃圾信息和重复内容。"}</p>
                 </div>
               </SectionHead>
-              <FormGrid onSubmit={handleSubmitContribution}>
-                <Field>
-                  投稿类型
-                  <Select value={submitType} onChange={(event) => setSubmitType(event.target.value as SubmissionType)}>
-                    {submissionTypes.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </Select>
-                  <FormHelper>{submissionTypes.find((item) => item.value === submitType)?.hint}</FormHelper>
-                </Field>
-                <Field>
-                  关联学校
-                  <Input
-                    value={submitSchoolName}
-                    onChange={(event) => setSubmitSchoolName(event.target.value)}
-                    placeholder="可选，例如南京大学"
-                  />
-                </Field>
-                <Field>
-                  标题
-                  <Input
-                    value={submitTitle}
-                    onChange={(event) => setSubmitTitle(event.target.value)}
-                    placeholder="可选，但建议写清楚主题"
-                  />
-                </Field>
-                <Field>
-                  内容
-                  <TextArea
-                    value={submitContent}
-                    onChange={(event) => setSubmitContent(event.target.value)}
-                    placeholder="写下你的经验、问题或纠错信息"
-                  />
-                </Field>
-                <Field>
-                  联系方式
-                  <Input
-                    value={submitContact}
-                    onChange={(event) => setSubmitContact(event.target.value)}
-                    placeholder="可选，方便站长核对"
-                  />
-                </Field>
-                <CheckItem>
-                  <input
-                    type="checkbox"
-                    checked={submitAnonymous}
-                    onChange={(event) => setSubmitAnonymous(event.target.checked)}
-                  />
-                  匿名提交到公共内容
-                </CheckItem>
-                <ActionRow>
-                  <PrimaryButton type="submit" disabled={submitLoading}>
-                    <Send />
-                    {submitLoading ? "提交中" : "提交审核"}
-                  </PrimaryButton>
-                </ActionRow>
-                {submitMessage && <InlineMessage>{submitMessage}</InlineMessage>}
-                {submitError && <InlineMessage $error>{submitError}</InlineMessage>}
-              </FormGrid>
+              {authenticated ? (
+                <FormGrid onSubmit={handleSubmitContribution}>
+                  <Field>
+                    投稿类型
+                    <Select value={submitType} onChange={(event) => setSubmitType(event.target.value as SubmissionType)}>
+                      {submissionTypes.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </Select>
+                    <FormHelper>{submissionTypes.find((item) => item.value === submitType)?.hint}</FormHelper>
+                  </Field>
+                  <Field>
+                    关联学校
+                    <Input
+                      value={submitSchoolName}
+                      onChange={(event) => setSubmitSchoolName(event.target.value)}
+                      placeholder="可选，例如南京大学"
+                    />
+                  </Field>
+                  <Field>
+                    标题
+                    <Input
+                      value={submitTitle}
+                      onChange={(event) => setSubmitTitle(event.target.value)}
+                      placeholder="可选，但建议写清楚主题"
+                    />
+                  </Field>
+                  <Field>
+                    内容
+                    <TextArea
+                      value={submitContent}
+                      onChange={(event) => setSubmitContent(event.target.value)}
+                      placeholder="写下你的经验、问题或纠错信息"
+                    />
+                  </Field>
+                  <Field>
+                    联系方式
+                    <Input
+                      value={submitContact}
+                      onChange={(event) => setSubmitContact(event.target.value)}
+                      placeholder="可选，方便站长核对"
+                    />
+                  </Field>
+                  <CheckItem>
+                    <input
+                      type="checkbox"
+                      checked={submitAnonymous}
+                      onChange={(event) => setSubmitAnonymous(event.target.checked)}
+                    />
+                    匿名提交到公共内容
+                  </CheckItem>
+                  <ActionRow>
+                    <PrimaryButton type="submit" disabled={submitLoading}>
+                      <Send />
+                      {submitLoading ? "提交中" : "提交审核"}
+                    </PrimaryButton>
+                  </ActionRow>
+                  {submitMessage && <InlineMessage>{submitMessage}</InlineMessage>}
+                  {submitError && <InlineMessage $error>{submitError}</InlineMessage>}
+                </FormGrid>
+              ) : (
+                <EmptyState>
+                  <ShieldCheck />
+                  <strong>登录后开放提交</strong>
+                  <p>游客不需要注册就能看地图、经验和问答。只有提交内容、收藏学校和保存个人资料需要账号。</p>
+                  <ActionRow>
+                    <PrimaryButton type="button" onClick={() => go(`/login?mode=register&next=${encodeURIComponent("/me?tab=submissions")}`)}>
+                      注册并提交
+                      <ArrowRight />
+                    </PrimaryButton>
+                    <SecondaryButton type="button" onClick={() => go("/qa")}>
+                      先看问答
+                      <MessageCircle />
+                    </SecondaryButton>
+                  </ActionRow>
+                </EmptyState>
+              )}
             </SectionPanel>
           </Stack>
 

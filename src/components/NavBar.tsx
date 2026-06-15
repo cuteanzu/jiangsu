@@ -236,9 +236,9 @@ export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: bool
         <LoginLink
           $active={isActive("/me")}
           $dark={isDark}
-          onClick={() => handleNav(authenticated ? "/me" : "/login")}
+          onClick={() => handleNav("/me")}
         >
-          {authenticated ? user?.nickname || user?.username || "我" : "登录"}
+          {authenticated ? user?.nickname || user?.username || "我" : "游客"}
         </LoginLink>
       </Links>
     </Bar>
