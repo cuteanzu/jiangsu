@@ -26,6 +26,7 @@ import {
   type University,
 } from "../data/jiangsu-universities";
 import { citiesApi, contentApi, schoolsApi } from "../services/api";
+import CampusAtmosphere from "../components/CampusAtmosphere";
 import type { CityProfileDTO, SchoolDTO, SchoolDetailDTO } from "../services/types";
 import {
   clipSurveySummary,
@@ -59,11 +60,8 @@ const Page = styled.div`
   overflow-y: auto;
   box-sizing: border-box;
   position: relative;
+  isolation: isolate;
   background:
-    linear-gradient(158deg, oklch(98% 0.045 20 / 0.62) 0 22%, transparent 22% 100%),
-    linear-gradient(126deg, transparent 0 62%, oklch(91% 0.04 205 / 0.24) 62% 74%, transparent 74%),
-    repeating-linear-gradient(0deg, oklch(76% 0.026 58 / 0.16) 0 1px, transparent 1px 34px),
-    repeating-linear-gradient(90deg, oklch(76% 0.026 58 / 0.12) 0 1px, transparent 1px 34px),
     var(--paper, oklch(97% 0.018 78));
   color: var(--paper-ink, oklch(22% 0.035 55));
   font-family: var(--font-ui, "Noto Sans SC", "PingFang SC", system-ui, sans-serif);
@@ -104,22 +102,24 @@ const Header = styled.header`
   border-radius: 8px;
   overflow: hidden;
   background:
-    linear-gradient(128deg, oklch(98% 0.05 20 / 0.94), oklch(99% 0.02 78 / 0.9) 48%, oklch(93% 0.045 205 / 0.82)),
+    linear-gradient(100deg, oklch(99% 0.02 76 / 0.94) 0 42%, oklch(99% 0.018 76 / 0.68) 58%, oklch(93% 0.03 205 / 0.4) 100%),
+    url("/jiangsu/school-hero.png") right center / cover no-repeat,
     oklch(98% 0.02 76);
   box-shadow: 0 28px 70px oklch(58% 0.07 24 / 0.14);
   animation: ${lift} 0.34s ease-out both;
 
   &::before {
-    content: "SAKURA CAMPUS";
+    content: "";
     position: absolute;
-    right: 22px;
-    top: 22px;
-    color: oklch(70% 0.11 18 / 0.16);
-    font-size: 58px;
-    line-height: 0.9;
-    font-weight: 950;
-    letter-spacing: 0;
-    writing-mode: vertical-rl;
+    right: 28px;
+    bottom: 26px;
+    width: 280px;
+    height: 86px;
+    border: 1px solid oklch(99% 0.02 76 / 0.56);
+    border-radius: 8px;
+    background:
+      linear-gradient(90deg, oklch(99% 0.02 76 / 0.74), oklch(99% 0.02 76 / 0.24));
+    box-shadow: inset 0 1px 0 oklch(99% 0.006 78 / 0.54);
   }
 
   &::after {
@@ -130,7 +130,7 @@ const Header = styled.header`
       linear-gradient(oklch(66% 0.06 20 / 0.095) 1px, transparent 1px),
       linear-gradient(90deg, oklch(66% 0.06 20 / 0.065) 1px, transparent 1px);
     background-size: 38px 38px;
-    mask-image: linear-gradient(120deg, oklch(0% 0 0), transparent 78%);
+    mask-image: linear-gradient(120deg, oklch(0% 0 0), transparent 70%);
     pointer-events: none;
   }
 
@@ -207,6 +207,54 @@ const FlowChip = styled.span<{ $active?: boolean }>`
   }
 `;
 
+const BloomRoute = styled.div`
+  width: min(620px, 100%);
+  margin-top: 24px;
+  padding: 12px;
+  border: 1px solid oklch(84% 0.055 24 / 0.44);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, oklch(99% 0.018 76 / 0.72), oklch(98% 0.038 20 / 0.52));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  box-shadow: inset 0 1px 0 oklch(99% 0.006 78 / 0.54);
+
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+const BloomStep = styled.div<{ $active?: boolean }>`
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: ${(p) => (p.$active ? "var(--sakura-deep, oklch(48% 0.12 24))" : "oklch(42% 0.04 52)")};
+  font-size: 12px;
+  font-weight: 900;
+
+  &::before {
+    content: "";
+    width: 26px;
+    height: 26px;
+    border: 1px solid ${(p) => (p.$active ? "oklch(76% 0.1 24 / 0.62)" : "oklch(82% 0.045 48 / 0.46)")};
+    border-radius: 72% 32% 72% 32%;
+    background: ${(p) => (p.$active ? "oklch(90% 0.08 18 / 0.78)" : "oklch(99% 0.018 76 / 0.68)")};
+    transform: rotate(28deg);
+    box-shadow: ${(p) => (p.$active ? "0 8px 14px oklch(58% 0.08 24 / 0.18)" : "none")};
+  }
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
 const Surface = styled.section`
   border: 1px solid var(--paper-border, oklch(84% 0.032 62 / 0.72));
   border-radius: 8px;
@@ -220,6 +268,10 @@ const Surface = styled.section`
 const StatusPanel = styled(Surface)`
   overflow: hidden;
   align-self: end;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   background:
     linear-gradient(135deg, oklch(96% 0.05 22 / 0.82), transparent 58%),
     linear-gradient(180deg, oklch(99% 0.014 76 / 0.92), oklch(97% 0.025 30 / 0.86));
@@ -228,18 +280,16 @@ const StatusPanel = styled(Surface)`
 `;
 
 const StatusLine = styled.div`
-  min-height: 46px;
-  padding: 0 16px;
-  border-bottom: 1px solid oklch(82% 0.052 24 / 0.28);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid oklch(82% 0.052 24 / 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, oklch(99% 0.018 76 / 0.88), oklch(97% 0.042 24 / 0.62));
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
   font-size: 13px;
-
-  &:last-child {
-    border-bottom: 0;
-  }
 
   span {
     color: oklch(47% 0.035 52);
@@ -248,7 +298,13 @@ const StatusLine = styled.div`
 
   strong {
     color: var(--sakura-deep, oklch(48% 0.12 24));
+    font-size: 20px;
+    line-height: 1;
     font-weight: 950;
+  }
+
+  &:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 `;
 
@@ -807,17 +863,41 @@ const SignalLine = styled.div`
   color: oklch(47% 0.03 62);
   font-size: 12px;
   font-weight: 850;
+
+  span:first-child {
+    color: oklch(36% 0.045 48);
+  }
 `;
 
 const Meter = styled.div`
-  height: 8px;
+  position: relative;
+  height: 13px;
   border-radius: 999px;
-  background: oklch(91% 0.024 68 / 0.86);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      oklch(83% 0.045 42 / 0.42) 0 2px,
+      transparent 2px 14px
+    ),
+    oklch(93% 0.024 68 / 0.62);
   overflow: hidden;
   box-shadow: inset 0 1px 2px oklch(42% 0.03 58 / 0.12);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: inherit;
+    background:
+      radial-gradient(closest-side, oklch(99% 0.018 24 / 0.74), transparent 72%) 0 50% / 18px 8px repeat-x;
+    opacity: 0.62;
+    pointer-events: none;
+  }
 `;
 
 const MeterFill = styled.span<{ $value: number; $tone?: "blue" | "green" | "warm" }>`
+  position: relative;
+  z-index: 1;
   display: block;
   height: 100%;
   width: ${(p) => `${Math.max(4, Math.min(100, p.$value))}%`};
@@ -1257,6 +1337,7 @@ export default function Schools() {
 
   return (
     <Page>
+      <CampusAtmosphere variant="schools" />
       <Shell>
         <Header>
           <div>
@@ -1271,6 +1352,12 @@ export default function Schools() {
               <FlowChip><BookOpen />现场笔记</FlowChip>
               <FlowChip><MessageCircle />分诊台</FlowChip>
             </FlowRail>
+            <BloomRoute aria-label="择校路径">
+              <BloomStep $active><span>筛学校</span></BloomStep>
+              <BloomStep><span>收候选</span></BloomStep>
+              <BloomStep><span>看地图档案</span></BloomStep>
+              <BloomStep><span>读现场经验</span></BloomStep>
+            </BloomRoute>
           </div>
 
           <StatusPanel>
