@@ -58,15 +58,32 @@ const Page = styled.div`
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;
-  background: oklch(96% 0.014 82);
-  color: oklch(22% 0.035 55);
-  font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  position: relative;
+  background:
+    linear-gradient(126deg, transparent 0 62%, oklch(89% 0.038 205 / 0.28) 62% 74%, transparent 74%),
+    repeating-linear-gradient(0deg, oklch(74% 0.026 72 / 0.18) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, oklch(74% 0.026 72 / 0.14) 0 1px, transparent 1px 34px),
+    var(--paper, oklch(96% 0.014 82));
+  color: var(--paper-ink, oklch(22% 0.035 55));
+  font-family: var(--font-ui, "Noto Sans SC", "PingFang SC", system-ui, sans-serif);
+
+  &::before {
+    content: "";
+    position: fixed;
+    inset: var(--nav-height, 72px) 0 auto 0;
+    height: 180px;
+    pointer-events: none;
+    background: linear-gradient(180deg, oklch(95% 0.018 78 / 0.82), transparent);
+    z-index: 0;
+  }
 `;
 
 const Shell = styled.div`
-  width: min(1360px, calc(100% - 48px));
+  position: relative;
+  z-index: 1;
+  width: min(1460px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 34px 0 70px;
+  padding: 40px 0 72px;
 
   @media (max-width: 760px) {
     width: calc(100% - 28px);
@@ -75,11 +92,52 @@ const Shell = styled.div`
 `;
 
 const Header = styled.header`
+  position: relative;
+  min-height: 292px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
-  gap: 22px;
-  align-items: end;
+  gap: 28px;
+  align-items: stretch;
+  padding: 30px;
+  border: 1px solid oklch(92% 0.01 78 / 0.14);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, oklch(58% 0.11 42 / 0.22), transparent 34%),
+    linear-gradient(90deg, oklch(12% 0.023 72), oklch(17% 0.026 82) 56%, oklch(18% 0.038 205)),
+    oklch(13% 0.022 72);
+  box-shadow: 0 28px 70px oklch(28% 0.045 58 / 0.18);
   animation: ${lift} 0.34s ease-out both;
+
+  &::before {
+    content: "JIANGSU CAMPUS GUIDE";
+    position: absolute;
+    right: 22px;
+    top: 22px;
+    color: oklch(96% 0.008 78 / 0.1);
+    font-size: 58px;
+    line-height: 0.9;
+    font-weight: 950;
+    letter-spacing: 0;
+    writing-mode: vertical-rl;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(oklch(96% 0.01 76 / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(96% 0.01 76 / 0.04) 1px, transparent 1px);
+    background-size: 38px 38px;
+    mask-image: linear-gradient(120deg, oklch(0% 0 0), transparent 74%);
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
@@ -90,7 +148,7 @@ const Eyebrow = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: oklch(48% 0.11 43);
+  color: oklch(76% 0.13 48);
   font-size: 12px;
   font-weight: 950;
 
@@ -102,9 +160,11 @@ const Eyebrow = styled.div`
 
 const Title = styled.h1`
   margin: 12px 0 12px;
-  color: oklch(20% 0.035 55);
-  font-size: 44px;
-  line-height: 1.08;
+  max-width: 9ch;
+  color: oklch(97% 0.012 76);
+  font-family: var(--font-serif, "Noto Serif SC", "Songti SC", serif);
+  font-size: 58px;
+  line-height: 0.98;
   font-weight: 950;
   letter-spacing: 0;
 
@@ -116,7 +176,7 @@ const Title = styled.h1`
 const Intro = styled.p`
   max-width: 70ch;
   margin: 0;
-  color: oklch(43% 0.032 62);
+  color: oklch(84% 0.016 76 / 0.76);
   font-size: 15px;
   line-height: 1.85;
 `;
@@ -131,10 +191,10 @@ const FlowRail = styled.div`
 const FlowChip = styled.span<{ $active?: boolean }>`
   min-height: 30px;
   padding: 0 10px;
-  border: 1px solid ${(p) => (p.$active ? "oklch(64% 0.11 43 / 0.58)" : "oklch(83% 0.028 72 / 0.72)")};
+  border: 1px solid ${(p) => (p.$active ? "oklch(72% 0.12 42 / 0.54)" : "oklch(96% 0.008 78 / 0.16)")};
   border-radius: 999px;
-  background: ${(p) => (p.$active ? "oklch(94.5% 0.035 45 / 0.8)" : "oklch(99% 0.008 82 / 0.72)")};
-  color: ${(p) => (p.$active ? "oklch(42% 0.1 42)" : "oklch(42% 0.03 62)")};
+  background: ${(p) => (p.$active ? "oklch(72% 0.12 42 / 0.16)" : "oklch(96% 0.008 78 / 0.06)")};
+  color: ${(p) => (p.$active ? "oklch(86% 0.08 48)" : "oklch(84% 0.012 78 / 0.72)")};
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -148,20 +208,29 @@ const FlowChip = styled.span<{ $active?: boolean }>`
 `;
 
 const Surface = styled.section`
-  border: 1px solid oklch(83% 0.028 72 / 0.72);
+  border: 1px solid oklch(80% 0.03 72 / 0.66);
   border-radius: 8px;
-  background: oklch(98.8% 0.008 82 / 0.76);
+  background:
+    linear-gradient(180deg, oklch(99% 0.008 82 / 0.9), oklch(96.5% 0.014 82 / 0.84)),
+    oklch(98.8% 0.008 82 / 0.76);
+  box-shadow: var(--shadow-panel, 0 18px 44px oklch(30% 0.04 58 / 0.08));
   animation: ${lift} 0.34s ease-out both;
 `;
 
 const StatusPanel = styled(Surface)`
   overflow: hidden;
+  align-self: end;
+  background:
+    linear-gradient(180deg, oklch(96% 0.008 78 / 0.08), oklch(96% 0.008 78 / 0.035)),
+    oklch(12% 0.02 72 / 0.78);
+  border-color: oklch(96% 0.008 78 / 0.12);
+  box-shadow: inset 0 1px 0 oklch(96% 0.008 78 / 0.08);
 `;
 
 const StatusLine = styled.div`
   min-height: 46px;
   padding: 0 16px;
-  border-bottom: 1px solid oklch(86% 0.022 72 / 0.62);
+  border-bottom: 1px solid oklch(96% 0.008 78 / 0.09);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -173,12 +242,12 @@ const StatusLine = styled.div`
   }
 
   span {
-    color: oklch(46% 0.03 62);
+    color: oklch(83% 0.012 78 / 0.56);
     font-weight: 800;
   }
 
   strong {
-    color: oklch(25% 0.04 56);
+    color: oklch(94% 0.018 76);
     font-weight: 950;
   }
 `;
@@ -206,10 +275,18 @@ const Notice = styled.div<{ $error?: boolean }>`
 
 const CommandBar = styled.section`
   margin-top: 24px;
-  padding: 12px;
-  border: 1px solid oklch(83% 0.028 72 / 0.72);
+  position: sticky;
+  top: 16px;
+  z-index: 20;
+  padding: 10px;
+  border: 1px solid oklch(78% 0.032 72 / 0.72);
   border-radius: 8px;
-  background: oklch(98.8% 0.008 82 / 0.74);
+  background:
+    linear-gradient(180deg, oklch(99% 0.008 82 / 0.94), oklch(95.5% 0.018 78 / 0.88)),
+    oklch(98% 0.012 82 / 0.9);
+  backdrop-filter: blur(20px) saturate(1.05);
+  -webkit-backdrop-filter: blur(20px) saturate(1.05);
+  box-shadow: 0 16px 42px oklch(33% 0.04 58 / 0.12);
   display: grid;
   grid-template-columns: minmax(280px, 1fr) auto;
   gap: 12px;
@@ -234,9 +311,12 @@ const ControlDeck = styled.section`
 `;
 
 const FilterPassport = styled(Surface)`
-  padding: 14px;
+  padding: 16px;
   display: grid;
   gap: 12px;
+  background:
+    linear-gradient(135deg, oklch(97% 0.02 48 / 0.82), transparent 44%),
+    linear-gradient(180deg, oklch(99% 0.008 82 / 0.9), oklch(96.5% 0.014 82 / 0.86));
 `;
 
 const PassportHead = styled.div`
@@ -270,7 +350,7 @@ const PassportGrid = styled.div`
 
 const PassportCell = styled.div<{ $tone?: "blue" | "green" | "warm" }>`
   min-width: 0;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid ${(p) => {
     if (p.$tone === "blue") return "oklch(74% 0.06 205 / 0.38)";
     if (p.$tone === "green") return "oklch(74% 0.07 145 / 0.38)";
@@ -280,8 +360,9 @@ const PassportCell = styled.div<{ $tone?: "blue" | "green" | "warm" }>`
   background: ${(p) => {
     if (p.$tone === "blue") return "oklch(96% 0.018 205 / 0.52)";
     if (p.$tone === "green") return "oklch(96% 0.02 145 / 0.48)";
-    return "oklch(99% 0.008 82 / 0.58)";
+    return "oklch(99% 0.008 82 / 0.68)";
   }};
+  box-shadow: inset 0 1px 0 oklch(99% 0.006 82 / 0.72);
 
   span {
     display: block;
@@ -307,6 +388,19 @@ const CompareDock = styled(Surface)`
   padding: 14px;
   display: grid;
   gap: 10px;
+  background:
+    linear-gradient(135deg, oklch(56% 0.1 205 / 0.18), transparent 48%),
+    oklch(18% 0.026 72);
+  border-color: oklch(96% 0.008 78 / 0.12);
+  box-shadow: 0 22px 54px oklch(20% 0.035 58 / 0.18);
+
+  ${PassportHead} strong {
+    color: oklch(96% 0.012 78);
+  }
+
+  ${PassportHead} span {
+    color: oklch(84% 0.012 78 / 0.62);
+  }
 `;
 
 const CompareSlots = styled.div`
@@ -318,10 +412,10 @@ const CompareSlots = styled.div`
 const CompareSlot = styled.button<{ $empty?: boolean }>`
   min-width: 0;
   min-height: 72px;
-  border: 1px dashed ${(p) => (p.$empty ? "oklch(78% 0.035 72 / 0.72)" : "oklch(68% 0.07 48 / 0.58)")};
+  border: 1px dashed ${(p) => (p.$empty ? "oklch(96% 0.008 78 / 0.2)" : "oklch(72% 0.11 48 / 0.54)")};
   border-radius: 8px;
-  background: ${(p) => (p.$empty ? "oklch(99% 0.008 82 / 0.42)" : "oklch(95% 0.028 48 / 0.68)")};
-  color: ${(p) => (p.$empty ? "oklch(52% 0.03 62)" : "oklch(33% 0.065 45)")};
+  background: ${(p) => (p.$empty ? "oklch(96% 0.008 78 / 0.045)" : "oklch(72% 0.11 48 / 0.14)")};
+  color: ${(p) => (p.$empty ? "oklch(84% 0.012 78 / 0.52)" : "oklch(90% 0.04 48)")};
   cursor: ${(p) => (p.$empty ? "default" : "pointer")};
   padding: 9px;
   display: grid;
@@ -342,14 +436,14 @@ const CompareSlot = styled.button<{ $empty?: boolean }>`
   }
 
   span {
-    color: oklch(46% 0.035 58);
+    color: oklch(84% 0.012 78 / 0.54);
     font-size: 11px;
     font-weight: 800;
   }
 `;
 
 const CompareHint = styled.div`
-  color: oklch(48% 0.03 62);
+  color: oklch(84% 0.012 78 / 0.62);
   font-size: 12px;
   line-height: 1.6;
 `;
@@ -370,16 +464,18 @@ const SearchBox = styled.label`
 
   input {
     width: 100%;
-    min-height: 46px;
+    min-height: 50px;
     box-sizing: border-box;
     padding: 0 14px 0 42px;
-    border: 1px solid oklch(82% 0.03 72 / 0.78);
+    border: 1px solid oklch(78% 0.032 72 / 0.78);
     border-radius: 8px;
-    background: oklch(99% 0.008 82 / 0.82);
+    background:
+      linear-gradient(180deg, oklch(99% 0.008 82 / 0.96), oklch(97% 0.012 82 / 0.88));
     color: oklch(24% 0.035 55);
     font: inherit;
     font-size: 14px;
     outline: none;
+    box-shadow: inset 0 1px 0 oklch(99% 0.006 82 / 0.8);
 
     &:focus {
       border-color: oklch(62% 0.12 43 / 0.72);
@@ -393,11 +489,11 @@ const SearchBox = styled.label`
 `;
 
 const ResetButton = styled.button`
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 13px;
   border: 1px solid oklch(82% 0.028 72 / 0.72);
   border-radius: 8px;
-  background: oklch(99% 0.008 82 / 0.72);
+  background: oklch(99% 0.008 82 / 0.78);
   color: oklch(42% 0.04 58);
   cursor: pointer;
   display: inline-flex;
@@ -409,6 +505,7 @@ const ResetButton = styled.button`
 
   &:hover {
     border-color: oklch(68% 0.08 48 / 0.58);
+    background: oklch(96% 0.024 48 / 0.72);
   }
 
   svg {
@@ -436,9 +533,11 @@ const Layout = styled.main`
 const FilterPanel = styled(Surface)`
   position: sticky;
   top: 18px;
-  padding: 15px;
+  padding: 16px;
   display: grid;
   gap: 14px;
+  background:
+    linear-gradient(180deg, oklch(99% 0.008 82 / 0.92), oklch(95.5% 0.014 82 / 0.84));
 
   @media (max-width: 860px) {
     position: static;
@@ -473,7 +572,7 @@ const Field = styled.label`
     min-height: 38px;
     border: 1px solid oklch(82% 0.03 72 / 0.78);
     border-radius: 8px;
-    background: oklch(99% 0.008 82 / 0.82);
+    background: oklch(99% 0.008 82 / 0.9);
     color: oklch(28% 0.035 55);
     font: inherit;
     font-size: 13px;
@@ -499,16 +598,24 @@ const FilterChip = styled.button<{ $active?: boolean }>`
   font: inherit;
   font-size: 12px;
   font-weight: 850;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: oklch(65% 0.09 48 / 0.54);
+  }
 `;
 
 const ResultsPanel = styled(Surface)`
   overflow: hidden;
+  background:
+    linear-gradient(180deg, oklch(99% 0.008 82 / 0.94), oklch(96.8% 0.014 82 / 0.88));
 `;
 
 const ResultsHead = styled.div`
-  min-height: 62px;
-  padding: 0 18px;
-  border-bottom: 1px solid oklch(86% 0.022 72 / 0.62);
+  min-height: 72px;
+  padding: 0 20px;
+  border-bottom: 1px solid oklch(82% 0.026 72 / 0.58);
   display: flex;
   justify-content: space-between;
   gap: 14px;
@@ -538,10 +645,10 @@ const ResultsTitle = styled.div`
 `;
 
 const SortSelect = styled.select`
-  min-height: 36px;
+  min-height: 40px;
   border: 1px solid oklch(82% 0.03 72 / 0.78);
   border-radius: 8px;
-  background: oklch(99% 0.008 82 / 0.82);
+  background: oklch(99% 0.008 82 / 0.9);
   color: oklch(32% 0.035 55);
   font: inherit;
   font-size: 13px;
@@ -555,20 +662,27 @@ const SchoolList = styled.div`
 `;
 
 const SchoolRow = styled.article<{ $selected?: boolean }>`
+  position: relative;
   display: grid;
-  grid-template-columns: 54px minmax(230px, 1.05fr) minmax(210px, 0.85fr) 132px;
-  gap: 16px;
-  padding: 17px 18px;
-  border-bottom: 1px solid oklch(88% 0.02 72 / 0.58);
-  background: ${(p) => (p.$selected ? "oklch(96% 0.026 48 / 0.58)" : "transparent")};
+  grid-template-columns: 58px minmax(250px, 1.05fr) minmax(230px, 0.85fr) 142px;
+  gap: 18px;
+  padding: 20px;
+  border-bottom: 1px solid oklch(86% 0.022 72 / 0.56);
+  background: ${(p) =>
+    p.$selected
+      ? "linear-gradient(90deg, oklch(95% 0.032 48 / 0.72), oklch(99% 0.008 82 / 0.62))"
+      : "linear-gradient(90deg, oklch(99% 0.008 82 / 0.42), transparent)"};
   align-items: center;
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 
   &:last-child {
     border-bottom: 0;
   }
 
   &:hover {
-    background: oklch(97.5% 0.012 82 / 0.72);
+    background:
+      linear-gradient(90deg, oklch(97% 0.02 48 / 0.72), oklch(99% 0.008 82 / 0.64));
+    box-shadow: inset 0 0 0 1px oklch(78% 0.04 58 / 0.24);
   }
 
   @media (max-width: 1040px) {
@@ -577,16 +691,18 @@ const SchoolRow = styled.article<{ $selected?: boolean }>`
 `;
 
 const SchoolRank = styled.div`
-  width: 42px;
-  height: 42px;
-  border: 1px solid oklch(82% 0.03 72 / 0.68);
+  width: 48px;
+  height: 48px;
+  border: 1px solid oklch(76% 0.035 72 / 0.72);
   border-radius: 8px;
-  background: oklch(99% 0.008 82 / 0.62);
-  color: oklch(44% 0.075 48);
+  background:
+    linear-gradient(180deg, oklch(23% 0.035 55), oklch(17% 0.026 72));
+  color: oklch(88% 0.06 48);
   display: grid;
   place-items: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 950;
+  box-shadow: 0 10px 22px oklch(26% 0.045 58 / 0.14);
 
   @media (max-width: 1040px) {
     display: none;
@@ -596,7 +712,7 @@ const SchoolRank = styled.div`
 const SchoolName = styled.h2`
   margin: 0;
   color: oklch(22% 0.035 55);
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.35;
   font-weight: 950;
 `;
@@ -694,10 +810,11 @@ const SignalLine = styled.div`
 `;
 
 const Meter = styled.div`
-  height: 7px;
+  height: 8px;
   border-radius: 999px;
-  background: oklch(91% 0.016 72 / 0.9);
+  background: oklch(90% 0.016 72 / 0.88);
   overflow: hidden;
+  box-shadow: inset 0 1px 2px oklch(42% 0.03 58 / 0.12);
 `;
 
 const MeterFill = styled.span<{ $value: number; $tone?: "blue" | "green" | "warm" }>`
@@ -706,9 +823,9 @@ const MeterFill = styled.span<{ $value: number; $tone?: "blue" | "green" | "warm
   width: ${(p) => `${Math.max(4, Math.min(100, p.$value))}%`};
   border-radius: inherit;
   background: ${(p) => {
-    if (p.$tone === "blue") return "oklch(58% 0.09 205)";
-    if (p.$tone === "green") return "oklch(55% 0.1 145)";
-    return "oklch(58% 0.11 43)";
+    if (p.$tone === "blue") return "linear-gradient(90deg, oklch(50% 0.08 205), oklch(64% 0.08 205))";
+    if (p.$tone === "green") return "linear-gradient(90deg, oklch(45% 0.09 145), oklch(62% 0.1 145))";
+    return "linear-gradient(90deg, oklch(50% 0.1 43), oklch(66% 0.12 48))";
   }};
 `;
 
@@ -718,12 +835,12 @@ const ActionColumn = styled.div`
 `;
 
 const ActionButton = styled.button<{ $primary?: boolean; $active?: boolean }>`
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 11px;
   border: 1px solid ${(p) => (p.$active ? "oklch(58% 0.09 145 / 0.58)" : p.$primary ? "oklch(64% 0.11 43 / 0.58)" : "oklch(82% 0.028 72 / 0.72)")};
   border-radius: 8px;
-  background: ${(p) => (p.$active ? "oklch(94% 0.026 145 / 0.72)" : p.$primary ? "oklch(94.5% 0.035 45 / 0.84)" : "oklch(99% 0.008 82 / 0.66)")};
-  color: ${(p) => (p.$active ? "oklch(35% 0.085 145)" : p.$primary ? "oklch(42% 0.1 42)" : "oklch(39% 0.04 58)")};
+  background: ${(p) => (p.$active ? "oklch(94% 0.026 145 / 0.72)" : p.$primary ? "oklch(45% 0.1 43)" : "oklch(99% 0.008 82 / 0.66)")};
+  color: ${(p) => (p.$active ? "oklch(35% 0.085 145)" : p.$primary ? "oklch(97% 0.012 82)" : "oklch(39% 0.04 58)")};
   cursor: pointer;
   display: inline-flex;
   justify-content: space-between;
@@ -732,6 +849,12 @@ const ActionButton = styled.button<{ $primary?: boolean; $active?: boolean }>`
   font: inherit;
   font-size: 12.5px;
   font-weight: 900;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: oklch(60% 0.1 43 / 0.62);
+  }
 
   svg {
     width: 14px;
@@ -761,6 +884,8 @@ const InsightPanel = styled(Surface)`
   padding: 15px;
   display: grid;
   gap: 12px;
+  background:
+    linear-gradient(180deg, oklch(99% 0.008 82 / 0.94), oklch(96% 0.014 82 / 0.86));
 `;
 
 const CityList = styled.div`
@@ -769,16 +894,22 @@ const CityList = styled.div`
 `;
 
 const CityButton = styled.button<{ $active?: boolean }>`
-  border: 0;
+  border: 1px solid ${(p) => (p.$active ? "oklch(70% 0.08 48 / 0.44)" : "transparent")};
   border-radius: 8px;
   background: ${(p) => (p.$active ? "oklch(94.5% 0.035 45 / 0.74)" : "transparent")};
   color: inherit;
   cursor: pointer;
-  padding: 6px 7px;
+  padding: 7px;
   display: grid;
   gap: 5px;
   text-align: left;
   font: inherit;
+  transition: background 0.18s ease, border-color 0.18s ease;
+
+  &:hover {
+    background: oklch(97% 0.018 72 / 0.7);
+    border-color: oklch(82% 0.028 72 / 0.6);
+  }
 `;
 
 const CityLine = styled.div`

@@ -29,12 +29,23 @@ const PageShell = styled.main`
 const GlobalStyle = createGlobalStyle`
   :root {
     --nav-height: 72px;
+    --font-ui: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+    --font-serif: "Noto Serif SC", "Songti SC", serif;
+    --paper: oklch(96% 0.014 82);
+    --paper-ink: oklch(22% 0.035 55);
+    --paper-muted: oklch(46% 0.03 62);
+    --paper-border: oklch(83% 0.028 72 / 0.7);
+    --accent-warm: oklch(50% 0.11 43);
+    --accent-blue: oklch(43% 0.09 205);
+    --accent-green: oklch(42% 0.09 145);
+    --shadow-panel: 0 18px 44px oklch(30% 0.04 58 / 0.08);
     @media (max-width: 640px) {
       --nav-height: 56px;
     }
   }
   html {
-    background: #080d14;
+    background: oklch(12% 0.018 72);
+    color-scheme: light;
   }
   body, #root {
     margin: 0;
@@ -42,12 +53,35 @@ const GlobalStyle = createGlobalStyle`
     width: 100%;
     height: 100%;
     overflow: hidden;
+    font-family: var(--font-ui);
+    color: var(--paper-ink);
+    background: var(--paper);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  ::selection {
+    background: oklch(82% 0.08 48 / 0.42);
+    color: oklch(20% 0.035 55);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
   }
 `;
 
 function RouteFallback() {
   return (
-    <div style={{ width: "100vw", height: "100vh", display: "grid", placeItems: "center", fontFamily: "serif", color: "#4a3040" }}>
+    <div style={{ width: "100vw", height: "100vh", display: "grid", placeItems: "center", fontFamily: "var(--font-serif)", color: "oklch(32% 0.06 48)" }}>
       载入中...
     </div>
   );

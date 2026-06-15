@@ -22,15 +22,21 @@ const Bar = styled.nav<{ $dark?: boolean; $hidden: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 28px;
   background: ${(p) =>
-    p.$dark ? "oklch(9% 0.018 72 / 0.88)" : "oklch(97% 0.014 78 / 0.92)"};
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+    p.$dark
+      ? "linear-gradient(180deg, oklch(12% 0.018 72 / 0.94), oklch(9% 0.018 72 / 0.82))"
+      : "linear-gradient(180deg, oklch(98% 0.012 82 / 0.96), oklch(95.5% 0.018 78 / 0.9))"};
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
   border-bottom: 1px solid
     ${(p) =>
-      p.$dark ? "oklch(96% 0.008 78 / 0.1)" : "oklch(78% 0.035 70 / 0.28)"};
-  font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+      p.$dark ? "oklch(96% 0.008 78 / 0.12)" : "oklch(75% 0.035 70 / 0.34)"};
+  box-shadow: ${(p) =>
+    p.$dark
+      ? "0 16px 44px oklch(7% 0.018 72 / 0.32)"
+      : "0 14px 34px oklch(40% 0.045 58 / 0.08)"};
+  font-family: var(--font-ui);
   box-sizing: border-box;
   transform: translateY(${(p) => (p.$hidden ? "-100%" : "0")});
   transition: transform 0.35s ease;
@@ -42,16 +48,41 @@ const Bar = styled.nav<{ $dark?: boolean; $hidden: boolean }>`
 `;
 
 const Brand = styled.button<{ $dark?: boolean }>`
-  background: none;
-  border: none;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: ${(p) =>
+    p.$dark ? "oklch(96% 0.008 78 / 0.04)" : "oklch(99% 0.008 82 / 0.64)"};
+  border: 1px solid
+    ${(p) => (p.$dark ? "oklch(96% 0.008 78 / 0.11)" : "oklch(78% 0.035 70 / 0.3)")};
+  border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 950;
   color: ${(p) => (p.$dark ? "oklch(96% 0.008 78)" : "oklch(25% 0.035 55)")};
   letter-spacing: 0;
-  padding: 0;
+  padding: 0 13px 0 10px;
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 oklch(99% 0.006 82 / 0.42);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+
+  &::before {
+    content: "";
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background:
+      linear-gradient(135deg, oklch(62% 0.12 43), oklch(50% 0.09 205)),
+      oklch(55% 0.1 43);
+    box-shadow: inset 0 0 0 1px oklch(98% 0.008 82 / 0.38);
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: ${(p) => (p.$dark ? "oklch(72% 0.12 42 / 0.34)" : "oklch(65% 0.09 48 / 0.46)")};
+  }
 
   @media (max-width: 640px) {
     font-size: 14px;
@@ -61,8 +92,19 @@ const Brand = styled.button<{ $dark?: boolean }>`
 const Links = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   position: relative;
+  min-height: 48px;
+  padding: 4px;
+  border: 1px solid oklch(78% 0.028 72 / 0.28);
+  border-radius: 8px;
+  background: oklch(99% 0.006 82 / 0.12);
+
+  @media (max-width: 980px) {
+    gap: 0;
+    overflow-x: auto;
+    max-width: calc(100vw - 190px);
+  }
 `;
 
 const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
@@ -70,7 +112,7 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
   border: none;
   cursor: pointer;
   font-family: inherit;
-  min-height: 42px;
+  min-height: 40px;
   display: grid;
   align-content: center;
   gap: 2px;
@@ -84,11 +126,17 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
         ? "oklch(48% 0.11 42)"
         : "oklch(38% 0.032 58)"};
   font-weight: ${(p) => (p.$active ? 900 : 760)};
-  padding: 5px 11px;
+  padding: 5px 12px;
   border-radius: 8px;
   position: relative;
-  transition: color 0.25s ease, background 0.25s ease;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease;
   white-space: nowrap;
+  background: ${(p) =>
+    p.$active
+      ? p.$dark
+        ? "oklch(72% 0.12 42 / 0.1)"
+        : "oklch(94% 0.036 48 / 0.76)"
+      : "transparent"};
 
   span {
     line-height: 1.05;
@@ -103,9 +151,10 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
   }
 
   &:hover {
-    color: #c76b5e;
+    color: oklch(55% 0.12 42);
     background: ${(p) =>
       p.$dark ? "oklch(72% 0.12 42 / 0.12)" : "oklch(88% 0.055 48 / 0.18)"};
+    transform: translateY(-1px);
   }
 
   @media (max-width: 640px) {
@@ -120,7 +169,7 @@ const NavLink = styled.button<{ $active: boolean; $dark?: boolean }>`
 
 const Indicator = styled.div`
   position: absolute;
-  bottom: 0;
+  bottom: 5px;
   height: 2px;
   background: oklch(60% 0.12 42);
   border-radius: 1px;
@@ -131,19 +180,19 @@ const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
   border: 1px solid
     ${(p) =>
       p.$active
-        ? "rgba(199, 107, 94, 0.3)"
+        ? "oklch(64% 0.11 43 / 0.45)"
         : p.$dark
-          ? "rgba(199, 107, 94, 0.18)"
-          : "rgba(199, 107, 94, 0.18)"};
+          ? "oklch(72% 0.12 42 / 0.2)"
+          : "oklch(70% 0.075 48 / 0.34)"};
   border-radius: 8px;
   background: ${(p) =>
     p.$active
-      ? "rgba(199, 107, 94, 0.08)"
+      ? "oklch(94% 0.035 45 / 0.78)"
       : p.$dark
-        ? "rgba(255, 255, 255, 0.06)"
-        : "rgba(255, 252, 247, 0.58)"};
+        ? "oklch(96% 0.008 78 / 0.06)"
+        : "oklch(99% 0.008 82 / 0.68)"};
   color: ${(p) =>
-    p.$active ? "#c76b5e" : p.$dark ? "rgba(255,255,255,0.7)" : "#8a5a4f"};
+    p.$active ? "oklch(48% 0.11 42)" : p.$dark ? "oklch(92% 0.008 78 / 0.72)" : "oklch(38% 0.06 50)"};
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
@@ -153,12 +202,12 @@ const LoginLink = styled.button<{ $active?: boolean; $dark?: boolean }>`
   transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    color: #c76b5e;
+    color: oklch(52% 0.12 42);
     background: ${(p) =>
       p.$dark
-        ? "rgba(255, 255, 255, 0.12)"
-        : "rgba(255, 252, 247, 0.88)"};
-    border-color: rgba(199, 107, 94, 0.3);
+        ? "oklch(96% 0.008 78 / 0.12)"
+        : "oklch(99% 0.008 82 / 0.92)"};
+    border-color: oklch(64% 0.11 43 / 0.42);
   }
 
   @media (max-width: 640px) {
@@ -238,7 +287,7 @@ export default function NavBar({ $hideOnScroll = false }: { $hideOnScroll?: bool
   return (
     <Bar $dark={isDark} $hidden={$hideOnScroll && hidden}>
       <Brand $dark={isDark} onClick={() => handleNav("/")}>
-        江苏高校地图
+        江苏校园指北
       </Brand>
       <Links ref={linksRef}>
         {NAV_ITEMS.map((item) => (
